@@ -1,0 +1,36 @@
+services:
+    gai-ttt:
+        build:
+            context: ..
+            dockerfile: ./src/gai/ttt/Dockerfile
+            args:
+                CATEGORY: "ttt"
+        image: kakkoii1337/gai-ttt:latest
+        container_name: gai-ttt
+        environment:
+            DOCKER_BUILDKIT: 1
+            LOG_LEVEL: "DEBUG"
+            TZ: "Asia/Singapore"
+            SWAGGER_URL: "/doc"
+            DEFAULT_GENERATOR: "ttt-exllamav2-mistral7b"
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - capabilities: [gpu]
+                          driver: nvidia
+                          count: all
+        ports:
+            - "12031:12031"
+            - "5678:5678"
+        volumes:
+            - ~/.gai:/app/gai
+
+        # Enabling wait-for-client for debugger to wait until preLaunchTask is done. But the debugger client FAILED TO START after preLaunchTask is done so
+        # the container did not get pass this command, ie. stuck at Attaching to gai-ttt.
+        # command: python -m debugpy --listen 0.0.0.0:5678 --wait-for-client main.py
+
+        # Disabling wait-for-client for debugger to start immediately. The services can start as normal, but the debugger client failed to stop at breakpoints.
+        command: python -m debugpy --listen 0.0.0.0:5678 main.py
+
+        # Currently what works is to run the start container task independently and then run the attached debugger launch manually.

@@ -1,0 +1,76 @@
+gai_url: ""
+logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    filename: ""
+    filemode: "a"
+    stream: "stdout"
+    loggers:
+        gai.lib.ttt: "DEBUG"
+        gai.common.http_utils: "DEBUG"
+clients:
+    default:
+        ttt: "ttt-gai"
+    ttt-gai:
+        type: ttt
+        url: "http://localhost:12031/gen/v1/chat/completions"
+        whitelist:
+            - temperature
+            - top_p
+            - min_p
+            - top_k
+            - max_new_tokens
+            - typical
+            - n
+            - token_repetition_penalty_max
+            - token_repetition_penalty_sustain
+            - token_repetition_penalty_decay
+            - beams
+            - beam_length
+        env:
+            GAI_API_KEY: "GAI_API_KEY"
+    ttt-openai:
+        type: ttt
+        whitelist:
+            - max_tokens
+            - temperature
+            - top_p
+            - presence_penalty
+            - frequency_penalty
+            - stop
+            - logit_bias
+            - n
+            - stream
+            - openai_api_key
+        default:
+            temperature: 1.2
+            top_p: 0.15
+            top_k: 50
+            max_tokens: 1000
+        env:
+            OPENAI_API_KEY: "OPENAI_API_KEY"
+gen:
+    default:
+        ttt: "ttt-exllamav2-mistral7b"
+    ttt-exllamav2-mistral7b:
+        type: "ttt"
+        generator_name: "exllamav2-mistral7b"
+        engine: "gai.ttt.server.GaiExLlamaV2"
+        model_path: "models/exllamav2-mistral7b"
+        model_basename: "model"
+        max_seq_len: 8192
+        prompt_format: "mistral"
+        hyperparameters:
+            {
+                "temperature": 0.85,
+                "top_p": 0.8,
+                "top_k": 50,
+                "max_new_tokens": 1000,
+            }
+        tool_choice: "auto"
+        max_retries: 5
+        stop_conditions: ["<s>", "</s>", "user:", ".\n\n"]
+        no_flash_attn: true
+        seed: null
+        decode_special_tokens: false

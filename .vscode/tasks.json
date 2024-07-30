@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Docker: Run gai-ttt with debugger",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "docker-compose -f .vscode/docker-compose.yml build && docker rm -f gai-ttt && docker-compose -f .vscode/docker-compose.yml up"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker: Push gai-ttt image",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "docker push kakkoii1337/gai-ttt:latest"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

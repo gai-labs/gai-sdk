@@ -1,0 +1,53 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Docker: Attach Gai.TTT",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/src",
+                    "remoteRoot": "/app/src"
+                }
+            ]
+            /*
+                DO NOT USE
+                "preLaunchTask": "Docker: Run Gai.TTT with Debug",
+                - The debugpy client needs to know when the task is ready for attaching but this will usually fail because the debugpy client fail to detect the debugpy service signal.
+                - When service is started without --wait-for-client, the service will start normally but will not trigger a breakpoint that the client can catch.
+                - When service is started using   --wait-for-client, the service will never start because the client cannot detect if the service is ready.
+            */
+        },
+        {
+            "name": "Python Debugger: TTT Api Server",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "args": [],
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            },
+            "program": "${workspaceFolder}/src/gai/ttt/server/api/main.py",
+            "justMyCode": false
+        },
+        {
+            "name": "Python Debugger: Python File",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "args": [],
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            },
+            "program": "${file}",
+            "cwd": "${fileDirname}",
+            "justMyCode": false
+        }
+    ],
+    "compounds": []
+}

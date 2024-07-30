@@ -1,0 +1,2 @@
+GAIRC = "~/.gairc"
+
