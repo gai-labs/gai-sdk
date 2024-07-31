@@ -23,4 +23,5 @@ python-dotenv
 transformers
 uvicorn
 pynvml
+nats-py
 
