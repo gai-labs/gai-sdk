@@ -1,4 +1,13 @@
 services:
+
+    gai-nats:
+        image: nats:latest
+        container_name: gai-nets
+        ports:
+        - "4222:4222"  # Client port
+        environment:
+        - NATS_SERVER_NAME=my-nats
+
     gai-ttt:
         build:
             context: ..
