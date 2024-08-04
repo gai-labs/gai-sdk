@@ -24,8 +24,10 @@ services:
         ports:
             - "12031:12031"
             - "5678:5678"
+        networks:
+            - gai-networks
         volumes:
-            - ~/.gai:/app/gai
+            - ~/.gai:/app/.gai
 
         # Enabling wait-for-client for debugger to wait until preLaunchTask is done. But the debugger client FAILED TO START after preLaunchTask is done so
         # the container did not get pass this command, ie. stuck at Attaching to gai-ttt.
@@ -35,3 +37,8 @@ services:
         command: python -m debugpy --listen 0.0.0.0:5678 main.py
 
         # Currently what works is to run the start container task independently and then run the attached debugger launch manually.
+
+
+networks:
+  gai-networks:
+    external: true

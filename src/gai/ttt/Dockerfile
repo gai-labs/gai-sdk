@@ -27,21 +27,20 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Step 3: Copy Source Code
 WORKDIR /app
 COPY src/gai/lib src/gai/lib
-COPY src/gai/cli src/gai/cli
 COPY src/gai/ttt src/gai/ttt
 COPY setup.py VERSION .
 
 # Step 4: Build app
 WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -e .
+    pip install -e ".[ttt]"
 RUN pip install debugpy
 
 # Step 5: Startup
-WORKDIR /app/src/gai/ttt/server/api
-VOLUME /app/gai
-RUN echo '{"app_dir":"/app/gai"}' > /root/.gairc
-ENV MODEL_PATH="/app/gai/models"
+RUN echo '{"app_dir":"/app/.gai"}' > /root/.gairc
+VOLUME /app/.gai
+ENV MODEL_PATH="/app/.gai/models"
 ENV CATEGORY=${CATEGORY}
+WORKDIR /app/src/gai/ttt/server/api
 CMD ["bash","-c","python main.py"]
 

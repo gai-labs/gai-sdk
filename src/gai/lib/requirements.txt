@@ -1,0 +1,10 @@
+markdownify
+httpx
+openai
+python-dotenv
+colorlog==6.8.2
+rich
+openai==1.32.0
+pydantic
+pynvml
+

@@ -4,19 +4,33 @@ import os
 # Is this used for publishing?
 is_publishing=os.environ.get("TWINE_USERNAME",False)
 
+# Find base directory with reference to setup.py
+def get_here():
+    return os.path.dirname(os.path.abspath(__file__))
+HERE = get_here()
+print(f"\033[31mHERE: {HERE}\033[0m")
+
 # Read the version from the VERSION file
-base_dir = os.path.dirname(os.path.abspath(__file__))
-version_file = os.path.join(base_dir, 'VERSION')
-with open(version_file, 'r') as f:
-    VERSION = f.read().strip()
-here = os.path.dirname(os.path.realpath(__file__))
+def get_version():
+    version_file = os.path.join(HERE, 'VERSION')
+    with open(version_file, 'r') as f:
+        return f.read().strip()
+VERSION = get_version()
+print(f"\033[31mInstalling: {VERSION}\033[0m")
 
 # Read the requirements from the requirements.txt file
+DEFAULT_REQUIREMENTS_PATH=os.path.join(HERE,"src/gai/lib/requirements.txt")
 def parse_requirements(filename):
-    if os.path.exists(os.path.join(here, filename)):
-        with open(os.path.join(here, filename)) as f:
+    required=[]
+    filepath = os.path.join(HERE, filename)
+    if os.path.exists(filepath):
+        with open(filepath) as f:
             required = f.read().splitlines()
         return required
+DEFAULT_REQUIREMENTS = parse_requirements("./src/gai/lib/requirements.txt")
+
+if not DEFAULT_REQUIREMENTS or len(DEFAULT_REQUIREMENTS)==0:
+    raise Exception(f"No requirements found in {DEFAULT_REQUIREMENTS_PATH}")
 
 # Install local wheel file
 def local_pkg(name: str,file_path: str) -> str:
@@ -24,20 +38,23 @@ def local_pkg(name: str,file_path: str) -> str:
     file_path=os.path.join(os.getcwd(),"wheels",file_path)
     return f"{name} @ file://{file_path}"
 
-extras_require = {}
+# Merge two lists and remove duplicates
+def merge_list(list1, list2):
+    # Ensure both list1 and list2 are lists, default to empty list if None
+    list1 = list1 if list1 is not None else []
+    list2 = list2 if list2 is not None else []
+    return list(set(list1) | set(list2))
 
-# For pre-built wheels on localhost (not for docker or publishing)
-svr_requirements=[]
-if not is_publishing:
-    svr_requirements=[local_pkg("exllamav2","exllamav2-0.1.4-cp310-cp310-linux_x86_64.whl")]
-extras_require["svr"] = svr_requirements
 
-# For pre-built wheels and development on localhost (not for docker or publishing)
-dev_requirements=[]
-if dev_requirements and not is_publishing:
-    dev_requirements = parse_requirements("requirements_dev.txt")
-    dev_requirements.append(local_pkg("exllamav2","exllamav2-0.1.4-cp310-cp310-linux_x86_64.whl"))
-    extras_require["dev"] = dev_requirements
+# For default and cli use
+cli_requirements=DEFAULT_REQUIREMENTS.copy()
+
+# For development, debugging and testing on local machine
+dev_requirements = merge_list(DEFAULT_REQUIREMENTS,parse_requirements("requirements_dev.txt"))
+
+# For running servers with pre-built wheels on localhost (not for docker or publishing)
+ttt_requirements = merge_list(DEFAULT_REQUIREMENTS,parse_requirements("./src/gai/ttt/requirements_ttt.txt"))
+ttt_requirements.append(local_pkg("exllamav2","exllamav2-0.1.4-cp310-cp310-linux_x86_64.whl"))
 
 setup(
     name='gai-sdk',
@@ -62,9 +79,13 @@ setup(
     ],
     python_requires='>=3.10',
     install_requires=[
-        parse_requirements("src/gai/ttt/requirements_ttt.txt")
+        DEFAULT_REQUIREMENTS
     ],
-    extras_require=extras_require,
+    extras_require= {
+        "cli": cli_requirements,
+        "dev": dev_requirements,
+        "ttt": ttt_requirements
+    } if not is_publishing else {},
     entry_points={
         'console_scripts': [
             'gai=gai.cli.scripts.main:main',

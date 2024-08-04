@@ -2,12 +2,12 @@
 FROM python:3.10-slim
 
 # Copy and install gai-sdk
-RUN pip install "gai-sdk[net]"
+RUN pip install gai-sdk
 
 # Install any needed packages specified in requirements.txt
 WORKDIR /app
 COPY src/gai/net ./gai/net
 RUN pip install nats-py rich openai
-ENV OPENAI_API_KEY ""
+ENV OPENAI_API_KEY=""
 WORKDIR /app/gai/net/server
 CMD ["python", "main.py"]
