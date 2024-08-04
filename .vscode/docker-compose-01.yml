@@ -14,6 +14,7 @@ services:
           - "nats://0.0.0.0:6222"
           - "--routes"
           - "nats://192.168.1.100:6222"
+          - "nats://192.168.1.200:6222"
         restart: unless-stopped
 
     gai-ttt:
