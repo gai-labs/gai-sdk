@@ -60,6 +60,7 @@ async def main():
                         if  type(chunk) is str:
                             print(chunk,end="",flush=True)
                             await send_message(nc, SUBJECT_agent, chunk)
+                            await asyncio.sleep(0.1)
                 await send_message(nc, SUBJECT_agent, "</s>")
                 
             except TimeoutError:

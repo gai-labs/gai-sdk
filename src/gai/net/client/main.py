@@ -38,9 +38,9 @@ async def main():
                 break
 
             if is_streaming:
-                print(f"[green]{content}[/]", end="", flush=True)
+                console.print(f"[green]{content}[/]", end="")
 
-        print()
+        console.print()
         prompt = await aioconsole.ainput("Please enter a message:")
 
 
