@@ -1,0 +1,3 @@
+include VERSION
+include requirements_dev.txt
+include src/gai/ttt/requirements_ttt.txt

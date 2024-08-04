@@ -1,8 +1,9 @@
 services:
 
-    gai-nats:
+    # NATS Server <-> GAI Net Subscriber
+    nats:
         image: nats:latest
-        container_name: gai-nets
+        container_name: nats
         ports:
         - "4222:4222"  # Client port
         - "8222:8222"  # Monitoring port
@@ -18,6 +19,16 @@ services:
           - "nats://192.168.1.200:6222"
         restart: unless-stopped
 
+    # NAT Server <-> GAI Net Subscriber -> GAI TTT API Server
+    gai-net-server:
+        build:
+            context: ..
+            dockerfile: ./src/gai/net/server/Dockerfile
+        image: kakkoii1337/gai-net-server:latest
+        environment:
+        - NATS_URL="nats://nats:4222"
+
+    # GAI TTT API Server
     gai-ttt:
         build:
             context: ..

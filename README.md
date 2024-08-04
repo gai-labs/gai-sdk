@@ -1,6 +1,40 @@
 # GAI SDK
 
-## Installation
+## A. Install from Github
+
+### 1. Create conda env
+
+```bash
+conda create -n ttt python=3.10.10 -y
+conda activate ttt
+```
+
+### 2. Clone Repository
+
+```bash
+git clone https://github.com/kakkoii1337/gai-sdk
+```
+
+### 3. Install Packages
+
+```bash
+cd gai-sdk
+pip install -e ".[dev]"
+```
+
+### 4. Initialise
+
+```bash
+gai init
+```
+
+### 5. Download model
+
+```bash
+gai pull exllamav2-mistral7b
+```
+
+## B. Install from Pypi
 
 ### 1. Create conda env
 
@@ -12,26 +46,26 @@ conda activate ttt
 ### 2. Install Packages
 
 ```bash
-pip install -e ".[dev]"
+pip install gai-sdk[ttt]
 ```
 
-### 3. Initialise
+### 4. Initialise
 
 ```bash
 gai init
 ```
 
-### 4. Download model
+### 5. Download model
 
 ```bash
 gai pull exllamav2-mistral7b
 ```
 
-### 5. Start server
+## Start server
 
-a) Click on Run and Debug icon in Activity Bar -> Python Debugger: TTT Api Server -> Start Debugging
-
-b) Note that it may fail because the Debug Console has not activated the conda environment. Just stop the debugger and go to the DEBUG CONSOLE. Activate the conda environment `conda activate ttt` and press F5.
+```
+gai docker start
+```
 
 If it is successfully started, you will see the following:
 

@@ -84,7 +84,7 @@ def pull(model_name):
     else:
         console.print(f"[red]Model {model_name} not found[/]")
 
-def serve():
+def docker_start():
     try:
         dest = os.path.join(here,"../../../../.vscode")
         docker_command = f"cd {dest} && docker-compose up -d --build --force-recreate"
@@ -92,17 +92,7 @@ def serve():
     except subprocess.CalledProcessError as e:
         print(f"Error occurred: {e}")
 
-def news(news_url="https://asiaone.com"):
-    from gai.cli._gai_cli.Tools import Tools
-    tools=Tools(client)
-    tools.news(news_url)
-
-def search(search_term):
-    from gai.cli._gai_cli.Tools import Tools
-    tools=Tools(client)
-    tools.do_gg(search_term)
-
-def stop():
+def docker_stop():
     try:
         dest = os.path.join(here,"../../../../.vscode")
         docker_command = f"cd {dest} && docker-compose down -v --remove-orphans"
@@ -114,11 +104,22 @@ def stop():
     except subprocess.CalledProcessError as e:
         print(f"Error occurred: {e.stderr.decode()}")
 
+def news(news_url="https://asiaone.com"):
+    from gai.cli._gai_cli.Tools import Tools
+    tools=Tools(client)
+    tools.news(news_url)
+
+def search(search_term):
+    from gai.cli._gai_cli.Tools import Tools
+    tools=Tools(client)
+    tools.do_gg(search_term)
+
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Gai CLI Tool')
-    parser.add_argument('command', choices=['init', 'pull', 'news', 'search','serve','stop'], help='Command to run')
+    parser.add_argument('command', choices=['init', 'pull', 'news', 'search','docker'], help='Command to run')
     parser.add_argument('-f', '--force', action='store_true', help='Force initialization')
     parser.add_argument('extra_args', nargs='*', help='Additional arguments for commands')
 
@@ -142,10 +143,14 @@ def main():
             search(args.extra_args[0])
         else:
             console.print("[red]Search term not provided[/]")
-    elif args.command == "serve":
-        serve()
-    elif args.command == "stop":
-        stop
+    elif args.command == "docker":
+        if args.extra_args:
+            if args.extra_args[0] == "start":
+                docker_start()
+            elif args.extra_args[0] == "stop":
+                docker_stop()
+            else:
+                console.print("[red]Invalid docker command[/]")
 
 
 if __name__ == "__main__":
