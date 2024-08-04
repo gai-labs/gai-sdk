@@ -1,23 +1,5 @@
 services:
 
-    gai-nats:
-        image: nats:latest
-        container_name: gai-nets
-        ports:
-        - "4222:4222"  # Client port
-        - "8222:8222"  # Monitoring port
-        - "6222:6222"  # Cluster port
-        environment:
-        - NATS_SERVER_NAME=gai-nats-ttt
-        command:
-          - "--cluster"
-          - "nats://0.0.0.0:6222"
-          - "--routes"
-          - "nats://192.168.1.100:6222"
-          - "--routes"
-          - "nats://192.168.1.200:6222"
-        restart: unless-stopped
-
     gai-ttt:
         build:
             context: ..
