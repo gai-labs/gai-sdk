@@ -52,7 +52,7 @@ class Completions:
                         "arguments": response.choices[0].message.tool_calls[0].function.arguments
                     }
                     return response
-                raise Exception("Response is neither content nor toolcall. Please verify the API response.")
+                raise Exception("completions.attach_extractor: Response is neither content nor toolcall. Please verify the API response.")
             
             def streamer():
 
@@ -82,7 +82,7 @@ class Completions:
                         }
 
                     if not chunk.extract:
-                        raise Exception(f"Chunk response contains unexpected data that cannot be processed. chunk: {chunk.__dict__}")
+                        raise Exception(f"completions.streamer: Chunk response contains unexpected data that cannot be processed. chunk: {chunk.__dict__}")
                     yield chunk
 
             return (chunk for chunk in streamer())
@@ -94,7 +94,7 @@ class Completions:
             model = kwargs.get("model", None)
 
             if not model:
-                raise Exception("Model not provided")
+                raise Exception("completions.patched_create: Model not provided")
             
             if model=="exllamav2-mistral7b":
                 # call locally
@@ -156,7 +156,7 @@ class Completions:
             messages = chat_string_to_list(messages)
 
         if not messages:
-            raise Exception("Messages not provided")
+            raise Exception("completions._generate_dict: Messages not provided")
         
         if messages[-1]["role"] != "assistant":
             messages.append({"role": "assistant", "content": ""})
@@ -193,7 +193,7 @@ class Completions:
             # else:
                 raise he
         except Exception as e:
-            logger.error(f"completions.create: error={e}")
+            logger.error(f"completions._generate_dict: error={e}")
             raise e
 
         return completion
@@ -237,7 +237,7 @@ class Completions:
             # else:
                 raise he
         except Exception as e:
-            logger.error(f"completions.create: error={e}")
+            logger.error(f"completions._stream_dict: error={e}")
             raise e
         
         for chunk in response.iter_lines():

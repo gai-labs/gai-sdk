@@ -8,10 +8,10 @@ import yaml
 def init():
     with open(os.path.expanduser(constants.GAIRC), "w") as file:
         file.write(json.dumps({
-            "app_dir": "~/gai"
+            "app_dir": "~/.gai"
         }, indent=4))
     config_dir=dirname(dirname(dirname(__file__)))
-    config_path=os.path.join(config_dir, 'gai.json')
+    config_path=os.path.join(config_dir, 'gai.yml')
     os.makedirs(os.path.expanduser("~/gai/models"), exist_ok=True)
     shutil.copy(config_path, os.path.expanduser("~/gai"))
 
@@ -41,7 +41,7 @@ def this_dir(file):
 
 # Create ~/.gaiaio/cache
 def mkdir_cache():
-    cache_dir = os.path.expanduser('~/.gaiaio/cache')
+    cache_dir = os.path.expanduser('~/.gai/cache')
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
 

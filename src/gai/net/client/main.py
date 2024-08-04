@@ -1,9 +1,11 @@
 import os
 import asyncio
 import nats
+import sys
 from nats.errors import TimeoutError
 from rich.console import Console
 console=Console()
+import aioconsole
 
 SUBJECT_ALL="dialogue.*"
 SUBJECT_user=f"dialogue.user"
@@ -13,10 +15,10 @@ async def main():
     nc = await nats.connect(servers=servers)
     console.print(f"[yellow italic] Publishing to servers:{servers}[/]")
 
-    print("Please enter a message:")
-    prompt = input()
+    prompt = await aioconsole.ainput("Please enter a message:")
     while prompt.lower() != "bye":
     
+        
         await nc.publish(SUBJECT_user,prompt.encode("utf-8"))
         sub = await nc.subscribe(SUBJECT_ALL)
         
@@ -36,10 +38,10 @@ async def main():
                 break
 
             if is_streaming:
-                console.print(f"[green]{content}[/]", end="")
+                print(f"[green]{content}[/]", end="", flush=True)
 
-        print("Please enter a message:")
-        prompt = input()
+        print()
+        prompt = await aioconsole.ainput("Please enter a message:")
 
 
 if __name__ == '__main__':
