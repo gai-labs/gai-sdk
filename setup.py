@@ -8,7 +8,7 @@ is_publishing=os.environ.get("TWINE_USERNAME",False)
 def get_here():
     return os.path.dirname(os.path.abspath(__file__))
 HERE = get_here()
-print(f"\033[31mHERE: {HERE}\033[0m")
+print(f"\033[33mHERE: {HERE}\033[0m")
 
 # Read the version from the VERSION file
 def get_version():
@@ -16,7 +16,8 @@ def get_version():
     with open(version_file, 'r') as f:
         return f.read().strip()
 VERSION = get_version()
-print(f"\033[31mInstalling: {VERSION}\033[0m")
+print(f"\033[33mInstalling: {VERSION}\033[0m")
+
 
 # Read the requirements from the requirements.txt file
 DEFAULT_REQUIREMENTS_PATH=os.path.join(HERE,"src/gai/lib/requirements.txt")
@@ -50,11 +51,19 @@ def merge_list(list1, list2):
 cli_requirements=DEFAULT_REQUIREMENTS.copy()
 
 # For development, debugging and testing on local machine
-dev_requirements = merge_list(DEFAULT_REQUIREMENTS,parse_requirements("requirements_dev.txt"))
+dev_requirements = merge_list(DEFAULT_REQUIREMENTS,[
+    "pytest",
+    "ipykernel",
+    "pynvml",
+    "nats-py",
+])
 
 # For running servers with pre-built wheels on localhost (not for docker or publishing)
 ttt_requirements = merge_list(DEFAULT_REQUIREMENTS,parse_requirements("./src/gai/ttt/requirements_ttt.txt"))
 ttt_requirements.append(local_pkg("exllamav2","exllamav2-0.1.4-cp310-cp310-linux_x86_64.whl"))
+
+# For nats
+net_requirements = merge_list(DEFAULT_REQUIREMENTS,parse_requirements("./src/gai/net/server/requirements.txt"))
 
 setup(
     name='gai-sdk',

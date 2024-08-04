@@ -2,7 +2,7 @@
 FROM python:3.10-slim
 
 # Copy and install gai-sdk
-RUN pip install gai-sdk
+RUN pip install --upgrade "gai-sdk[net]"
 
 # Install any needed packages specified in requirements.txt
 WORKDIR /app

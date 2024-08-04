@@ -1,4 +1,0 @@
-pytest
-ipykernel
-pynvml
-nats-py

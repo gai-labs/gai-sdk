@@ -39,6 +39,71 @@ services:
         # Currently what works is to run the start container task independently and then run the attached debugger launch manually.
 
 
+    nats01:
+        image: nats:latest
+        container_name: nats01
+        ports:
+        - "4222:4222"  # Client port
+        - "8222:8222"  # Monitoring port
+        - "6222:6222"  # Cluster port
+        command:
+          - "--cluster"
+          - "nats://0.0.0.0:6222"
+          - "--routes"
+          - "nats://nats02:6223"
+          - "--routes"
+          - "nats://nats03:6224"
+        restart: unless-stopped
+        networks:
+            - gai-sandbox
+
+    # nats02:
+    #     image: nats:latest
+    #     container_name: nats02
+    #     ports:
+    #     - "4223:4222"  # Client port
+    #     - "8223:8222"  # Monitoring port
+    #     - "6223:6222"  # Cluster port
+    #     command:
+    #       - "--cluster"
+    #       - "nats://0.0.0.0:6223"
+    #       - "--routes"
+    #       - "nats://nats01:6222"
+    #       - "--routes"
+    #       - "nats://nats03:6224"
+    #     restart: unless-stopped
+    #     networks:
+    #         - gai-sandbox
+
+    # nats03:
+    #     image: nats:latest
+    #     container_name: nats03
+    #     ports:
+    #     - "4224:4222"  # Client port
+    #     - "8224:8222"  # Monitoring port
+    #     - "6224:6222"  # Cluster port
+    #     command:
+    #       - "--cluster"
+    #       - "nats://0.0.0.0:6224"
+    #       - "--routes"
+    #       - "nats://nats01:6222"
+    #       - "--routes"
+    #       - "nats://nats02:6223"
+    #     restart: unless-stopped
+    #     networks:
+    #         - gai-sandbox
+
+    gai-net01:
+        build:
+            context: ..
+            dockerfile: ./src/gai/net/server/Dockerfile
+        image: gai-net:latest
+        container_name: gai-net01
+        environment:
+            NATS_URL: "nats://nats01:4222"
+        networks:
+            - gai-sandbox
+
 networks:
   gai-sandbox:
     external: true

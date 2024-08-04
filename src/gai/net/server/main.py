@@ -26,6 +26,7 @@ async def main():
     servers = os.environ.get("NATS_URL", "nats://localhost:4222").split(",")
     nc = None
     try:
+        console.print(f"[yellow italic] Connecting to servers:{servers}[/]")
         nc = await nats.connect(servers=servers)
         console.print(f"[green italic] Successfully connected to servers:{servers}[/]")
     except Exception as e:
