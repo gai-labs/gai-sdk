@@ -97,7 +97,7 @@ services:
         build:
             context: ..
             dockerfile: ./src/gai/net/server/Dockerfile
-        image: gai-net:latest
+        image: kakkoii1337/gai-net:latest
         container_name: gai-net01
         environment:
             NATS_URL: "nats://nats01:4222"
