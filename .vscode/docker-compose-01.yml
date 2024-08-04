@@ -1,38 +1,62 @@
 services:
 
     # NATS Server <-> GAI Net Subscriber
-    nats:
+    nats01:
         image: nats:latest
-        container_name: nats
+        container_name: nats01
         ports:
         - "4222:4222"  # Client port
         - "8222:8222"  # Monitoring port
         - "6222:6222"  # Cluster port
-        environment:
-        - NATS_SERVER_NAME=gai-nats-ttt
         command:
           - "--cluster"
           - "nats://0.0.0.0:6222"
           - "--routes"
-          - "nats://192.168.1.100:6222"
+          - "nats://nats02:6223"
           - "--routes"
-          - "nats://192.168.1.200:6222"
+          - "nats://nats03:6224"
         restart: unless-stopped
         networks:
-            - gai-networks
+            - gai-sandbox
 
-    # NAT Server <-> GAI Net Subscriber -> GAI TTT API Server
-    gai-net01:
-        build:
-            context: ..
-            dockerfile: ./src/gai/net/server/Dockerfile
-        image: kakkoii1337/gai-net-server:latest
-        container_name: gai-net01
-        environment:
-            NATS_URL: "nats://nats:4222"
+    # NATS Server <-> GAI Net Subscriber
+    nats02:
+        image: nats:latest
+        container_name: nats02
+        ports:
+        - "4223:4222"  # Client port
+        - "8223:8222"  # Monitoring port
+        - "6223:6222"  # Cluster port
+        command:
+          - "--cluster"
+          - "nats://0.0.0.0:6223"
+          - "--routes"
+          - "nats://nats01:6222"
+          - "--routes"
+          - "nats://nats03:6224"
+        restart: unless-stopped
         networks:
-            - gai-networks
+            - gai-sandbox
+
+    # NATS Server <-> GAI Net Subscriber
+    nats03:
+        image: nats:latest
+        container_name: nats03
+        ports:
+        - "4224:4222"  # Client port
+        - "8224:8222"  # Monitoring port
+        - "6224:6222"  # Cluster port
+        command:
+          - "--cluster"
+          - "nats://0.0.0.0:6224"
+          - "--routes"
+          - "nats://nats01:6222"
+          - "--routes"
+          - "nats://nats02:6223"
+        restart: unless-stopped
+        networks:
+            - gai-sandbox
 
 networks:
-    gai-networks:
+    gai-sandbox:
         external: true

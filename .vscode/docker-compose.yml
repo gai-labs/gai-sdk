@@ -25,7 +25,7 @@ services:
             - "12031:12031"
             - "5678:5678"
         networks:
-            - gai-networks
+            - gai-sandbox
         volumes:
             - ~/.gai:/app/.gai
 
@@ -40,5 +40,5 @@ services:
 
 
 networks:
-  gai-networks:
+  gai-sandbox:
     external: true
