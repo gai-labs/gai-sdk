@@ -9,4 +9,5 @@ python-dotenv
 requests
 rich
 PyYAML
+aioconsole
 
