@@ -1,6 +1,6 @@
 # GAI SDK
 
-## A. Install from Github
+## A. Method 1: Install from Github
 
 ### 1. Create conda env
 
@@ -34,7 +34,8 @@ gai init
 gai pull exllamav2-mistral7b
 ```
 
-## B. Install from Pypi
+---
+## B. Method 2: Install from Pypi
 
 ### 1. Create conda env
 
@@ -60,6 +61,7 @@ gai init
 ```bash
 gai pull exllamav2-mistral7b
 ```
+---
 
 ## Start server
 
