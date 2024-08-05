@@ -1,7 +1,10 @@
+aioconsole
 colorlog==6.8.2
 fastapi
 httpx
+huggingface_hub
 markdownify
+nats-py
 openai==1.32.0
 pydantic
 pynvml
@@ -9,5 +12,5 @@ python-dotenv
 requests
 rich
 PyYAML
-aioconsole
+
 

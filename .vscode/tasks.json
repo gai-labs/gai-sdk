@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Docker: Run gai-ttt with debugger",
+            "label": "Docker: docker-compose up",
             "type": "shell",
             "command": "/bin/bash",
             "args": [
@@ -12,12 +12,33 @@
             "problemMatcher": []
         },
         {
-            "label": "Docker: Push gai-ttt image",
+            "label": "Docker: docker-compose down",
+            "type": "shell",
+            "command": "docker-compose",
+            "args": [
+                "-f",
+                "${workspaceFolder}/.vscode/docker-compose.yml",
+                "down"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker: push gai-ttt",
             "type": "shell",
             "command": "/bin/bash",
             "args": [
                 "-c",
                 "docker push kakkoii1337/gai-ttt:latest"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker: push gai-net",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "docker push kakkoii1337/gai-net:latest"
             ],
             "problemMatcher": []
         }

@@ -1,4 +1,4 @@
-import json
+import json,os
 from gai.lib.common.http_utils import http_post
 from gai.lib.common.generators_utils import chat_string_to_list
 from gai.lib.common.errors import ApiException
@@ -175,22 +175,15 @@ class Completions:
         }
         response=None
         try:
-            url = get_gai_config()["clients"]["ttt-gai"]["url"]
+            if os.environ.get("TTT_URL",False):
+                url = os.environ["TTT_URL"]
+            else:
+                url = get_gai_config()["clients"]["ttt-gai"]["url"]
             response = http_post(url, data)
             jsoned=response.json()
             completion = ChatCompletion(**jsoned)
             
         except ApiException as he:
-            # Switch to long context
-            # if he.code == "context_length_exceeded":
-            #     try:
-            #         url = get_lib_config("url")["generators"]["ttt-gai"]["url"]
-            #         response = http_post(url, data)
-            #         completion = ChatCompletion(**response.json())
-            #     except Exception as e:
-            #         logger.error(f"completions.create: error={e}")
-            #         raise e
-            # else:
                 raise he
         except Exception as e:
             logger.error(f"completions._generate_dict: error={e}")
@@ -223,18 +216,12 @@ class Completions:
         }
         response=None
         try:
-            url = get_gai_config()["clients"]["ttt-gai"]["url"]
+            if os.environ.get("TTT_URL",False):
+                url = os.environ["TTT_URL"]
+            else:
+                url = get_gai_config()["clients"]["ttt-gai"]["url"]
             response = http_post(url, data)    
         except ApiException as he:
-            # Switch to long context
-            # if he.code == "context_length_exceeded":
-            #     try:
-            #         url = get_lib_config("url")["generators"]["ttt-gai"]["url"]
-            #         response = http_post(url, data)
-            #     except Exception as e:
-            #         logger.error(f"completions.create: error={e}")
-            #         raise e
-            # else:
                 raise he
         except Exception as e:
             logger.error(f"completions._stream_dict: error={e}")

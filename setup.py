@@ -93,7 +93,8 @@ setup(
     extras_require= {
         "cli": cli_requirements,
         "dev": dev_requirements,
-        "ttt": ttt_requirements
+        "ttt": ttt_requirements,
+        "net": net_requirements,
     } if not is_publishing else {},
     entry_points={
         'console_scripts': [

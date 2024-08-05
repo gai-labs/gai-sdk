@@ -1,5 +1,4 @@
 services:
-
     gai-ttt:
         build:
             context: ..
@@ -38,21 +37,20 @@ services:
 
         # Currently what works is to run the start container task independently and then run the attached debugger launch manually.
 
-
     nats01:
         image: nats:latest
         container_name: nats01
         ports:
-        - "4222:4222"  # Client port
-        - "8222:8222"  # Monitoring port
-        - "6222:6222"  # Cluster port
+            - "4222:4222" # Client port
+            - "8222:8222" # Monitoring port
+            - "6222:6222" # Cluster port
         command:
-          - "--cluster"
-          - "nats://0.0.0.0:6222"
-          - "--routes"
-          - "nats://nats02:6223"
-          - "--routes"
-          - "nats://nats03:6224"
+            - "--cluster"
+            - "nats://0.0.0.0:6222"
+            - "--routes"
+            - "nats://nats02:6223"
+            - "--routes"
+            - "nats://nats03:6224"
         restart: unless-stopped
         networks:
             - gai-sandbox
@@ -101,9 +99,12 @@ services:
         container_name: gai-net01
         environment:
             NATS_URL: "nats://nats01:4222"
+            TTT_URL: "http://gai-ttt:12031/gen/v1/chat/completions"
         networks:
             - gai-sandbox
+        volumes:
+            - ~/.gai:/app/.gai
 
 networks:
-  gai-sandbox:
-    external: true
+    gai-sandbox:
+        external: true

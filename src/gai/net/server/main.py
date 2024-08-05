@@ -17,6 +17,8 @@ from openai import OpenAI
 client = OpenAI()
 from gai.ttt.client.completions import Completions
 client = Completions.PatchOpenAI(client)
+if os.environ["TTT_URL"]:
+    client.ttt_url = os.environ["TTT_URL"]
 
 async def send_message(nc, subject, msg):
     payload = msg.encode("utf-8")
