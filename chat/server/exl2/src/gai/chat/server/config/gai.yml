@@ -1,0 +1,144 @@
+version: "1.0"
+gai_url: "http://localhost:12033"
+logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    filename: ""
+    filemode: "a"
+    stream: "stdout"
+    loggers:
+        gai.ttt: "DEBUG"
+        gai.common.http_utils: "DEBUG"
+generators:
+    ttt:
+        ref: dolphin3.0_llama3.1:4.25bpw:exl2
+    dolphin3.0_llama3.1:4.25bpw:exl2:
+        # bpw: 8 bits, size: 3.98 GB
+        type: ttt
+        engine: exllamav2
+        model: dolphin3.0_llama3.1:4.25bpw
+        name: dolphin3.0_llama3.1:4.25bpw:exl2
+        hyperparameters:
+            temperature: 0.85
+            top_p: 0.8
+            top_k: 50
+            max_tokens: 1000
+            tool_choice: auto
+            max_retries: 5
+            stop:
+                - <|im_end|>
+                - </s>
+                - "[/INST]"
+        extra:
+            model_path: models/Dolphin3.0-Llama3.1-8B-4_25bpw-exl2
+            max_seq_len: 8192
+            prompt_format: llama
+            no_flash_attn: true
+            seed: null
+            decode_special_tokens: false
+        module:
+            name: gai.chat.server.gai_exllamav2
+            class: GaiExLlamav2
+        source:
+            type: huggingface
+            repo_id: bartowski/Dolphin3.0-Llama3.1-8B-exl2
+            local_dir: Dolphin3.0-Llama3.1-8B-4_25bpw-exl2
+            revision: 896301e945342d032ef0b3a81b57f0d5a8bac6fe
+
+    qwen.2.5:3.5bpw:exl2:
+        # bpw: 8 bits, size: 3.98 GB
+        type: ttt
+        engine: exllamav2
+        model: qwen.2.5:3.5bpw
+        name: qwen.2.5:3.5bpw:exl2
+        hyperparameters:
+            temperature: 0.1
+            top_p: 0.8
+            top_k: 50
+            max_tokens: 4096
+            tool_choice: auto
+            max_retries: 5
+            stop:
+                - <|im_end|>
+                - </s>
+                - "[/INST]"
+        extra:
+            model_path: models/Qwen2.5-Coder-14B-Instruct-exl2
+            max_seq_len: 8192
+            prompt_format: llama
+            no_flash_attn: true
+            seed: null
+            decode_special_tokens: false
+        module:
+            name: gai.chat.server.gai_exllamav2
+            class: GaiExLlamav2
+        source:
+            type: huggingface
+            repo_id: bartowski/Qwen2.5-Coder-14B-Instruct-exl2
+            local_dir: Qwen2.5-Coder-14B-Instruct-exl2
+            revision: 9bdce633a21ef6fc95d774a68ee1f96b0f04cb0b
+
+    dolphin2.8_mistral7b:4.25bpw:exl2:
+        type: "ttt"
+        engine: "exllamav2"
+        model: "dolphin"
+        name: "dolphin2.8_mistral7b:4.25bpw:exl2"
+        extra:
+            model_path: "models/dolphin-2.8-mistral-7b-v02-exl2"
+            max_seq_len: 8192
+            prompt_format: "mistral"
+            no_flash_attn: true
+            seed: null
+            decode_special_tokens: false
+        hyperparameters:
+            temperature: 0.85
+            top_p: 0.8
+            top_k: 50
+            max_tokens: 1000
+            tool_choice: "auto"
+            max_retries: 5
+            stop: ["<|im_end|>", "</s>", "[/INST]"]
+        module:
+            name: "gai.chat.server.gai_exllamav2"
+            class: "GaiExLlamav2"
+        source:
+            type: "huggingface"
+            repo_id: "bartowski/dolphin-2.8-mistral-7b-v02-exl2"
+            local_dir: "dolphin-2.8-mistral-7b-v02-exl2"
+            revision: "e2e2998baa533c94874995c117115eb70c7a89bb"
+
+    dolphin_mistral:exl2:
+        ref: "dolphin2.8_mistral7b:4.25bpw:exl2"
+
+    dolphin_llama:exl2:
+        ref: "dolphin3.0_llama3.1:4.25bpw:exl2"
+
+    llama3.2:8bpw:exl2:
+        type: "ttt"
+        engine: "exllamav2"
+        model: "llama3.2"
+        name: "llama3.2:8bpw:exl2"
+        extra:
+            model_path: "models/Llama-3.2-3B-Instruct-exl2"
+            max_seq_len: 8192
+            prompt_format: "mistral"
+            no_flash_attn: true
+            seed: null
+            decode_special_tokens: false
+        hyperparameters:
+            temperature: 0.85
+            top_p: 0.8
+            top_k: 50
+            max_tokens: 1000
+            tool_choice: "auto"
+            max_retries: 5
+            stop: ["<|im_end|>", "</s>", "[/INST]"]
+        module:
+            name: "gai.chat.server.gai_exllamav2"
+            class: "GaiExLlamav2"
+        source:
+            type: "huggingface"
+            repo_id: "bartowski/Llama-3.2-3B-Instruct-exl2"
+            local_dir: "Llama-3.2-3B-Instruct-exl2"
+            revision: "a17d5a789d0177bba754cc2e1c51f73776df4443"

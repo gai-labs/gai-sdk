@@ -1,0 +1,25 @@
+[project]
+name = "gai-chat-svr-exl2"
+version = "1.0.96"
+requires-python = ">=3.10"
+dependencies = [ "pynvml==12.0.0", "numpy==1.26.4", "tokenizers==0.20.0", "uvicorn==0.30.6", "jsonschema>=4.23.0", "lm-format-enforcer==0.10.11", "toml>=0.10.2", "fastapi>=0.115.12", "gai-lib",]
+[[project.authors]]
+name = "kakkoii1337"
+email = "kakkoii1337@gmail.com"
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.license]
+file = "LICENSE"
+
+[project.optional-dependencies]
+dev = [ "gai-lib[dev]>=1.0.218",]
+
+[tool.uv.sources.gai-lib]
+path = "gai-lib"
+editable = true
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/gai",]

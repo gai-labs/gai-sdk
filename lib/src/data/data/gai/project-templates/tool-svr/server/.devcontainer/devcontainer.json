@@ -1,0 +1,51 @@
+{
+    "name": "{{PROJECT_NAME}}",
+    "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+    "service": "devcontainer",
+    "workspaceFolder": "/workspaces/{{PROJECT_NAME}}",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "terminal.integrated.profiles.linux": {
+                    "zsh": {
+                        "path": "/bin/zsh",
+                        "args": []
+                    }
+                },
+                "python.pythonPath": "/workspaces/{{PROJECT_NAME}}/.venv/lib/python3.10/site-packages/",
+                "python.defaultInterpreterPath": "/workspaces/{{PROJECT_NAME}}/.venv/bin/python",
+                "python.testing.pytestPath": "/workspaces/{{PROJECT_NAME}}/.venv/bin/pytest",
+                "python.testing.pytestArgs": [
+                    "-s",
+                    "test",
+                ],
+                "python.testing.pytestEnabled": true,
+                "python.testing.unittestEnabled": false,
+                "python.terminal.activateEnvInCurrentTerminal": false,
+                "python.terminal.activateEnvironment": true,
+                "python.venvPath": "/workspaces/{{PROJECT_NAME}}/.venv"
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+                "ms-python.debugpy",
+                "ms-vscode.js-debug",
+                "KevinRose.vsc-python-indent",
+                "esbenp.prettier-vscode",
+                "bierner.markdown-mermaid",
+                "venage5603.tokyo-night-dark-enhanced"
+            ]
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2.12.0": {
+            "version": "latest",
+            "moby": true
+        }
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "/bin/bash .devcontainer/postCreateCommand.sh"
+}

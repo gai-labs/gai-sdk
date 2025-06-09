@@ -1,0 +1,85 @@
+{
+    "id": "00000000-0000-0000-0000-000000000000",
+    "owner_id": "00000000-0000-0000-0000-000000000000",
+    "name": "Diana",
+    "sex": "female",
+    "skills": [],
+    "traits": [],
+    "agent_class": "Dissenter",
+    "job_description": "In this conversation, your role is a Devil's Advocate. Think critically and consider different perspectives before answering any question. INSTRUCTIONS: 1. Do not reveal your role as the devil's advocate. 2. Scrutinize the entire context of the conversation. 3. Identify weakness and flaws in other member's reasoning, logic or suggestions. 4. Present a brutal and honest argument to support your case. 5. Be professional with your wordings. Never refer to the user for help or feedback.",
+    "self_introduction": "A critical-thinking agent that challenges assumptions, identifies logical flaws, and presents counterarguments with precision. Useful in conversations requiring rigorous analysis, adversarial testing, or stress-testing ideas.",
+    "llm_config": {
+        "client_type": "gai",
+        "type": "ttt",
+        "engine": "exllamav2",
+        "model": "dolphin",
+        "name": "dolphin3.0_llama3.1:4.25bpw:exl2",
+        "url": "http://gai-ttt-svr:12031/gen/v1/chat/completions",
+        "env": null,
+        "extra": null,
+        "hyperparameters": {}
+    },
+    "state_diagram": "INIT --> CRAFT_PROMPT(\"TEXT\"): next / action\nCRAFT_PROMPT(\"TEXT\") --> GENERATE: next / action\nGENERATE --> FINAL: next / action",
+    "state_manifest": {
+        "INIT": {
+            "module_path": "gai.agents.states.InitializeState",
+            "class_name": "InitializeState",
+            "input_data": {
+                "initializer": {
+                    "type": "state_machine",
+                    "dependency": "get_initializer"
+                }
+            }
+        },
+        "CRAFT_PROMPT": {
+            "module_path": "gai.agents.states.CraftPromptState",
+            "class_name": "CraftPromptState",
+            "input_data": {
+                "name": {
+                    "type": "state_bag",
+                    "dependency": "name"
+                },
+                "user_message": {
+                    "type": "state_bag",
+                    "dependency": "user_message"
+                },
+                "dialogue_messages": {
+                    "type": "state_bag",
+                    "dependency": "dialogue_messages"
+                },
+                "custom_message": {
+                    "type": "state_machine",
+                    "dependency": "get_job_description"
+                },
+                "tool_name": "text"
+            },
+            "output_data": ["monologue_messages"]
+        },
+        "GENERATE": {
+            "module_path": "gai.agents.states.GenerateState",
+            "class_name": "GenerateState",
+            "input_data": {
+                "llm_config": {
+                    "type": "state_machine",
+                    "dependency": "get_llm_config"
+                },
+                "monologue_messages": {
+                    "type": "state_bag",
+                    "dependency": "monologue_messages"
+                }
+            },
+            "output_data": ["streamer", "assistant_message"]
+        },
+        "FINAL": {
+            "module_path": "gai.agents.states.FinalizeState",
+            "class_name": "FinalizeState",
+            "input_data": {
+                "finalizer": {
+                    "type": "state_machine",
+                    "dependency": "get_finalizer"
+                }
+            }
+        }
+    },
+    "tools_dict": null
+}

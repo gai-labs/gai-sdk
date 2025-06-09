@@ -1,0 +1,32 @@
+[project]
+name = "gai-sdk"
+version = "1.0.221"
+description = "Refer to https://gai-labs.github.io/gai-sdk for more information"
+readme = "README.md"
+classifiers = [ "Programming Language :: Python :: 3.10", "Development Status :: 3 - Alpha", "License :: OSI Approved :: MIT License", "Intended Audience :: Science/Research", "Intended Audience :: Developers", "Operating System :: OS Independent", "Topic :: Software Development", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Scientific/Engineering :: Artificial Intelligence",]
+requires-python = ">=3.10"
+dependencies = [ "gai-lib", "gai-cli",]
+[[project.authors]]
+name = "kakkoii1337"
+email = "kakkoii1337@gmail.com"
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+dev = [ "gai-lib[dev]", "gai-cli[dev]",]
+
+[project.scripts]
+gai = "gai.cli:main"
+
+[tool.uv.sources.gai-lib]
+path = "lib"
+editable = true
+
+[tool.uv.sources.gai-cli]
+path = "cli"
+editable = true
+
+[tool.hatch.build.targets.wheel]
+packages = [ "lib/src/gai", "cli/src/gai",]

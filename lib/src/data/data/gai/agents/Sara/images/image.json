@@ -1,0 +1,6 @@
+{
+    "image_name": "Sara",
+    "image_type": "png",
+    "image_prompt": "\n        name: Sara;\n        personality: ['intelligent', 'cheerful', 'diligent'];\n        style: ['8k', 'photorealistic', 'DSLR photo', 'uhd highly detailed', 'headshot portrait'];sex: female;\n        pure white background.\n        light-colored clothing.\n        fusion-look.\n        teenager.\n        single-person.\n        headshot portrait.\n        full face-only.\n        ",
+    "negative_prompt": "\n            multiple persons;\n            weird eyes;\n            goofy face;\n            poorly Rendered face;\n            poorly drawn face;\n            poor facial details;\n            poorly drawn hands;\n            poorly rendered hands;\n            low resolution;\n            Images cut out at the top, left, right, bottom;\n            bad composition;\n            mutated body parts;\n            blurry image;\n            disfigured;\n            oversaturated;\n            bad anatomy;\n            deformed body features;\n            "
+}

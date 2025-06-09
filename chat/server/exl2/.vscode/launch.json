@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: gai-chat server (dolphin)",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "args": [],
+            "env": {
+                "PYTHONUNBUFFERED": "1",
+                "DEFAULT_GENERATOR": "ttt",
+            },
+            "program": "${workspaceFolder}/src/gai/chat/server/api/main.py",
+            "justMyCode": false,
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Attach",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/src",
+                    "remoteRoot": "/workspaces/gai-chat-svr-exl2/src"
+                }
+            ]
+        },
+    ]
+}

@@ -1,0 +1,1 @@
+curl http://gai-chat-svr:12031

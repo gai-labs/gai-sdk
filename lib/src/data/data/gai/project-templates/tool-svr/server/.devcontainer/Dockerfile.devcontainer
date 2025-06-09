@@ -1,0 +1,96 @@
+# https://github.com/microsoft/vscode-dev-containers/tree/main/containers
+# https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/containers/python-3/.devcontainer/base.Dockerfile
+
+# [Choice] Python version (use -bullseye variants on local arm64/Apple Silicon): 3, 3.10, 3.9, 3.8, 3.7, 3.6, 3-bullseye, 3.10-bullseye, 3.9-bullseye, 3.8-bullseye, 3.7-bullseye, 3.6-bullseye, 3-buster, 3.10-buster, 3.9-buster, 3.8-buster, 3.7-buster, 3.6-buster
+ARG VARIANT=3-bullseye
+FROM python:${VARIANT}
+
+ARG CACHE_BUST="0.0.1"
+
+# Copy library scripts to execute
+
+COPY .devcontainer/library-scripts/*.sh .devcontainer/library-scripts/*.env /tmp/library-scripts/
+
+# [Option] Install zsh
+
+ARG INSTALL_ZSH="true"
+
+# [Option] Upgrade OS packages to their latest versions
+
+ARG UPGRADE_PACKAGES="true"
+
+# Install needed packages and setup non-root user. Use a separate RUN statement to add your own dependencies.
+
+ARG USERNAME="vscode"
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # Remove imagemagick due to https://security-tracker.debian.org/tracker/CVE-2019-10131
+    && apt-get purge -y imagemagick imagemagick-6-common \
+    # Install common packages, non-root user
+    && bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Setup default python tools in a venv via pipx to avoid conflicts
+
+ENV PIPX_HOME=/usr/local/py-utils \
+    PIPX_BIN_DIR=/usr/local/py-utils/bin
+ENV PATH=${PATH}:${PIPX_BIN_DIR}
+RUN bash /tmp/library-scripts/python-debian.sh "none" "/usr/local" "${PIPX_HOME}" "${USERNAME}" \ 
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
+
+ARG NODE_VERSION="none"
+ENV NVM_DIR=/usr/local/share/nvm
+ENV NVM_SYMLINK_CURRENT=true \
+    PATH=${NVM_DIR}/current/bin:${PATH}
+RUN bash /tmp/library-scripts/node-debian.sh "${NVM_DIR}" "${NODE_VERSION}" "${USERNAME}" \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Remove library scripts for final image
+RUN rm -rf /tmp/library-scripts
+
+# Allow non-root user to run docker commands
+
+RUN groupadd docker \
+    && usermod -aG docker $USERNAME
+
+# Ensure home directory permissions are correct before switching user
+
+RUN mkdir -p /home/${USERNAME}/.cache && \
+chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
+
+# Switch to non-root user
+
+ARG PROJECT_NAME
+ENV PROJECT_NAME=${PROJECT_NAME}
+ENV USERNAME=${USERNAME}
+USER ${USERNAME}
+ENV HOME="/home/$USERNAME"
+RUN echo "{\"app_dir\":\"${HOME}/.gai\"}" > ${HOME}/.gairc \
+    && mkdir -p ${HOME}/.gai
+SHELL ["/bin/bash","-c"]
+
+# Install uv
+
+COPY --from=ghcr.io/astral-sh/uv@sha256:2381d6aa60c326b71fd40023f921a0a3b8f91b14d5db6b90402e65a635053709 /uv /uvx /bin/
+
+# Create virtual environment
+
+ENV PROJECT_PATH="/workspaces/${PROJECT_NAME}"
+WORKDIR ${PROJECT_PATH}
+RUN uv venv
+
+# Activate and setup environment
+
+ENV VENV_PATH="/workspaces/${PROJECT_NAME}/.venv"
+ENV PATH="${VENV_PATH}}/bin:${PATH}"
+RUN source ${VENV_PATH}/bin/activate \
+     && uv pip install --upgrade pip==24.2
+RUN echo "source ${VENV_PATH}/bin/activate" >> /home/$USERNAME/.zshrc \
+    && echo "export PYTHONPATH=${VENV_PATH}" >> /home/$USERNAME/.zshrc \
+    && echo "export PATH=${VENV_PATH}/.venv/bin:${PATH}" >> /home/$USERNAME/.zshrc
+RUN echo "source ${VENV_PATH}/bin/activate" >> /home/$USERNAME/.bashrc \
+    && echo "export PYTHONPATH=${VENV_PATH}" >> /home/$USERNAME/.bashrc \
+    && echo "export PATH=${VENV_PATH}/.venv/bin:${PATH}" >> /home/$USERNAME/.bashrc

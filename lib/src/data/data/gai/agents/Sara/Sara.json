@@ -1,0 +1,85 @@
+{
+    "id": "00000000-0000-0000-0000-000000000000",
+    "owner_id": "00000000-0000-0000-0000-000000000000",
+    "name": "Sara",
+    "sex": "female",
+    "skills": [],
+    "traits": [],
+    "agent_class": "Assistant",
+    "job_description": "You are a general-purpose AI conversational agent. You are kind and compassionate and can empathize with the user. Always maintain a likeable and approachable demeanor.",
+    "self_introduction": "A general-purpose conversational agent with a warm, kind, and empathetic demeanor. Useful in conversations requiring strong listening skills, meticulousness, and attention to detail.",
+    "llm_config": {
+        "client_type": "gai",
+        "type": "ttt",
+        "engine": "exllamav2",
+        "model": "dolphin",
+        "name": "dolphin3.0_llama3.1:4.25bpw:exl2",
+        "url": "http://gai-ttt-svr:12031/gen/v1/chat/completions",
+        "env": null,
+        "extra": null,
+        "hyperparameters": {}
+    },
+    "state_diagram": "INIT --> CRAFT_PROMPT(\"TEXT\"): next / action\nCRAFT_PROMPT(\"TEXT\") --> GENERATE: next / action\nGENERATE --> FINAL: next / action",
+    "state_manifest": {
+        "INIT": {
+            "module_path": "gai.agents.states.InitializeState",
+            "class_name": "InitializeState",
+            "input_data": {
+                "initializer": {
+                    "type": "state_machine",
+                    "dependency": "get_initializer"
+                }
+            }
+        },
+        "CRAFT_PROMPT": {
+            "module_path": "gai.agents.states.CraftPromptState",
+            "class_name": "CraftPromptState",
+            "input_data": {
+                "name": {
+                    "type": "state_bag",
+                    "dependency": "name"
+                },
+                "user_message": {
+                    "type": "state_bag",
+                    "dependency": "user_message"
+                },
+                "dialogue_messages": {
+                    "type": "state_bag",
+                    "dependency": "dialogue_messages"
+                },
+                "custom_message": {
+                    "type": "state_machine",
+                    "dependency": "get_job_description"
+                },
+                "tool_name": "text"
+            },
+            "output_data": ["monologue_messages"]
+        },
+        "GENERATE": {
+            "module_path": "gai.agents.states.GenerateState",
+            "class_name": "GenerateState",
+            "input_data": {
+                "llm_config": {
+                    "type": "state_machine",
+                    "dependency": "get_llm_config"
+                },
+                "monologue_messages": {
+                    "type": "state_bag",
+                    "dependency": "monologue_messages"
+                }
+            },
+            "output_data": ["streamer", "assistant_message"]
+        },
+        "FINAL": {
+            "module_path": "gai.agents.states.FinalizeState",
+            "class_name": "FinalizeState",
+            "input_data": {
+                "finalizer": {
+                    "type": "state_machine",
+                    "dependency": "get_finalizer"
+                }
+            }
+        }
+    },
+    "tools_dict": null
+}

@@ -1,0 +1,12 @@
+version: "1.1"
+gai_url: "http://localhost:12033"
+logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    filename: ""
+    filemode: "a"
+    stream: "stdout"
+    loggers:
+        gai.ttt: "DEBUG"
+        gai.common.http_utils: "DEBUG"

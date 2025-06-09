@@ -1,0 +1,30 @@
+[project]
+name = "gai-lib"
+version = "0.181.4"
+readme = "README.md"
+requires-python = ">=3.10"
+description = "Refer to https://gai-labs.github.io/gai for more information"
+classifiers = [ "Programming Language :: Python :: 3.10", "Development Status :: 3 - Alpha", "License :: OSI Approved :: MIT License", "Intended Audience :: Science/Research", "Intended Audience :: Developers", "Operating System :: OS Independent", "Topic :: Software Development", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Scientific/Engineering :: Artificial Intelligence",]
+dependencies = [ "toml>=0.10.2,<0.11", "pyyaml>=6.0.2", "python-dotenv>=1.0.1,<2.0", "nest-asyncio>=1.6.0", "huggingface_hub>=0.24.5,<0.25", "openai>=1.43.0,<2.0.0", "pydantic>=1.0", "rich>=13.7.1,<14.0", "fastapi>=0.115.12",]
+[[project.authors]]
+name = "kakkoii1337"
+email = "kakkoii1337@gmail.com"
+
+[dependency-groups]
+dev = [ "build>=1.2.2.post1", "flake8>=7.1.1,<8.0", "ipykernel>=6.29.5,<7.0", "keyrings.alt>=5.0.1,<6.0", "jupyterlab>=4.4.2", "notebook>=7.4.2", "nox>=2024.4.15,<2025.0", "pytest>=8.3.5", "pytest-ordering>=0.6,<1.0", "pytest-asyncio==0.25.2", "twine>=6.1.0", "wheel>=0.45.1",]
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.license]
+file = "LICENSE"
+
+[project.urls]
+documentation = "https://gai-labs.github.io/gai/docs"
+
+[project.optional-dependencies]
+dev = [ "build>=1.2.2.post1", "flake8>=7.1.1,<8.0", "ipykernel>=6.29.5,<7.0", "keyrings.alt>=5.0.1,<6.0", "jupyterlab>=4.4.2", "notebook>=7.4.2", "nox>=2024.4.15,<2025.0", "pytest>=8.3.5", "pytest-ordering>=0.6,<1.0", "pytest-asyncio==0.25.2", "twine>=6.1.0", "wheel>=0.45.1",]
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/gai", "src/data",]

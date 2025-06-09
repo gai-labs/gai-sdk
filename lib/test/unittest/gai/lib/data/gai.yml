@@ -1,0 +1,144 @@
+version: "1.0"
+gai_url: http://localhost:12033
+logging:
+    level: INFO
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    filename: ""
+    filemode: a
+    stream: stdout
+    loggers:
+        gai.ttt: DEBUG
+        gai.common.http_utils: DEBUG
+clients:
+    ttt:
+        ref: dolphin_llama:exl2
+    dolphin_llama:exl2:
+        type: ttt
+        engine: exl2
+        name: dolphin_llama:exl2
+        client_type: gai
+        url: http://gai-ttt-svr:12031/gen/v1/chat/completions
+    "llama3.2:3b":
+        type: ttt
+        engine: ollama
+        model: "llama3.2:3b"
+        name: "llama3.2:3b"
+        client_type: ollama
+        extra:
+            num_ctx: 4096
+    "cogito:3b":
+        type: ttt
+        engine: ollama
+        model: "cogito:3b"
+        name: "cogito:3b"
+        client_type: ollama
+    phi4:
+        type: ttt
+        engine: ollama
+        model: phi4
+        name: phi4
+        client_type: ollama
+        extra:
+            num_ctx: 4096
+    gpt-4o:
+        type: ttt
+        engine: openai
+        model: gpt-4o
+        name: gpt-4o
+        client_type: openai
+        env:
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+    rag:
+        type: rag
+        engine: sentencepiece
+        model: instructor
+        name: rag-sentencepiece-instructor
+        client_type: gai
+        url: http://gai-rag-svr:12036/gen/v1/rag
+        extra:
+            ws_url: ws://gai-rag-svr:12036/gen/v1/rag/index-file/ws
+    rag-sentencepiece-instructor:
+        type: rag
+        engine: sentencepiece
+        model: instructor
+        name: rag-sentencepiece-instructor
+        client_type: gai
+        url: http://gai-rag-svr:12036/gen/v1/rag
+        extra:
+            ws_url: ws://gai-rag-svr:12036/gen/v1/rag/index-file/ws
+    gai-selenium:
+        type: scraper
+        engine: selenium
+        model: selenium
+        name: gai-selenium
+        client_type: gai
+        url: http://gai-selenium:12028/api/v1
+    tti:
+        type: tti
+        engine: sd1.5
+        model: runwayml
+        name: tti-sd1.5-runwayml
+        client_type: gai
+        url: http://gai-tti-svr:12035/sdapi/v1/txt2img
+    tti-sd1.5-runwayml:
+        type: tti
+        engine: sd1.5
+        model: runwayml
+        name: tti-sd1.5-runwayml
+        client_type: gai
+        url: http://gai-tti-svr:12035/sdapi/v1/txt2img
+    tts:
+        type: tts
+        engine: coqui
+        model: xttsv2
+        name: tts-coqui-xttsv2
+        client_type: gai
+        url: http://gai-tts-svr:12032/gen/v1/audio/speech
+    tts-coqui-xttsv2:
+        type: tts
+        engine: coqui
+        model: xttsv2
+        name: tts-coqui-xttsv2
+        client_type: gai
+        url: http://gai-tts-svr:12032/gen/v1/audio/speech
+    stt:
+        type: stt
+        engine: huggingface
+        model: whisperv3
+        name: stt-huggingface-whisperv3
+        client_type: gai
+        url: http://gai-stt-svr:12033/gen/v1/audio/transcriptions
+    stt-whisperv3-huggingface:
+        type: stt
+        engine: huggingface
+        model: whisperv3
+        name: stt-huggingface-whisperv3
+        client_type: gai
+        url: http://gai-stt-svr:12033/gen/v1/audio/transcriptions
+    itt:
+        type: itt
+        engine: vicuna7b
+        model: llavav1.6
+        name: itt-vicuna7b-llavav1.6
+        client_type: gai
+        url: http://gai-itt-svr:12034/gen/v1/vision/completions
+    itt-vicuna7b-llavav1.6:
+        type: itt
+        engine: vicuna7b
+        model: llavav1.6
+        name: itt-vicuna7b-llavav1.6
+        client_type: gai
+        url: http://gai-itt-svr:12034/gen/v1/vision/completions
+    ttc:
+        type: ttc
+        engine: exllamav2
+        model: deepseek
+        name: ttc-exllamav2-deepseek
+        client_type: gai
+    ttc-exllamav2-deepseek:
+        type: ttc
+        engine: exllamav2
+        model: deepseek
+        name: ttc-exllamav2-deepseek
+        client_type: gai

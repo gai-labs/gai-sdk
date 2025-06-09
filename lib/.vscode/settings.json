@@ -1,0 +1,17 @@
+{
+    "python.languageServer": "Pylance",
+    "python.defaultInterpreterPath": "../.venv/bin/python",
+    // python.testing
+    "python.testing.pytestArgs": [
+        "-s",
+        "test",
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestPath": "../.venv/bin/pytest",
+    "python.testing.cwd": "${workspaceFolder}",
+    // python.terminal
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.inheritEnv": false
+}

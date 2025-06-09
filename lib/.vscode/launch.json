@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "python": "${userHome}/.venv/bin/python",
+            "args": [],
+            "env": {
+                "PYTHONUNBUFFERED": "1",
+                "PYTHONHOME": "",
+                "PYTHONPATH": ""
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+        {
+            "name": "Python Debugger: gai init",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/gai/scripts/gai_init.py",
+            "python": "${userHome}/.venv/bin/python",
+            "args": [
+                "init"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}

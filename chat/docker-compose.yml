@@ -1,0 +1,34 @@
+services:
+    gai-chat-svr:
+        image: kakkoii1337/gai-chat-svr-exl2:1.0.93
+        container_name: gai-chat-svr
+        environment:
+            DEFAULT_GENERATOR: "ttt"
+            LOG_LEVEL: "DEBUG"
+            TZ: "Asia/Singapore"
+            SWAGGER_URL: "/doc"
+            PROJECT_NAME: gai-chat-svr-exl2
+            # UV settings
+            UV_LINK_MODE: symlink
+            UV_PROJECT_ENVIRONMENT: /workspaces/gai-chat-svr-exl2/.venv
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          capabilities: [gpu]
+        ports:
+            - "12031:12031"
+            - "5678:5678"
+        volumes:
+            - ~/.gai:/root/.gai
+        restart: always
+        # networks:
+        #     - default
+        networks:
+            - gai_network
+        #command: sleep infinity
+        #network_mode: "host"
+networks:
+    gai_network:
+        external: true

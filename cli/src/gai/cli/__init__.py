@@ -1,0 +1,1 @@
+from gai.cli.gai_main import main

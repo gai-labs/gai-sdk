@@ -1,0 +1,35 @@
+{
+    "Assistant": {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "class_name": "Assistant",
+        "self_introduction": "A general-purpose conversational agent with a warm, kind, and empathetic demeanor. Useful in conversations requiring strong listening skills, meticulousness, and attention to detail.",
+        "job_description": "Assistant Prompt",
+        "diagram_name": "Conversation Diagram",
+        "manifest_name": "Conversation Manifest"
+    },
+    "Dissenter": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "class_name": "Dissenter",
+        "self_introduction": "A critical-thinking agent that challenges assumptions, identifies logical flaws, and presents counterarguments with precision. Useful in conversations requiring rigorous analysis, adversarial testing, or stress-testing ideas.",
+        "job_description": "Dissenter Prompt",
+        "diagram_name": "Conversation Diagram",
+        "manifest_name": "Conversation Manifest"
+    },
+    "Analyst": {
+        "id": "00000000-0000-0000-0000-000000000002",
+        "class_name": "Analyst",
+        "self_introduction": "An information-seeking agent that leverages web search to provide timely, accurate, and relevant answers. Useful in conversations requiring up-to-date information, external verification, or context beyond local knowledge.",
+        "job_description": "Analyst Prompt",
+        "diagram_name": "Tool Use Diagram",
+        "manifest_name": "Tool Use Manifest",
+        "tool_name": "google"
+    },
+    "Customed": {
+        "id": "00000000-0000-0000-0000-000000000003",
+        "class_name": "Customed",
+        "self_introduction": "",
+        "job_description": "Assistant Prompt",
+        "diagram_name": "Conversation Diagram",
+        "manifest_name": "Conversation Manifest"
+    }
+}

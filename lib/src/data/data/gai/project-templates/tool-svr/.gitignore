@@ -36,4 +36,7 @@ build
 **/*.jwk
 
 **/tmp
+downloads
+jobs
+devcontainer-build.log
 

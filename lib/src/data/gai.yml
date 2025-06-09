@@ -1,0 +1,202 @@
+version: "1.0"
+gai_url: http://localhost:12033
+logging:
+    level: INFO
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    filename: ""
+    filemode: a
+    stream: stdout
+    loggers:
+        gai.ttt: DEBUG
+        gai.common.http_utils: DEBUG
+clients:
+    ttt:
+        type: ttt
+        name: ttt
+        client_type: gai
+        url: http://gai-chat-svr:12031/gen/v1/chat/completions
+
+    openai:
+        ref: gpt-4o-mini
+    gpt-4o:
+        type: ttt
+        model: gpt-4o
+        name: gpt-4o
+        client_type: openai
+        extra:
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+            pricing:
+                {
+                    "input": 2.5,
+                    "cached": 1.25,
+                    "output": 10.0,
+                    "context_size": 128000,
+                    "max_output_tokens": 16384,
+                }
+    gpt-4.1:
+        type: ttt
+        model: gpt-4.1
+        name: gpt-4.1
+        client_type: openai
+        extra:
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+            pricing:
+                {
+                    "input": 2.0,
+                    "cached": 0.5,
+                    "output": 8.0,
+                    "context_size": 1047576,
+                    "max_output_tokens": 32768,
+                }
+    o3-mini:
+        type: ttt
+        model: o3-mini
+        name: o3-mini
+        client_type: openai
+        extra:
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+            pricing:
+                {
+                    "input": 1.1,
+                    "cached": 0.55,
+                    "output": 4.40,
+                    "context_size": 200000,
+                    "max_output_tokens": 100000,
+                }
+    gpt-4o-mini:
+        type: ttt
+        model: gpt-4o-mini
+        name: gpt-4o-mini
+        client_type: openai
+        extra:
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+            pricing:
+                {
+                    "input": 0.15,
+                    "cached": 0.075,
+                    "output": 0.60,
+                    "context_size": 128000,
+                    "max_output_tokens": 16384,
+                }
+
+    anthropic:
+        ref: claude-opus-4-20250514
+    claude-opus-4-20250514:
+        type: ttt
+        model: claude-opus-4-20250514
+        name: claude-opus-4-20250514
+        client_type: anthropic
+        extra:
+            ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+            max_tokens: 64000
+    tool-web:
+        type: tool
+        client_type: gai
+        url: http://gai-tools-web-svr:12036/tools/web/v1
+    tool-rag:
+        type: tool
+        client_type: gai
+        url: http://gai-rag-svr:12036/gen/v1/rag
+        extra:
+            ws_url: ws://gai-rag-svr:12036/gen/v1/rag/index-file/ws
+    tti:
+        type: tti
+        engine: sd1.5
+        model: runwayml
+        name: tti-sd1.5-runwayml
+        client_type: gai
+        url: http://gai-tti-svr:12035/sdapi/v1/txt2img
+    tti-sd1.5-runwayml:
+        type: tti
+        engine: sd1.5
+        model: runwayml
+        name: tti-sd1.5-runwayml
+        client_type: gai
+        url: http://gai-tti-svr:12035/sdapi/v1/txt2img
+    tts:
+        type: tts
+        engine: coqui
+        model: xttsv2
+        name: tts-coqui-xttsv2
+        client_type: gai
+        url: http://gai-tts-svr:12032/gen/v1/audio/speech
+    tts-coqui-xttsv2:
+        type: tts
+        engine: coqui
+        model: xttsv2
+        name: tts-coqui-xttsv2
+        client_type: gai
+        url: http://gai-tts-svr:12032/gen/v1/audio/speech
+    stt:
+        type: stt
+        engine: huggingface
+        model: whisperv3
+        name: stt-huggingface-whisperv3
+        client_type: gai
+        url: http://gai-stt-svr:12033/gen/v1/audio/transcriptions
+    stt-whisperv3-huggingface:
+        type: stt
+        engine: huggingface
+        model: whisperv3
+        name: stt-huggingface-whisperv3
+        client_type: gai
+        url: http://gai-stt-svr:12033/gen/v1/audio/transcriptions
+    itt:
+        type: itt
+        engine: vicuna7b
+        model: llavav1.6
+        name: itt-vicuna7b-llavav1.6
+        client_type: gai
+        url: http://gai-itt-svr:12034/gen/v1/vision/completions
+    itt-vicuna7b-llavav1.6:
+        type: itt
+        engine: vicuna7b
+        model: llavav1.6
+        name: itt-vicuna7b-llavav1.6
+        client_type: gai
+        url: http://gai-itt-svr:12034/gen/v1/vision/completions
+    ttc:
+        type: ttc
+        engine: exllamav2
+        model: deepseek
+        name: ttc-exllamav2-deepseek
+        client_type: gai
+    ttc-exllamav2-deepseek:
+        type: ttc
+        engine: exllamav2
+        model: deepseek
+        name: ttc-exllamav2-deepseek
+        client_type: gai
+    mcp-web:
+        type: mcp
+        client_type: gai
+        name: mcp-web
+        url: file://../../../../../mcp-servers/src/web/mcp_server.py
+        extra:
+            command: "python"
+    mcp-filesystem:
+        type: mcp
+        client_type: gai
+        name: mcp-filesystem
+        url: file://../../../../../mcp-servers/modelcontextprotocol/servers/src/filesystem/dist/index.js
+        extra:
+            command: "node"
+            args:
+                - "$HOME/.gai/projects"
+                - "/tmp"
+            blocked: ["directory_tree", "move_file"]
+    mcp-react:
+        type: mcp
+        client_type: gai
+        name: mcp-react
+        url: file://../../../../../mcp-servers/src/react/mcp_server.py
+        extra:
+            command: "python"
+    mcp-figma:
+        type: mcp
+        client_type: gai
+        name: mcp-figma
+        url: file://../../../../../mcp-servers/figma/servers/dist/index.js
+        extra:
+            command: "node"

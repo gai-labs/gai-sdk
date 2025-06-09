@@ -1,0 +1,107 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build DevContainer with Logs",
+            "type": "shell",
+            "command": "cd .devcontainer && docker-compose --progress plain build 2>&1 | tee devcontainer-build.log",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+        /* ------------------------------------------------------------------
+         *  helper tasks (call individual make targets)
+         * -----------------------------------------------------------------*/
+        {
+            "label": "make: bump",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "bump"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "make: build",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "make: inspect",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "inspect"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "make: publish",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "publish"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        /* ------------------------------------------------------------------
+         *  one-click release: bump → build → inspect → publish
+         * -----------------------------------------------------------------*/
+        {
+            "label": "make: [PyPI] full release",
+            "dependsOrder": "sequence", // run in listed order
+            "dependsOn": [
+                "make: bump",
+                "make: build",
+                "make: inspect",
+                "make: publish"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "docker: build",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "docker_build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "docker: push",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "docker_push"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

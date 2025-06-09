@@ -1,0 +1,70 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        /* ------------------------------------------------------------------
+         *  helper tasks (call individual make targets)
+         * -----------------------------------------------------------------*/
+        {
+            "label": "gai-sdk: bump",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "bump"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "gai-sdk: build",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "gai-sdk: inspect",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "inspect"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "gai-sdk: publish",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "publish"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        /* ------------------------------------------------------------------
+         *  one-click release: bump → build → inspect → publish
+         * -----------------------------------------------------------------*/
+        {
+            "label": "PyPI: [gai-sdk] full release",
+            "dependsOrder": "sequence", // run in listed order
+            "dependsOn": [
+                "gai-sdk: bump",
+                "gai-sdk: build",
+                "gai-sdk: inspect",
+                "gai-sdk: publish"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+version: "1.0"
+
+tools:
+    tool-web:
+        type: "tool"
+        name: "tool-web"
+        extra:
+            scraper:
+                headless: true
+                scraper_type: "playwright"
+                no_cache: false
+                max_content_length: 250000
+                max_links: 100
+                max_depth: 1
+                max_retries: 3

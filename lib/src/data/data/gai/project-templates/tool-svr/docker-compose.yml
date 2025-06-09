@@ -1,0 +1,21 @@
+version: "3"
+services:
+    {{PROJECT_NAME}}:
+        image: {{PROJECT_NAME}}:0.0.1
+        container_name: {{PROJECT_NAME}}
+        environment:
+            LOG_LEVEL: "DEBUG"
+            TZ: "Asia/Singapore"
+            SWAGGER_URL: "/doc"
+            PROJECT_NAME: {{PROJECT_NAME}}
+            PYTHONPATH: /workspaces/{{PROJECT_NAME}}/.venv/lib/python3.10/site-packages
+            # UV settings
+            UV_LINK_MODE: symlink
+            UV_PROJECT_ENVIRONMENT: /workspaces/{{PROJECT_NAME}}/.venv            
+        ports:
+            - "12031:12031"
+            - "5678:5678"            
+        volumes:
+            - $HOME/.gai:/home/vscode/.gai
+            - $HOME/.cache/pip:/home/vscode/.cache/pip
+            - $HOME/.cache/apt:/root/.cache/apt

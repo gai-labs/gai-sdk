@@ -1,0 +1,48 @@
+[build-system]
+requires = [ "setuptools>=60", "wheel",]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gai-sdk"
+version = "1.0.210"
+description = "Refer to https://gai-labs.github.io/gai for more information"
+readme = "README.md"
+classifiers = [ "Programming Language :: Python :: 3.10", "Development Status :: 3 - Alpha", "License :: OSI Approved :: MIT License", "Intended Audience :: Science/Research", "Intended Audience :: Developers", "Operating System :: OS Independent", "Topic :: Software Development", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Scientific/Engineering :: Artificial Intelligence",]
+requires-python = ">=3.10"
+dependencies = [ "click>=8.1.7,<9.0", "colorlog>=6.8.2,<7.0", "huggingface_hub>=0.24.5,<0.25", "openai>=1.43.0,<2.0.0", "pydantic", "pydantic-settings>=2.6.1", "python-dotenv>=1.0.1,<2.0", "rich>=13.7.1,<14.0", "toml>=0.10.2,<0.11",]
+[[project.authors]]
+name = "kakkoii1337"
+email = "kakkoii1337@gmail.com"
+
+[dependency-groups]
+dev = [ "gai-sdk",]
+
+[project.license]
+file = "LICENSE"
+
+[project.urls]
+Documentation = "https://gai-labs.github.io/gai/docs"
+
+[project.scripts]
+gai = "gai.scripts.main:main"
+
+[project.optional-dependencies]
+dev = [ "pytest>=8.3.2,<9.0", "nox>=2024.4.15,<2025.0", "twine>=6.1.0", "keyrings.alt>=5.0.1,<6.0", "ipykernel>=6.29.5,<7.0", "flake8>=7.1.1,<8.0", "pytest-ordering>=0.6,<1.0", "pytest-asyncio==0.25.2", "setuptools>=80.0.0", "build==1.2.2.post1",]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"gai.scripts.data" = [ "**/*", "!**/*.py", "!**/*.pyc", "!**/__pycache__/*",]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.setuptools.packages.find]
+where = [ "src",]
+include = [ "gai*",]
+exclude = [ "gai.devtool*",]
+namespaces = true
+
+[tool.uv.sources.gai-sdk]
+workspace = true

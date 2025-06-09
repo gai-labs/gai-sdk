@@ -1,0 +1,88 @@
+FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-devel
+
+# devcontainer Options
+ARG INSTALL_ZSH="true"
+ARG UPGRADE_PACKAGES="false"
+ARG USERNAME="vscode"
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+ARG LIBRARY_SCRIPT_PATH=".devcontainer/library-scripts"
+ARG PYTHON_VERSION="python3.10"
+ARG BASE_VERSION="UNKNOWN"
+
+# Environment variables
+ENV TORCH_CUDA_ARCH_LIST="7.5 8.0 8.6+PTX"
+ENV PYTHON_VERSION=${PYTHON_VERSION}
+
+# Copy necessary scripts, install system deps and create non-root user
+COPY ${LIBRARY_SCRIPT_PATH}/*.sh ${LIBRARY_SCRIPT_PATH}/*.env /tmp/library-scripts/
+
+# Install system deps
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && export DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1 \    
+    && apt-get upgrade --assume-yes \
+    && apt-get install --assume-yes --no-install-recommends \
+        sudo \
+        ca-certificates \
+        gnupg \
+    # Install common packages, non-root user
+    && bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Remove library scripts for final image
+
+RUN rm -rf /tmp/library-scripts
+
+# Allow non-root user to run docker commands
+
+RUN groupadd docker \
+    && usermod -aG docker $USERNAME
+
+# Install exllamav2
+
+RUN --mount=type=cache,target=/root/.cache \
+    wget --no-verbose -O /root/.cache/exllamav2-0.1.8+cu121.torch2.2.2-cp310-cp310-linux_x86_64.whl \
+        "https://github.com/turboderp/exllamav2/releases/download/v0.1.8/exllamav2-0.1.8+cu121.torch2.2.2-cp310-cp310-linux_x86_64.whl" \
+    && pip install "/root/.cache/exllamav2-0.1.8+cu121.torch2.2.2-cp310-cp310-linux_x86_64.whl"
+
+# Switch to non-root user
+
+USER ${USERNAME}
+ARG PROJECT_NAME
+ENV PROJECT_NAME=${PROJECT_NAME}
+ARG HOME="/home/${USERNAME}"
+ENV HOME=${HOME}
+ARG PROJECT_DIR="/workspaces/${PROJECT_NAME}"
+ENV PROJECT_DIR=${PROJECT_DIR}
+RUN echo "{\"app_dir\":\"${HOME}/.gai\"}" > ${HOME}/.gairc && \
+    mkdir -p ${HOME}/.gai
+SHELL ["/bin/bash","-c"]
+
+
+# 18 - Install uv
+
+WORKDIR ${PROJECT_DIR}
+COPY --from=ghcr.io/astral-sh/uv@sha256:2381d6aa60c326b71fd40023f921a0a3b8f91b14d5db6b90402e65a635053709 /uv /uvx /bin/
+ARG CACHE_BUST_UV="0.0.2"
+ARG UV_PROJECT_ENVIRONMENT=${PROJECT_DIR}/.venv
+ENV UV_PROJECT_ENVIRONMENT=$UV_PROJECT_ENVIRONMENT
+ENV VIRTUAL_ENV=$UV_PROJECT_ENVIRONMENT
+ENV PATH=$UV_PROJECT_ENVIRONMENT/bin:$PATH
+RUN echo ">>> Export UV_PROJECT_ENVIRONMENT=${UV_PROJECT_ENVIRONMENT}"
+RUN echo ">>> Installing virtual environment in path ${PROJECT_DIR}"
+# NOTE: Install with system site packages so that exllamav2 can be used
+RUN uv venv --system-site-packages
+
+# Activate and setup environment
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    source ${UV_PROJECT_ENVIRONMENT}/bin/activate && \
+    uv pip install --upgrade pip==24.2
+
+# Startup
+
+RUN echo "source ${UV_PROJECT_ENVIRONMENT}/bin/activate" >> $HOME/.bashrc \
+     && echo "export PYTHONPATH=${UV_PROJECT_ENVIRONMENT}/lib/python3.10/site-packages" >> /$HOME/.bashrc \
+     && echo "export PATH=${UV_PROJECT_ENVIRONMENT}/bin:${PATH}" >> $HOME/.bashrc

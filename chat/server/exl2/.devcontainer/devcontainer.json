@@ -1,0 +1,36 @@
+//https://github.com/microsoft/vscode-dev-containers/blob/main/container-templates/docker-compose/.devcontainer/devcontainer.json
+//https://github.com/microsoft/vscode-dev-containers/blob/main/containers/python-3/.devcontainer/devcontainer.json
+{
+	"name": "gai-chat-svr-exl2",
+	"dockerComposeFile": [
+		"docker-compose.yml"
+	],
+	"service": "devcontainer",
+	// Make sure this matches the bind mount in docker-compose.yml
+	"workspaceFolder": "/workspaces/gai-chat-svr-exl2",
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"python.defaultInterpreterPath": "/workspaces/gai-chat-svr-exl2/.venv/bin/python"
+			},
+			"extensions": [
+				"ms-python.python",
+				"ms-python.debugpy",
+				"ms-vscode.js-debug",
+				"ms-toolsai.jupyter",
+				"KevinRose.vsc-python-indent",
+				"esbenp.prettier-vscode",
+				"bierner.markdown-mermaid",
+				"venage5603.tokyo-night-dark-enhanced"
+			]
+		}
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:1": {
+			"version": "latest",
+			"moby": true
+		}
+	},
+	"remoteUser": "vscode",
+	"postCreateCommand": "/bin/bash .devcontainer/postCreateCommand.sh"
+}

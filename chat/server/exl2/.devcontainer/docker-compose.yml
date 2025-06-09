@@ -1,0 +1,62 @@
+services:
+    devcontainer:
+        image: kakkoii1337/gai-chat-svr-exl2_devcontainer:1.0.3
+        container_name: gai-chat-svr-exl2
+        build:
+            context: ..
+            dockerfile: .devcontainer/Dockerfile.devcontainer
+            cache_from:
+                - type=local,src=$HOME/.cache/image_cache
+            cache_to:
+                - type=local,dest=$HOME/.cache/image_cache
+            args:
+                USERNAME: "vscode"
+                PROJECT_NAME: "gai-chat-svr-exl2"
+                BUILDKIT_PROGRESS: "plain"
+                UV_PROJECT_ENVIRONMENT: /workspaces/gai-chat-svr-exl2/.venv
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          capabilities: [gpu]
+        # ports:
+        #     - "12031:12031"
+        environment:
+            DEFAULT_GENERATOR: "ttt"
+            PYTHONPATH: /workspaces/gai-chat-svr-exl2/.venv/lib/python3.10/site-packages
+            # UV Settings
+            UV_LINK_MODE: symlink
+        volumes:
+            # Use anonymous volume for virtual environment
+
+            - /workspaces/gai-chat-svr-exl2/.venv
+
+            # Make sure this matches the workspaceFolder in .devcontainer/devcontainer.json
+
+            - ..:/workspaces/gai-chat-svr-exl2:cached
+
+            # Mount ~/.gai directory
+
+            - $HOME/.gai:/home/vscode/.gai
+
+            # Mount gai-lib directory
+
+            - ../../../../lib:/workspaces/gai-chat-svr-exl2/gai-lib
+
+            # Use docker from host
+
+            - /var/run/docker.sock:/var/run/docker.sock
+
+            # Mount miscellaneous directories
+
+            - ../../../src/gai/chat/client:/workspaces/gai-chat-svr-exl2/src/gai/chat/client
+            - ../../../src/gai/chat/lib:/workspaces/gai-chat-svr-exl2/src/gai/chat/lib
+            - ../../../test/integrationtest:/workspaces/gai-chat-svr-exl2/test/integrationtest/client
+
+        command: sleep infinity
+# #         networks:
+# #             - gai_network
+# # networks:
+# #     gai_network:
+# #         external: true

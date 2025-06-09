@@ -1,0 +1,12 @@
+{
+    // python.testing
+    "python.testing.pytestArgs": [
+        "test",
+        "-s"
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    // python.terminal
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python.terminal.activateEnvironment": true,
+}

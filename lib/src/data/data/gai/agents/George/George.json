@@ -1,0 +1,204 @@
+{
+    "id": "00000000-0000-0000-0000-000000000000",
+    "owner_id": "00000000-0000-0000-0000-000000000000",
+    "name": "George",
+    "sex": "male",
+    "skills": [],
+    "traits": [],
+    "agent_class": "Analyst",
+    "job_description": "You are a web analyst. You are highly valued for your ability to search the web. You should play to your strength but do it sensibly.",
+    "self_introduction": "An information-seeking agent that leverages web search to provide timely, accurate, and relevant answers. Useful in conversations requiring up-to-date information, external verification, or context beyond local knowledge.",
+    "llm_config": {
+        "client_type": "gai",
+        "type": "ttt",
+        "engine": "exllamav2",
+        "model": "dolphin",
+        "name": "dolphin3.0_llama3.1:4.25bpw:exl2",
+        "url": "http://gai-ttt-svr:12031/gen/v1/chat/completions",
+        "env": null,
+        "extra": null,
+        "hyperparameters": {}
+    },
+    "state_diagram": "INIT --> TOOL_CHOICE: next / action\n\nTOOL_CHOICE --> CRAFT_PROMPT(\"TEXT\"): next / action / condition_use_text\n    CRAFT_PROMPT(\"TEXT\") --> GENERATE: next / action\n\nTOOL_CHOICE --> CRAFT_PROMPT(\"TOOL\"): next / action / condition_use_tool\n    CRAFT_PROMPT(\"TOOL\") --> TOOL_CALL: next / action\n    TOOL_CALL --> GOOGLE: next / action\n    GOOGLE --> GENERATE: next / action\n\nGENERATE --> FINAL: next / action",
+    "state_manifest": {
+        "INIT": {
+            "module_path": "gai.agents.states.InitializeState",
+            "class_name": "InitializeState",
+            "input_data": {
+                "initializer": {
+                    "type": "state_machine",
+                    "dependency": "get_initializer"
+                }
+            },
+            "output_data": ["name", "dialogue_messages", "user_message"]
+        },
+        "TOOL_CHOICE": {
+            "module_path": "gai.agents.states.ToolChoiceState",
+            "class_name": "ToolChoiceState",
+            "input_data": {
+                "llm_config": {
+                    "type": "state_machine",
+                    "dependency": "get_llm_config"
+                },
+                "name": {
+                    "type": "state_bag",
+                    "dependency": "name"
+                },
+                "user_message": {
+                    "type": "state_bag",
+                    "dependency": "user_message"
+                },
+                "dialogue_messages": {
+                    "type": "state_bag",
+                    "dependency": "dialogue_messages"
+                },
+                "job_description": {
+                    "type": "state_machine",
+                    "dependency": "get_job_description"
+                },
+                "tools_dict": {
+                    "type": "state_machine",
+                    "dependency": "get_tools_dict"
+                }
+            },
+            "output_data": ["tool_name"],
+            "conditions": ["condition_use_tool", "condition_use_text"]
+        },
+        "CRAFT_PROMPT": {
+            "module_path": "gai.agents.states.CraftPromptState",
+            "class_name": "CraftPromptState",
+            "input_data": {
+                "name": {
+                    "type": "state_bag",
+                    "dependency": "name"
+                },
+                "user_message": {
+                    "type": "state_bag",
+                    "dependency": "user_message"
+                },
+                "dialogue_messages": {
+                    "type": "state_bag",
+                    "dependency": "dialogue_messages"
+                },
+                "custom_message": "",
+                "tool_name": {
+                    "type": "prev_state",
+                    "dependency": "tool_name"
+                }
+            },
+            "output_data": ["monologue_messages"]
+        },
+        "TOOL_CALL": {
+            "module_path": "gai.agents.states.ToolCallState",
+            "class_name": "ToolCallState",
+            "input_data": {
+                "user_message": {
+                    "type": "state_bag",
+                    "dependency": "user_message"
+                },
+                "dialogue_messages": {
+                    "type": "state_bag",
+                    "dependency": "dialogue_messages"
+                },
+                "llm_config": {
+                    "type": "state_machine",
+                    "dependency": "get_llm_config"
+                },
+                "tools_dict": {
+                    "type": "state_machine",
+                    "dependency": "get_tools_dict"
+                },
+                "tool_name": {
+                    "type": "state_bag",
+                    "dependency": "tool_name"
+                }
+            },
+            "output_data": ["tool_call"]
+        },
+        "GOOGLE": {
+            "module_path": "gai.agents.states.GoogleState",
+            "class_name": "GoogleState",
+            "input_data": {
+                "name": {
+                    "type": "state_bag",
+                    "dependency": "name"
+                },
+                "user_message": {
+                    "type": "state_bag",
+                    "dependency": "user_message"
+                },
+                "dialogue_messages": {
+                    "type": "state_bag",
+                    "dependency": "dialogue_messages"
+                },
+                "n_search": 5,
+                "tool_call": {
+                    "type": "prev_state",
+                    "dependency": "tool_call"
+                }
+            },
+            "output_data": ["monologue_messages"]
+        },
+        "GENERATE": {
+            "module_path": "gai.agents.states.GenerateState",
+            "class_name": "GenerateState",
+            "input_data": {
+                "llm_config": {
+                    "type": "state_machine",
+                    "dependency": "get_llm_config"
+                },
+                "monologue_messages": {
+                    "type": "state_bag",
+                    "dependency": "monologue_messages"
+                }
+            },
+            "output_data": ["streamer", "assistant_message"]
+        },
+        "FINAL": {
+            "module_path": "gai.agents.states.FinalizeState",
+            "class_name": "FinalizeState",
+            "input_data": {
+                "finalizer": {
+                    "type": "state_machine",
+                    "dependency": "get_finalizer"
+                }
+            }
+        }
+    },
+    "tools_dict": {
+        "google": {
+            "type": "function",
+            "function": {
+                "name": "google",
+                "description": "The 'google' function is a powerful tool that allows the AI to gather external information from the internet using Google search. It can be invoked when the AI needs to answer a question or provide information that requires up-to-date, comprehensive, and diverse sources which are not inherently known by the AI. For instance, it can be used to find current news, weather updates, latest sports scores, trending topics, specific facts, or even the current date and time. The usage of this tool should be considered when the user's query implies or explicitly requests recent or wide-ranging data, or when the AI's inherent knowledge base may not have the required or most current information. The 'search_query' parameter should be a concise and accurate representation of the information needed.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "search_query": {
+                            "type": "string",
+                            "description": "The search query to search google with. For example, to find the current date or time, use 'current date' or 'current time' respectively."
+                        }
+                    },
+                    "required": ["search_query"]
+                }
+            }
+        },
+        "text": {
+            "type": "function",
+            "function": {
+                "name": "text",
+                "description": "The 'text' function is the default catch-all function returned when none of the other tools are applicable.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "The user's message."
+                        }
+                    },
+                    "required": ["message"]
+                }
+            }
+        }
+    }
+}

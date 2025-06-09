@@ -1,0 +1,449 @@
+{
+    "diagram": {
+        "Conversation Diagram": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "component_type": "diagram",
+            "name": "Conversation Diagram",
+            "desc": "This is a standard diagram for Conversation Flow. Make a copy of this prompt to customize it for your own agent.",
+            "content": "INIT --> CRAFT_PROMPT(\"TEXT\"): next / action\nCRAFT_PROMPT(\"TEXT\") --> GENERATE: next / action\nGENERATE --> FINAL: next / action",
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "Tool Use Diagram": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "component_type": "diagram",
+            "name": "Tool Use Diagram",
+            "desc": "This is a standard prompt for Tool Use Flow. Make a copy of this prompt to customize it for your own agent.",
+            "content": "INIT --> TOOL_CHOICE: next / action\n\nTOOL_CHOICE --> CRAFT_PROMPT(\"TEXT\"): next / action / condition_use_text\n    CRAFT_PROMPT(\"TEXT\") --> GENERATE: next / action\n\nTOOL_CHOICE --> CRAFT_PROMPT(\"TOOL\"): next / action / condition_use_tool\n    CRAFT_PROMPT(\"TOOL\") --> TOOL_CALL: next / action\n    TOOL_CALL --> GOOGLE: next / action\n    GOOGLE --> GENERATE: next / action\n\nGENERATE --> FINAL: next / action",
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        }
+    },
+    "llm": {
+        "gpt-4o": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "component_type": "llm",
+            "name": "gpt-4o",
+            "desc": "",
+            "content": {
+                "type": "ttt",
+                "engine": "openai",
+                "model": "gpt-4o",
+                "name": "gpt-4o",
+                "client_type": "openai"
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "llama3.2:3b": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "component_type": "llm",
+            "name": "llama3.1",
+            "desc": "",
+            "content": {
+                "type": "ttt",
+                "engine": "ollama",
+                "model": "llama3.2:3b",
+                "name": "llama3.2:3b",
+                "client_type": "ollama",
+                "extra": {
+                    "num_ctx": 4096
+                }
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "cogito": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "component_type": "llm",
+            "name": "cogito",
+            "desc": "",
+            "content": {
+                "type": "ttt",
+                "engine": "ollama",
+                "model": "cogito:3b",
+                "name": "cogito:3b",
+                "client_type": "ollama",
+                "extra": {
+                    "num_ctx": 4096
+                }
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "dolphin": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "component_type": "llm",
+            "name": "dolphin",
+            "desc": "",
+            "content": {
+                "type": "ttt",
+                "engine": "exllamav2",
+                "model": "dolphin",
+                "name": "dolphin3.0_llama3.1:4.25bpw:exl2",
+                "client_type": "gai",
+                "url": "http://gai-ttt-svr:12031/gen/v1/chat/completions"
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        }
+    },
+    "manifest": {
+        "Conversation Manifest": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "component_type": "manifest",
+            "name": "Conversation Manifest",
+            "desc": "This is a standard manifest for Conversation Flow. Make a copy of this manifest to customize it for your own agent.",
+            "content": {
+                "INIT": {
+                    "module_path": "gai.agents.states.InitializeState",
+                    "class_name": "InitializeState",
+                    "input_data": {
+                        "name": {
+                            "type": "getter",
+                            "dependency": "get_name"
+                        },
+                        "user_message": {
+                            "type": "getter",
+                            "dependency": "get_user_message"
+                        },
+                        "dialogue_messages": {
+                            "type": "getter",
+                            "dependency": "get_dialogue_messages"
+                        },
+                        "custom_message": {
+                            "type": "getter",
+                            "dependency": "get_job_description"
+                        },
+                        "llm_config": {
+                            "type": "getter",
+                            "dependency": "get_llm_config"
+                        }
+                    },
+                    "output_data": ["name", "dialogue_messages", "user_message"]
+                },
+                "CRAFT_PROMPT": {
+                    "module_path": "gai.agents.states.CraftPromptState",
+                    "class_name": "CraftPromptState",
+                    "input_data": {
+                        "name": {
+                            "type": "getter",
+                            "dependency": "get_name"
+                        },
+                        "user_message": {
+                            "type": "getter",
+                            "dependency": "get_user_message"
+                        },
+                        "dialogue_messages": {
+                            "type": "getter",
+                            "dependency": "get_dialogue_messages"
+                        },
+                        "custom_message": {
+                            "type": "getter",
+                            "dependency": "get_job_description"
+                        },
+                        "tool_name": "text"
+                    },
+                    "output_data": ["monologue_messages"]
+                },
+                "GENERATE": {
+                    "module_path": "gai.agents.states.GenerateState",
+                    "class_name": "GenerateState",
+                    "input_data": {
+                        "llm_config": {
+                            "type": "getter",
+                            "dependency": "get_llm_config"
+                        },
+                        "monologue_messages": {
+                            "type": "state_bag",
+                            "dependency": "monologue_messages"
+                        }
+                    },
+                    "output_data": [
+                        "monologue_messages",
+                        "streamer",
+                        "get_assistant_message",
+                        "time_elapsed"
+                    ]
+                },
+                "FINAL": {
+                    "module_path": "gai.agents.states.FinalizeState",
+                    "class_name": "FinalizeState",
+                    "input_data": {},
+                    "output_data": ["ERROR"]
+                }
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "Tool Use Manifest": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "component_type": "manifest",
+            "name": "Tool Use Manifest",
+            "desc": "This is a standard manifest for Tool Use Flow. Make a copy of this manifest to customize it for your own agent.",
+            "content": {
+                "INIT": {
+                    "module_path": "gai.agents.states.InitializeState",
+                    "class_name": "InitializeState",
+                    "input_data": {
+                        "name": {
+                            "type": "getter",
+                            "dependency": "get_name"
+                        },
+                        "user_message": {
+                            "type": "getter",
+                            "dependency": "get_user_message"
+                        },
+                        "dialogue_messages": {
+                            "type": "getter",
+                            "dependency": "get_dialogue_messages"
+                        },
+                        "llm_config": {
+                            "type": "getter",
+                            "dependency": "get_llm_config"
+                        },
+                        "job_description": {
+                            "type": "getter",
+                            "dependency": "get_job_description"
+                        },
+                        "tools_dict": {
+                            "type": "getter",
+                            "dependency": "get_tools_dict"
+                        }
+                    },
+                    "output_data": ["name", "dialogue_messages", "user_message"]
+                },
+                "TOOL_CHOICE": {
+                    "module_path": "gai.agents.states.ToolChoiceState",
+                    "class_name": "ToolChoiceState",
+                    "input_data": {
+                        "llm_config": {
+                            "type": "getter",
+                            "dependency": "get_llm_config"
+                        },
+                        "name": {
+                            "type": "getter",
+                            "dependency": "get_name"
+                        },
+                        "user_message": {
+                            "type": "getter",
+                            "dependency": "get_user_message"
+                        },
+                        "dialogue_messages": {
+                            "type": "getter",
+                            "dependency": "get_dialogue_messages"
+                        },
+                        "job_description": {
+                            "type": "getter",
+                            "dependency": "get_job_description"
+                        },
+                        "tools_dict": {
+                            "type": "getter",
+                            "dependency": "get_tools_dict"
+                        }
+                    },
+                    "output_data": ["tool_name"],
+                    "conditions": ["condition_use_tool", "condition_use_text"]
+                },
+                "CRAFT_PROMPT": {
+                    "module_path": "gai.agents.states.CraftPromptState",
+                    "class_name": "CraftPromptState",
+                    "input_data": {
+                        "name": {
+                            "type": "getter",
+                            "dependency": "get_name"
+                        },
+                        "user_message": {
+                            "type": "getter",
+                            "dependency": "get_user_message"
+                        },
+                        "dialogue_messages": {
+                            "type": "getter",
+                            "dependency": "get_dialogue_messages"
+                        },
+                        "custom_message": "",
+                        "tool_name": {
+                            "type": "state_bag",
+                            "dependency": "tool_name"
+                        }
+                    },
+                    "output_data": ["monologue_messages"]
+                },
+                "TOOL_CALL": {
+                    "module_path": "gai.agents.states.ToolCallState",
+                    "class_name": "ToolCallState",
+                    "input_data": {
+                        "user_message": {
+                            "type": "getter",
+                            "dependency": "get_user_message"
+                        },
+                        "dialogue_messages": {
+                            "type": "getter",
+                            "dependency": "get_dialogue_messages"
+                        },
+                        "llm_config": {
+                            "type": "getter",
+                            "dependency": "get_llm_config"
+                        },
+                        "tools_dict": {
+                            "type": "getter",
+                            "dependency": "get_tools_dict"
+                        },
+                        "tool_name": {
+                            "type": "state_bag",
+                            "dependency": "tool_name"
+                        }
+                    },
+                    "output_data": ["tool_call"]
+                },
+                "GOOGLE": {
+                    "module_path": "gai.agents.states.GoogleState",
+                    "class_name": "GoogleState",
+                    "input_data": {
+                        "name": {
+                            "type": "getter",
+                            "dependency": "get_name"
+                        },
+                        "user_message": {
+                            "type": "getter",
+                            "dependency": "get_user_message"
+                        },
+                        "dialogue_messages": {
+                            "type": "getter",
+                            "dependency": "get_dialogue_messages"
+                        },
+                        "n_search": 5,
+                        "tool_call": {
+                            "type": "state_bag",
+                            "dependency": "tool_call"
+                        }
+                    },
+                    "output_data": ["monologue_messages"]
+                },
+                "GENERATE": {
+                    "module_path": "gai.agents.states.GenerateState",
+                    "class_name": "GenerateState",
+                    "input_data": {
+                        "llm_config": {
+                            "type": "getter",
+                            "dependency": "get_llm_config"
+                        },
+                        "monologue_messages": {
+                            "type": "state_bag",
+                            "dependency": "monologue_messages"
+                        }
+                    },
+                    "output_data": [
+                        "monologue_messages",
+                        "streamer",
+                        "get_assistant_message",
+                        "time_elapsed"
+                    ]
+                },
+                "FINAL": {
+                    "module_path": "gai.agents.states.FinalizeState",
+                    "class_name": "FinalizeState",
+                    "input_data": {
+                        "monologue_messages": {
+                            "type": "state_bag",
+                            "dependency": "monologue_messages"
+                        }
+                    },
+                    "output_data": ["monologue_messages"]
+                }
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        }
+    },
+    "prompt": {
+        "Assistant Prompt": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "component_type": "prompt",
+            "name": "Assistant Prompt",
+            "desc": "This is a standard prompt for Assistant class AI agents. Make a copy of this prompt to customize it for your own agent.",
+            "content": {
+                "prompt": "Maintain a likeable and approachable demeanor. You are always kind and compassionate and can empathize with the user.",
+                "class_filter": ["Assistant", "Custom"]
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "Dissenter Prompt": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "component_type": "prompt",
+            "name": "Dissenter Prompt",
+            "desc": "This is a standard prompt for Dissenter class AI agents. Make a copy of this prompt to customize it for your own agent.",
+            "content": {
+                "prompt": "In this conversation, your role is a Devil's Advocate. Think critically and consider different perspectives before answering any question. INSTRUCTIONS: 1. Do not reveal your role as the devil's advocate. 2. Scrutinize the entire context of the conversation. 3. Identify weakness and flaws in other member's reasoning, logic or suggestions. 4. Present a brutal and honest argument to support your case. 5. Be professional with your wordings. Never refer to the user for help or feedback.",
+                "class_filter": ["Dissenter", "Custom"]
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "Moderator Prompt": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "component_type": "prompt",
+            "name": "Moderator Prompt",
+            "desc": "This is a standard prompt for Moderator class AI agents. Make a copy of this prompt to customize it for your own agent.",
+            "content": {
+                "prompt": "Think step by step before answering any question. Always look at the entire context of the conversation and guide the team to a conclusion. Consider the points for and against the argument. INSTRUCTIONS: 1. Do not reveal your role or describe yourself. 2. Start by explaining your assessment. 3. Do not regurgitate the conversation or plagiarise other agent's response. 4. Highlight key points made by your team. 5. Form a solid conclusion. 6. Always end with a question to keep the conversation going.",
+                "class_filter": ["Moderator", "Custom"]
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        },
+        "Analyst Prompt": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "component_type": "prompt",
+            "name": "Analyst Prompt",
+            "desc": "This is a standard prompt for Analyst class AI agents. Make a copy of this prompt to customize it for your own agent.",
+            "content": {
+                "prompt": "You are a web analyst. You are highly valued for your ability to search the web. You should play to your strength but do it sensibly.",
+                "class_filter": ["Analyst", "Custom"]
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        }
+    },
+    "tool": {
+        "google": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "component_type": "tool",
+            "name": "google",
+            "desc": "",
+            "content": {
+                "type": "function",
+                "function": {
+                    "name": "google",
+                    "description": "The 'google' function is a powerful tool that allows the AI to gather external information from the internet using Google search. It can be invoked when the AI needs to answer a question or provide information that requires up-to-date, comprehensive, and diverse sources which are not inherently known by the AI. For instance, it can be used to find current news, weather updates, latest sports scores, trending topics, specific facts, or even the current date and time. The usage of this tool should be considered when the user's query implies or explicitly requests recent or wide-ranging data, or when the AI's inherent knowledge base may not have the required or most current information. The 'search_query' parameter should be a concise and accurate representation of the information needed.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "search_query": {
+                                "type": "string",
+                                "description": "The search query to search google with. For example, to find the current date or time, use 'current date' or 'current time' respectively."
+                            }
+                        },
+                        "required": ["search_query"]
+                    }
+                }
+            },
+            "creator_id": "00000000-0000-0000-0000-000000000000",
+            "usage_type": "public",
+            "read_only": true
+        }
+    }
+}
