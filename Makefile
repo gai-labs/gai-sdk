@@ -27,7 +27,8 @@ bump:
 	python -m gai._utils.devtools bump-version $(if $(PART),--part $(PART),)
 
 # ── 4. build artefacts from src/ ───────────────────────────────────────────
-build: clean
+build: 
+	rm -rf build/ dist/
 	python -m gai._utils.devtools build
 
 # ── 5. inspect package data ─────────────────────────────────────────────────
