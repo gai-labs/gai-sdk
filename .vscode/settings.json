@@ -1,0 +1,19 @@
+{
+    "python.languageServer": "Pylance",
+    // python.testing
+    "python.testing.pytestArgs": [
+        "-s",
+        "lib/test",
+        "chat/test",
+        "openai/test",
+        "tools/web/test",
+        "messages/test",
+        "dialogues/test",
+        "agents/test",
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    // python.terminal
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python.terminal.activateEnvironment": true,
+}

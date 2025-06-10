@@ -1,0 +1,52 @@
+services:
+    gai-chat-svr:
+        image: kakkoii1337/gai-chat-svr-exl2:1.0.83
+        container_name: gai-chat-svr
+        environment:
+            DEFAULT_GENERATOR: "ttt"
+            LOG_LEVEL: "DEBUG"
+            TZ: "Asia/Singapore"
+            SWAGGER_URL: "/doc"
+            PROJECT_NAME: gai-chat-svr-exl2
+            UV_LINK_MODE: symlink
+            # Point to the custom virtual environment directory
+            UV_PROJECT_ENVIRONMENT: /workspaces/.venv
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          capabilities: [gpu]
+        ports:
+            - "12031:12031"
+            - "5678:5678"
+        networks:
+            - default
+        volumes:
+            # Use anonymous volume for virtual environment
+            - /workspaces/.venv
+            - ~/.gai:/root/.gai
+            - /var/run/docker.sock:/var/run/docker.sock
+
+        restart: always
+        # command: >
+        # sleep infinity
+        #source /workspaces/.venv/bin/debugpy --listen 0.0.0.0:5678 main.py
+
+    ollama:
+        image: ollama/ollama:0.6.6
+        container_name: ollama
+        environment:
+            OLLAMA_MODELS: "/root/.gai/models/ollama"
+            OLLAMA_KEEP_ALIVE: -1
+            OLLAMA_FLASH_ATTENTION: 1
+            # OLLAMA_NUM_PARALLEL: 1
+            # OLLAMA_MAX_LOADED_MODELS: 1
+        ports:
+            - "11434:11434"
+        volumes:
+            - $HOME/.gai:/root/.gai
+            - $HOME/.ollama:/root/.ollama
+        restart: always
+        networks:
+            - default

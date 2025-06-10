@@ -1,0 +1,39 @@
+{
+    "id": "chatcmpl-09b423af-a3fc-4faf-8248-8323c699086e",
+    "choices": [
+        {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+                "content": null,
+                "refusal": null,
+                "role": "assistant",
+                "function_call": null,
+                "tool_calls": [
+                    {
+                        "id": "call_dd8caff3-729b-4ae3-a59c-d54517452bd0",
+                        "function": {
+                            "arguments": "{\"search_query\": \"current time in Singapore\"}",
+                            "name": "google"
+                        },
+                        "type": "function"
+                    }
+                ],
+                "audio": null
+            }
+        }
+    ],
+    "created": 1737897085,
+    "model": "exllamav2-mistral7b",
+    "object": "chat.completion",
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+        "completion_tokens": 50,
+        "prompt_tokens": 418,
+        "total_tokens": 468,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+    }
+}

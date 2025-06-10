@@ -1,0 +1,488 @@
+[
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:07.059168864Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": "As",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:07.648964149Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " she",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:08.946318792Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " lay",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:10.809321636Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " in",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:11.339686231Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " bed",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:12.500309192Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": ",",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:13.869331561Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " Emily",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:15.885503923Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " couldn",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:17.850976804Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": "'t",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:18.503407447Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " shake",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:20.028558401Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " the",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:21.49400539Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " feeling",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:22.445978008Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " that",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:23.3228994Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " someone",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:24.726471334Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " had",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:25.338128987Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " been",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:27.105623399Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " watching",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:28.390294904Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " her",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:29.197647708Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " from",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:30.580818737Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " the",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:31.884570394Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " shadows",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:33.140963516Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " of",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:33.940797951Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " her",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:35.13979213Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " childhood",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:35.855793423Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": " home",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:37.418354046Z",
+        "done": false,
+        "done_reason": null,
+        "total_duration": null,
+        "load_duration": null,
+        "prompt_eval_count": null,
+        "prompt_eval_duration": null,
+        "eval_count": null,
+        "eval_duration": null,
+        "message": {
+            "role": "assistant",
+            "content": ".",
+            "images": null,
+            "tool_calls": null
+        }
+    },
+    {
+        "model": "llama3.1",
+        "created_at": "2025-02-01T08:30:40.054745425Z",
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 34638375200,
+        "load_duration": 30993302,
+        "prompt_eval_count": 16,
+        "prompt_eval_duration": 1591000000,
+        "eval_count": 27,
+        "eval_duration": 33005000000,
+        "message": {
+            "role": "assistant",
+            "content": "",
+            "images": null,
+            "tool_calls": null
+        }
+    }
+]

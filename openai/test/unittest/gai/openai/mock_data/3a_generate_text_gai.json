@@ -1,0 +1,26 @@
+{
+    "id": "chatcmpl-f37b45ac-fb27-414b-b331-ba2897a51bd7",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+                "content": "Under a tree, a little boy shared his last bread with a hungry crow. They became friends, teaching him that kindness can feed more than just Hunger.",
+                "role": "assistant",
+                "function_call": null,
+                "tool_calls": null
+            }
+        }
+    ],
+    "created": 1721751254,
+    "model": "ttt-exllama2-mistral7b",
+    "object": "chat.completion",
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+        "completion_tokens": 33,
+        "prompt_tokens": 15,
+        "total_tokens": 48
+    }
+}

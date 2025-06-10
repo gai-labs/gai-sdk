@@ -1,8 +1,5 @@
-
-import os
 import json
 from dotenv import load_dotenv
-load_dotenv()
 from typing import Union, Optional
 
 from openai.types.chat.chat_completion import ChatCompletion
@@ -13,9 +10,11 @@ from gai.lib.http_utils import http_post
 from gai.lib.errors import ApiException
 from gai.lib.config import GaiClientConfig, config_helper
 from gai.lib.logging import getLogger
+from gai.chat.lib.dtos import ChatCompletionRequest, ModelDownloadRequest
+
+load_dotenv()
 logger = getLogger(__name__)
 
-from gai.chat.lib.dtos import ChatCompletionRequest, ModelDownloadRequest
 
 """
 This is a convenient function for extracting the content of the response object.

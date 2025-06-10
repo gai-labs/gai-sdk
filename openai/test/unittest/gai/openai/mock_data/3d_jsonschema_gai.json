@@ -1,0 +1,31 @@
+{
+    "id": "chatcmpl-af4b64d9-1836-4adc-9533-0661af81d16b",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+                "content": "{\n   \"title\": \"Foundation\",\n   \"summary\": \"Foundation is a science fiction novel by American writer Isaac Asimov. It is the first published in his Foundation Trilogy (later expanded into the Foundation series). Foundation is a cycle of five interrelated short stories, first published as a single book by Gnome Press in 1951. Collectively they tell the early story of the Foundation, an institute founded by psychohistorian Hari Seldon to preserve the best of galactic civilization after the collapse of the Galactic Empire.\",\n   \"author\": \"Isaac Asimov\",\n   \"published_year\": 1951\n }",
+                "refusal": null,
+                "role": "assistant",
+                "function_call": null,
+                "tool_calls": null,
+                "audio": null
+            }
+        }
+    ],
+    "created": 1737898134,
+    "model": "exllamav2-mistral7b",
+    "object": "chat.completion",
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+        "completion_tokens": 148,
+        "prompt_tokens": 253,
+        "total_tokens": 401,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+    },
+    "extract": null
+}

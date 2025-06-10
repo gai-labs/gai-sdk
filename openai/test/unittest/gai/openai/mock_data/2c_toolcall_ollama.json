@@ -1,0 +1,27 @@
+{
+    "model": "llama3.1",
+    "created_at": "2025-02-01T09:08:01.582546727Z",
+    "done": true,
+    "done_reason": "stop",
+    "total_duration": 69929184968,
+    "load_duration": 30457505,
+    "prompt_eval_count": 341,
+    "prompt_eval_duration": 43598000000,
+    "eval_count": 20,
+    "eval_duration": 26297000000,
+    "message": {
+        "role": "assistant",
+        "content": "",
+        "images": null,
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "google",
+                    "arguments": {
+                        "search_query": "current time in Singapore"
+                    }
+                }
+            }
+        ]
+    }
+}

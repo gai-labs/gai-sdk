@@ -1,6 +1,8 @@
+import inspect
 import os, re, time
 import json
 import asyncio
+from typing import Any
 import nest_asyncio
 
 from gai.lib import constants
@@ -68,3 +70,8 @@ def run_async_function(coro_func, *args, **kwargs):
     except RuntimeError:
         # In case there's no running loop (common in some environments)
         return asyncio.run(coro_func(*args, **kwargs))
+    
+# Create a proper function to check if an object is an async generator
+def is_async_generator(obj: Any) -> bool:
+    """Check if an object is an async generator."""
+    return hasattr(obj, '__aiter__') or inspect.isasyncgen(obj)

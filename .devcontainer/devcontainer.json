@@ -1,0 +1,37 @@
+{
+    "name": "gai-sdk",
+    "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+    "service": "devcontainer",
+    // Make sure this matches the bind mount in docker-compose.yml
+    "workspaceFolder": "/workspaces/gai-sdk",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/workspaces/gai-sdk/.venv/bin/python",
+            },
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+                "ms-python.debugpy",
+                "ms-vscode.js-debug",
+                "charliermarsh.ruff",
+                "KevinRose.vsc-python-indent",
+                "esbenp.prettier-vscode",
+                "bierner.markdown-mermaid",
+                "venage5603.tokyo-night-dark-enhanced",
+                "ms-azuretools.vscode-containers"
+            ]
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2.12.0": {
+            "version": "latest",
+            "moby": true
+        }
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "/bin/bash .devcontainer/postCreateCommand.sh"
+}

@@ -1,0 +1,26 @@
+{
+    "id": "chatcmpl-9oC7JGZQNrB2eDHwsUVEfDgiST3nk",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+                "content": "\"Despite being lost in the dense, mystifying forest for hours, the brave little puppy finally managed to find his way back home, surprising his family who welcomed him with more love than ever before.\"",
+                "role": "assistant",
+                "function_call": null,
+                "tool_calls": null
+            }
+        }
+    ],
+    "created": 1721750005,
+    "model": "gpt-4-0613",
+    "object": "chat.completion",
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+        "completion_tokens": 41,
+        "prompt_tokens": 228,
+        "total_tokens": 269
+    }
+}

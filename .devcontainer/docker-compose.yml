@@ -1,0 +1,165 @@
+services:
+    devcontainer:
+        image: kakkoii1337/gai-sdk_devcontainer:2.0.1
+        container_name: gai-sdk_devcontainer
+        build:
+            context: ..
+            dockerfile: .devcontainer/Dockerfile.devcontainer
+            args:
+                VARIANT: "3.10-bullseye"
+                NODE_VERSION: "22.15.0"
+                USERNAME: "vscode"
+                PROJECT_NAME: "gai-sdk"
+        ports:
+            - "12033:12033"
+        environment:
+            OLLAMA_HOST: "ollama"
+            HOME: /home/vscode
+            PYTHONPATH: /workspaces/gai-sdk/.venv/lib/python3.10/site-packges
+            UV_LINK_MODE: symlink # Allow symlink for packages on volumes
+            #UV_PROJECT_ENVIRONMENT: /workspaces/.venv
+        volumes:
+            # Use anonymous volume for virtual environment
+            - /workspaces/gai-sdk/.venv
+
+            # Make sure this matches the workspaceFolder in .devcontainer/devcontainer.json
+            - ..:/workspaces/gai-sdk:cached
+
+            # Mount the projects directory
+            - $HOME/.gai/projects:/workspaces/projects
+            - $HOME/.gai:/home/vscode/.gai
+            - $HOME/.cache:/home/vscode/.cache
+            - /tmp:/tmp
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: sleep infinity
+        networks:
+            - gai_network
+
+    gai-chat-svr:
+        image: kakkoii1337/gai-chat-svr-exl2:1.0.96
+        container_name: gai-chat-svr
+        environment:
+            DEFAULT_GENERATOR: "ttt"
+            LOG_LEVEL: "DEBUG"
+            TZ: "Asia/Singapore"
+            SWAGGER_URL: "/doc"
+            PROJECT_NAME: gai-chat-svr-exl2
+            # UV settings
+            UV_LINK_MODE: symlink
+            UV_PROJECT_ENVIRONMENT: /workspaces/gai-chat-svr-exl2/.venv
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          capabilities: [gpu]
+        expose:
+            - "12031"
+        ports:
+            - "5678:5678"
+        volumes:
+            - ~/.gai:/root/.gai
+        networks:
+            - gai_network
+
+    ollama:
+        image: ollama/ollama:0.6.6
+        container_name: ollama
+        environment:
+            OLLAMA_MODELS: "/root/.gai/models/ollama"
+            OLLAMA_KEEP_ALIVE: -1
+            OLLAMA_FLASH_ATTENTION: 1
+            # OLLAMA_NUM_PARALLEL: 1
+            # OLLAMA_MAX_LOADED_MODELS: 1
+        expose:
+            - "11434"
+        volumes:
+            - $HOME/.gai:/root/.gai
+            - $HOME/.ollama:/root/.ollama
+        networks:
+            - gai_network
+
+    # gai-tti-svr:
+    #     image: kakkoii1337/gai-tti-svr:1.0.11
+    #     container_name: gai-tti-svr
+    #     environment:
+    #         CLI_ARGS: --api --xformers --no-download-sd-model --ckpt /stable-diffusion-webui/models/Stable-diffusion/runwayml/v1-5-pruned-emaonly.safetensors --enable-insecure-extension-access
+    #     deploy:
+    #         resources:
+    #             reservations:
+    #                 devices:
+    #                     - capabilities: [gpu]
+    #                       driver: nvidia
+    #                       count: all
+    #     ports:
+    #         - "12035:12035"
+    #     volumes:
+    #         - ~/.gai/models/Stable-diffusion:/stable-diffusion-webui/models/Stable-diffusion
+    #         - ~/.gai/models/VAE:/stable-diffusion-webui/models/VAE
+    #     restart: always
+    #     networks:
+    #         - gai_network
+
+    gai-mcp-web-svr:
+        image: kakkoii1337/gai-tools-web-svr:0.0.57
+        container_name: gai-tools-web-svr
+        shm_size: "2g" # for non-headless
+        environment:
+            LOG_LEVEL: "DEBUG"
+            SWAGGER_URL: "/doc"
+            PROJECT_NAME: gai-tools-web-svr
+            # UV settings
+            UV_LINK_MODE: symlink
+            UV_PROJECT_ENVIRONMENT: /workspaces/gai-tools-web-svr/.venv
+        expose:
+            - "12036"
+        volumes:
+            - ~/.gai:/home/vscode/.gai # ✅ Ensure ~/.gai is mounted from host
+        networks:
+            - gai_network
+
+    # # gai-rag-svr:
+    # #     image: kakkoii1337/gai-rag-svr:1.0.81
+    # #     shm_size: "2g" # for non-headless
+    # #     container_name: gai-rag-svr
+    # #     environment:
+    # #         DEFAULT_GENERATOR: "rag-instructor-sentencepiece"
+    # #         LOG_LEVEL: "DEBUG"
+    # #         TZ: "Asia/Singapore"
+    # #         SWAGGER_URL: "/doc"
+    # #         USERNAME: "kakkoii1337"
+    # #         HOME: "/home/kakkoii1337"
+    # #     deploy:
+    # #         resources:
+    # #             reservations:
+    # #                 devices:
+    # #                     - driver: nvidia
+    # #                       capabilities: [gpu]
+    # #     volumes:
+    # #         - ~/.gai:/home/kakkoii1337/.gai
+    # #     expose:
+    # #         - "12036"
+    # #     networks:
+    # #         - gai_network
+
+    # nats01:
+    #     image: nats:latest
+    #     container_name: nats01
+    #     ports:
+    #         - "4222:4222" # Client port
+    #         - "8222:8222" # Monitoring port
+    #         - "6222:6222" # Cluster port
+    #     command:
+    #         - "--cluster"
+    #         - "nats://0.0.0.0:6222"
+    #         # - "--routes"
+    #         # - "nats://nats02:6223"
+    #         # - "--routes"
+    #         # - "nats://nats03:6224"
+    #     networks:
+    #         - gai_network
+
+networks:
+    gai_network:
+        name: gai_network
+        driver: bridge
