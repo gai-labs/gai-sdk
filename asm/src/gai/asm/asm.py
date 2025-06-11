@@ -2,18 +2,25 @@ import importlib
 from transitions.extensions.asyncio import AsyncMachine
 from typing import Optional, Union
 from gai.lib.logging import getLogger
+from gai.asm.monologue import Monologue
 logger = getLogger(__name__)
 
 class AsyncStateMachine:
     
     class StateModel:
         
-        def __init__(self, state_manifest:dict,**kwargs):
+        def __init__(self, state_manifest:dict, monologue:Optional[Monologue]=None, agent_name:str="Assistant",**kwargs):
             self.state = None
+            self.agent_name = agent_name
             self.state_manifest = state_manifest
             self.state_history = []
             self.state_data = {}
             self.state_bag = {}
+            
+            if not monologue:
+                monologue = Monologue(agent_name=agent_name)
+            
+            self.monologue = monologue
             self.kwargs = kwargs
             
         def resolve_input(self,state):
@@ -54,15 +61,15 @@ class AsyncStateMachine:
                 
                 resolved = None
                         
-                if k == "monologue_messages":
+                if k == "monologue":
                     
-                    # If item is keyword "monologue_messages", make a copy from previous state
+                    # If item is keyword "monologue", make a copy from previous state
 
-                    last_output = state.machine.state_history[-1].get("output", None)
+                    last_output = self.state_history[-1].get("output", None)
                     if last_output:
-                        resolved = last_output["monologue_messages"]
+                        resolved = last_output["monologue"]
                     else:
-                        resolved = []                
+                        resolved = self.monologue
 
                 elif isinstance(v,dict):
                     
@@ -74,19 +81,19 @@ class AsyncStateMachine:
 
                         dependency = v.get("dependency",None)
                         if dependency is None:
-                            raise ValueError(f"'dependency' property not found for 'getter'. state: {self.machine.state} input: {k} value: {v}")
-                        if state.machine.kwargs.get(dependency,None) is None:
+                            raise ValueError(f"'dependency' property not found for 'getter'. state: {self.state} input: {k} value: {v}")
+                        if self.kwargs.get(dependency,None) is None:
                             raise ValueError(f"Dependency {dependency} is specified in manifest but not passed into ASM builder.")
                         
                         # Pass "state" into the getter function as special argument.
                         
-                        resolved = state.machine.kwargs[dependency](state)
+                        resolved = self.kwargs[dependency](state)
 
                     elif v.get("type",None) == "prev_state":
                         
                         # dependency refers to the name of a previous state output
                         
-                        last_output = state.machine.state_history[-1].get("output", None)
+                        last_output = self.state_history[-1].get("output", None)
                         if last_output:
                             dependency = v.get("dependency",None)
                             if dependency:
@@ -103,9 +110,9 @@ class AsyncStateMachine:
                         # dependency refers to the name of a state bag item
                         
                         dependency = v.get("dependency",None)
-                        resolved = state.machine.state_bag.get(dependency,None)
+                        resolved = self.state_bag.get(dependency,None)
                         if resolved is None:
-                            raise ValueError(f"Dependency {dependency} not found in state bag: {state.machine.state_bag}")
+                            raise ValueError(f"Dependency {dependency} not found in state bag: {self.state_bag}")
                     if not resolved:
                         raise ValueError("There are unresolved items from the manifest. Please check the input_data section again.")
                 else:
@@ -121,7 +128,7 @@ class AsyncStateMachine:
 
             # Update the state bag with latest snapshot of input data.
             for k,v in resolved_input_data.items():
-                state.machine.state_bag[k] = v
+                self.state_bag[k] = v
 
             return resolved_input_data            
             
@@ -137,20 +144,20 @@ class AsyncStateMachine:
             if "output_data" in state.manifest:
                 output = {}
                 for k in state.manifest["output_data"]:
-                    if k in state.machine.state_bag:
+                    if k in self.state_bag:
                         try:
                             # deepcopy-able items will be copied.
-                            output[k] = copy.deepcopy(state.machine.state_bag.get(k))                            
+                            output[k] = copy.deepcopy(self.state_bag.get(k))                            
                         except Exception as e:
                             # otherwise, keep a reference to the item.
-                            output[k] = state.machine.state_bag.get(k)
+                            output[k] = self.state_bag.get(k)
                             pass
                         
             # Built-In State: Name
             output["name"] = self.state_bag["name"]
             
             # Built-In State: Monologues Messages
-            output["monologue_messages"] = self.state_bag["monologue_messages"].copy()
+            output["monologue"] = self.state_bag["monologue"].copy()
             
             # Built-In State: Step
             output["step"] = self.state_bag["step"]
@@ -203,15 +210,13 @@ class AsyncStateMachine:
                 state.output = {}
                 
                 # Built-In State: Name
-                
-                name = state.input.get("name", "Assistant")
-                state.output["name"] = name
-                self.state_bag["name"] = name
 
-                # Built-In State: Monologues Messages
-                monologue_messages = state.input.get("monologue_messages", [])
-                state.output["monologue_messages"] = monologue_messages
-                self.state_bag["monologue_messages"] = monologue_messages                    
+                state.output["name"] = self.agent_name
+                self.state_bag["name"] = self.agent_name
+
+                # Built-In State: Monologues Messages                
+                state.output["monologue"] = self.monologue
+                self.state_bag["monologue"] = self.monologue
 
                 # Built-In State: Step
                 step = 0
@@ -352,12 +357,12 @@ class AsyncStateMachine:
         def __exit__(self, exc_type, exc_val, exc_tb):
             pass        
         
-        def build(self, fsm_model: Optional[Union[dict,"AsyncStateMachine.StateModel"]]=None, **kwargs) -> "AsyncStateMachine.StateModel":
+        def build(self, fsm_model: Optional[Union[dict,"AsyncStateMachine.StateModel"]]=None, agent_name:str="Assistant", monologue:Optional[Monologue]=None, **kwargs) -> "AsyncStateMachine.StateModel":
             if isinstance(fsm_model, dict):
-                fsm_model = AsyncStateMachine.StateModel(state_manifest=fsm_model)
+                fsm_model = AsyncStateMachine.StateModel(state_manifest=fsm_model,agent_name=agent_name, monologue=monologue)
 
             if not fsm_model:
-                fsm_model = AsyncStateMachine.StateModel(state_manifest={})
+                fsm_model = AsyncStateMachine.StateModel(state_manifest={},agent_name=agent_name, monologue=monologue)
                 
             fsm_model.kwargs = {**fsm_model.kwargs, **kwargs}
             

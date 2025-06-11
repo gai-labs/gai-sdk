@@ -150,7 +150,7 @@
                         },
                         "tool_name": "text"
                     },
-                    "output_data": ["monologue_messages"]
+                    "output_data": []
                 },
                 "GENERATE": {
                     "module_path": "gai.agents.states.GenerateState",
@@ -159,14 +159,9 @@
                         "llm_config": {
                             "type": "getter",
                             "dependency": "get_llm_config"
-                        },
-                        "monologue_messages": {
-                            "type": "state_bag",
-                            "dependency": "monologue_messages"
                         }
                     },
                     "output_data": [
-                        "monologue_messages",
                         "streamer",
                         "get_assistant_message",
                         "time_elapsed"
@@ -274,7 +269,7 @@
                             "dependency": "tool_name"
                         }
                     },
-                    "output_data": ["monologue_messages"]
+                    "output_data": []
                 },
                 "TOOL_CALL": {
                     "module_path": "gai.agents.states.ToolCallState",
@@ -325,7 +320,7 @@
                             "dependency": "tool_call"
                         }
                     },
-                    "output_data": ["monologue_messages"]
+                    "output_data": []
                 },
                 "GENERATE": {
                     "module_path": "gai.agents.states.GenerateState",
@@ -334,14 +329,9 @@
                         "llm_config": {
                             "type": "getter",
                             "dependency": "get_llm_config"
-                        },
-                        "monologue_messages": {
-                            "type": "state_bag",
-                            "dependency": "monologue_messages"
                         }
                     },
                     "output_data": [
-                        "monologue_messages",
                         "streamer",
                         "get_assistant_message",
                         "time_elapsed"
@@ -350,13 +340,8 @@
                 "FINAL": {
                     "module_path": "gai.agents.states.FinalizeState",
                     "class_name": "FinalizeState",
-                    "input_data": {
-                        "monologue_messages": {
-                            "type": "state_bag",
-                            "dependency": "monologue_messages"
-                        }
-                    },
-                    "output_data": ["monologue_messages"]
+                    "input_data": {},
+                    "output_data": []
                 }
             },
             "creator_id": "00000000-0000-0000-0000-000000000000",

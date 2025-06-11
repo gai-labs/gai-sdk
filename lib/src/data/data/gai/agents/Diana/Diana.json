@@ -53,7 +53,7 @@
                 },
                 "tool_name": "text"
             },
-            "output_data": ["monologue_messages"]
+            "output_data": ["monologue"]
         },
         "GENERATE": {
             "module_path": "gai.agents.states.GenerateState",
@@ -63,9 +63,9 @@
                     "type": "state_machine",
                     "dependency": "get_llm_config"
                 },
-                "monologue_messages": {
+                "monologue": {
                     "type": "state_bag",
-                    "dependency": "monologue_messages"
+                    "dependency": "monologue"
                 }
             },
             "output_data": ["streamer", "assistant_message"]

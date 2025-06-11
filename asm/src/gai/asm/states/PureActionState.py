@@ -22,7 +22,7 @@ class PureActionState(StateBase):
                 "type": "action",
                 "action": "callable_name"
             },
-            "output_data": ["monologue_messages","action_result"]
+            "output_data": ["action_result"]
         },
     }    
     """    

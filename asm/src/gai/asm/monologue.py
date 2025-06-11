@@ -36,15 +36,14 @@ class Monologue:
                 recipient=self.agent_name
             ),
             body=StateBodyPydantic(
-                state_name=state.state,
-                step_no=state.input.step_no,
+                state_name=state.title,
+                step_no=state.input["step"],
                 role="user",
                 content=content
             )
         )
         self._messages.append(message)
-        return self
-    
+        return self    
     
     def add_assistant_message(self, state, content: str):
         message = MessagePydantic(
@@ -53,14 +52,22 @@ class Monologue:
                 recipient="User"
             ),
             body=StateBodyPydantic(
-                state_name=state.state,
-                step_no=state.input.step_no,
+                state_name=state.title,
+                step_no=state.input["step"],
                 role="assistant",
                 content=content
             )
         )
         self._messages.append(message)
         return self
+    
+    def copy(self):
+        """Returns a copy of the monologue."""
+        return Monologue(
+            agent_name=self.agent_name,
+            messages=self._messages.copy(),
+            dialogue_id=self.dialogue_id
+        )
 
     def list_messages(self)->list[MessagePydantic]:
         return self._messages
@@ -78,13 +85,39 @@ class Monologue:
 
         return chat_messages        
         
-    def save(self,path:Optional[str]=None):
+
+
+
+#-----
+
+class FileMonologue(Monologue):
+    
+    def __init__(self, 
+                 agent_name:str="Assistant", 
+                 messages:Optional[Union["Monologue",list[MessagePydantic]]]=None,
+                 dialogue_id:str=DEFAULT_GUID
+                 ):
+        super().__init__(agent_name, messages, dialogue_id)
+        self.path = f"/tmp/{self.agent_name}.json"
+        self._load(self.path)
+        
+    def _save(self,path:Optional[str]=None):
         if not path:
             path=f"/tmp/{self.agent_name}.json"
         with open(path,"w") as f:
             jsoned = json.dumps([m.model_dump() for m in self._messages],indent=4)
             f.write(jsoned)
-
+            
+    def _load(self,path:Optional[str]=None):
+        if not path:
+            path=f"/tmp/{self.agent_name}.json"
+        if not os.path.exists(path):
+            # Create empty monologue file if its not available.
+            self.reset(path)
+        with open(path,"r") as f:
+            result=json.load(f)
+            self._messages = [ MessagePydantic(**m) for m in result]
+            
     def reset(self,path:Optional[str]=None):
         if not path:
             path=f"/tmp/{self.agent_name}.json"
@@ -94,14 +127,15 @@ class Monologue:
             pass
         with open(path,"w") as f:
             f.write(json.dumps([]))        
-            
-    def load(self,path:Optional[str]=None):
-        if not path:
-            path=f"/tmp/{self.agent_name}.json"
-        if not os.path.exists(path):
-            # Create empty monologue file if its not available.
-            self.reset(path)
-        with open(path,"r") as f:
-            result=json.load(f)
-            self._messages = [ MessagePydantic(**m) for m in result]
 
+    def add_user_message(self, state, content:str):
+        super().add_user_message(state, content)
+        self._save(self.path)
+        return self
+
+    def add_assistant_message(self, state, content: str):
+        super().add_assistant_message(state, content)
+        self._save(self.path)
+        return self
+    
+    
