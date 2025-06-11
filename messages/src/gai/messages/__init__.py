@@ -2,6 +2,7 @@ from .async_message_bus import AsyncMessageBus,MessageBusProtocol
 from .typing import (
     MessageHeaderPydantic,
     DefaultBodyPydantic,
+    StateBodyPydantic,
     SendBodyPydantic,
     ReplyBodyPydantic,
     MessagePydantic,
@@ -22,6 +23,7 @@ __all__ = [
     "MessageBusProtocol",
     "MessageHeaderPydantic",
     "DefaultBodyPydantic",
+    "StateBodyPydantic",
     "SendBodyPydantic",
     "ReplyBodyPydantic",
     "MessagePydantic",

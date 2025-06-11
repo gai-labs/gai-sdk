@@ -19,11 +19,11 @@ services:
             UV_LINK_MODE: symlink # Allow symlink for packages on volumes
             #UV_PROJECT_ENVIRONMENT: /workspaces/.venv
         volumes:
-            # Use anonymous volume for virtual environment
-            - /workspaces/gai-sdk/.venv
-
             # Make sure this matches the workspaceFolder in .devcontainer/devcontainer.json
             - ..:/workspaces/gai-sdk:cached
+
+            # Use anonymous volume for virtual environment
+            - /workspaces/gai-sdk/.venv
 
             # Mount the projects directory
             - $HOME/.gai/projects:/workspaces/projects

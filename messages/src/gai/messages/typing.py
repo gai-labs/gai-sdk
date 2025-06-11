@@ -46,6 +46,16 @@ class DefaultBodyPydantic(BaseModel,MessageBodyMixin):
     type: Literal["default"] = "default"
     content: Optional[Any]
 
+# State Class -----------------------------------------------------------------------------------        
+
+class StateBodyPydantic(BaseModel, MessageBodyMixin):
+    type: Literal["state"] = "state"
+    state_name: str
+    step_no: int
+    content_type: Literal["text", "image", "video", "audio"]="text"
+    role: str
+    content: Any
+
 # Send Class -----------------------------------------------------------------------------------        
 
 class SendBodyPydantic(BaseModel, MessageBodyMixin):
@@ -69,7 +79,7 @@ class ReplyBodyPydantic(BaseModel, MessageBodyMixin):
     content: Optional[str] = None
  
 # Message Class -----------------------------------------------------------------------------------
-UnionBodyType:TypeAlias = Annotated[Union[DefaultBodyPydantic, SendBodyPydantic, ReplyBodyPydantic],Field(discriminator="type")]
+UnionBodyType:TypeAlias = Annotated[Union[DefaultBodyPydantic, StateBodyPydantic, SendBodyPydantic, ReplyBodyPydantic],Field(discriminator="type")]
 
 class MessagePydantic(BaseModel):
     """

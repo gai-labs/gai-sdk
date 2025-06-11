@@ -16,4 +16,7 @@
     // python.terminal
     "python.terminal.activateEnvInCurrentTerminal": false,
     "python.terminal.activateEnvironment": true,
+    "python.analysis.extraPaths": [
+        "./lib/src"
+    ],
 }

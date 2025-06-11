@@ -25,7 +25,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 # Ensure pip is installed globally and up-to-date
 RUN python -m ensurepip --upgrade \
-    && python -m pip install --upgrade pip setuptools wheel
+    && python -m pip install --upgrade pip setuptools wheel ipykernel
 
 # Setup default python tools in a venv via pipx to avoid conflicts
 ENV PIPX_HOME=/usr/local/py-utils \
