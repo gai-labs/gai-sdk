@@ -33,49 +33,49 @@ services:
         networks:
             - gai_network
 
-    # gai-llm-svr:
-    #     image: kakkoii1337/gai-llm-svr-exl2:1.0.97
-    #     container_name: gai-llm-svr
-    #     environment:
-    #         DEFAULT_GENERATOR: "ttt"
-    #         LOG_LEVEL: "DEBUG"
-    #         TZ: "Asia/Singapore"
-    #         SWAGGER_URL: "/doc"
-    #         PROJECT_NAME: gai-llm-svr-exl2
-    #         # UV settings
-    #         UV_LINK_MODE: symlink
-    #         UV_PROJECT_ENVIRONMENT: /workspaces/gai-llm-svr-exl2/.venv
-    #     deploy:
-    #         resources:
-    #             reservations:
-    #                 devices:
-    #                     - driver: nvidia
-    #                       capabilities: [gpu]
-    #     expose:
-    #         - "12031"
-    #     ports:
-    #         - "5678:5678"
-    #     volumes:
-    #         - ~/.gai:/root/.gai
-    #     networks:
-    #         - gai_network
+    gai-llm-svr:
+        image: kakkoii1337/gai-llm-svr-exl2:1.0.97
+        container_name: gai-llm-svr
+        environment:
+            DEFAULT_GENERATOR: "ttt"
+            LOG_LEVEL: "DEBUG"
+            TZ: "Asia/Singapore"
+            SWAGGER_URL: "/doc"
+            PROJECT_NAME: gai-llm-svr-exl2
+            # UV settings
+            UV_LINK_MODE: symlink
+            UV_PROJECT_ENVIRONMENT: /workspaces/gai-llm-svr-exl2/.venv
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          capabilities: [gpu]
+        expose:
+            - "12031"
+        ports:
+            - "5678:5678"
+        volumes:
+            - ~/.gai:/root/.gai
+        networks:
+            - gai_network
 
-    # ollama:
-    #     image: ollama/ollama:0.6.6
-    #     container_name: ollama
-    #     environment:
-    #         OLLAMA_MODELS: "/root/.gai/models/ollama"
-    #         OLLAMA_KEEP_ALIVE: -1
-    #         OLLAMA_FLASH_ATTENTION: 1
-    #         # OLLAMA_NUM_PARALLEL: 1
-    #         # OLLAMA_MAX_LOADED_MODELS: 1
-    #     expose:
-    #         - "11434"
-    #     volumes:
-    #         - $HOME/.gai:/root/.gai
-    #         - $HOME/.ollama:/root/.ollama
-    #     networks:
-    #         - gai_network
+    ollama:
+        image: ollama/ollama:0.6.6
+        container_name: ollama
+        environment:
+            OLLAMA_MODELS: "/root/.gai/models/ollama"
+            OLLAMA_KEEP_ALIVE: -1
+            OLLAMA_FLASH_ATTENTION: 1
+            # OLLAMA_NUM_PARALLEL: 1
+            # OLLAMA_MAX_LOADED_MODELS: 1
+        expose:
+            - "11434"
+        volumes:
+            - $HOME/.gai:/root/.gai
+            - $HOME/.ollama:/root/.ollama
+        networks:
+            - gai_network
 
     # # gai-tti-svr:
     # #     image: kakkoii1337/gai-tti-svr:1.0.11
