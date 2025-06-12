@@ -12,17 +12,14 @@
                 "python.defaultInterpreterPath": "/workspaces/gai-sdk/.venv/bin/python",
             },
             "extensions": [
-                "ms-azuretools.vscode-docker",
                 "ms-python.python",
-                "ms-toolsai.jupyter",
                 "ms-python.debugpy",
                 "ms-vscode.js-debug",
-                "charliermarsh.ruff",
+                "ms-toolsai.jupyter",
                 "KevinRose.vsc-python-indent",
                 "esbenp.prettier-vscode",
                 "bierner.markdown-mermaid",
-                "venage5603.tokyo-night-dark-enhanced",
-                "ms-azuretools.vscode-containers"
+                "venage5603.tokyo-night-dark-enhanced"
             ]
         }
     },
