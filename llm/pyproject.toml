@@ -1,0 +1,29 @@
+[project]
+name = "gai-llm"
+version = "0.1.1"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [ "gai-lib", "fastapi>=0.115.12", "anthropic>=0.52.1", "fastapi>=0.115.12", "ollama==0.4.6",]
+[[project.authors]]
+name = "kakkoii1337"
+email = "kakkoii1337@gmail.com"
+
+[dependency-groups]
+dev = [ "gai-lib[dev]",]
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.license]
+file = "LICENSE"
+
+[project.optional-dependencies]
+dev = [ "gai-lib[dev]",]
+
+[tool.uv.sources.gai-lib]
+path = "../lib"
+editable = true
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/gai",]

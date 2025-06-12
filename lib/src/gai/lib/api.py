@@ -200,7 +200,7 @@ class _GeneratorWorker(mp.Process):
         self.res_queue = res_queue
 
     def run(self):
-        from gai.chat.server.gai_exllamav2 import GaiExLlamav2
+        from gai.llm.server.gai_exllamav2 import GaiExLlamav2
 
         # 1) load model
         try:

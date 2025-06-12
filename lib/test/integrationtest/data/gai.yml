@@ -16,7 +16,7 @@ clients:
     dolphin3.0_llama3.1:4.25bpw:exl2:
         type: ttt
         client_type: gai
-        url: http://gai-chat-svr:12031/gen/v1/chat/completions
+        url: http://gai-llm-svr:12031/gen/v1/chat/completions
     tool-web:
         type: tool
         client_type: gai
@@ -57,7 +57,7 @@ generators:
             seed: null
             decode_special_tokens: false
         module:
-            name: gai.chat.server.gai_exllamav2
+            name: gai.llm.server.gai_exllamav2
             class: GaiExLlamav2
         source:
             type: huggingface

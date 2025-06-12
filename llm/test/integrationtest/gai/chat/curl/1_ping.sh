@@ -1,0 +1,1 @@
+curl http://gai-llm-svr:12031

@@ -1,5 +1,6 @@
 import os
 import copy
+from pydantic import TypeAdapter
 import yaml
 from typing import Literal, Optional, Union, overload
 from ..utils import get_app_path
@@ -255,11 +256,24 @@ def list_generator_configs(file_path: Optional[str]=None) -> dict[str, GaiGenera
     return copy.deepcopy(gai_config.generators)
 
 def get_download_config(name_or_config: Union[str,dict],file_path:Optional[str]=None) -> DownloadConfig:
+    """
+    
+    Download Config is part of Generator Config under the `Source` property.
+    Therefore, when name_or_config is a `str`, the config can be found using get_generator_config().
+    
+    But if name_or_config is a `dict`, then do not use get_generator_config(). Simply parse it directly as DownloadConfig.
+    
+    """
+    
+    if isinstance(name_or_config,str):
 
-    generator_config = get_generator_config(name_or_config=name_or_config, file_path=file_path)
-    if not generator_config.source:
-        raise Exception(f"config_helper: Generator '{name_or_config}' does not have a source defined. Make sure you are using a 'gai' generator.")
-    return generator_config.source
+        generator_config = get_generator_config(name_or_config=name_or_config, file_path=file_path)
+        if not generator_config.source:
+            raise Exception(f"config_helper: Generator '{name_or_config}' does not have a source defined. Make sure you are using a 'gai' generator.")
+        return generator_config.source
+
+    DownloadConfigAdapter = TypeAdapter(DownloadConfig)
+    return DownloadConfigAdapter.validate_python(name_or_config)
 
 ## GaiToolConfig Helper Functions ---------------------------------------------------------------------------------------------
 

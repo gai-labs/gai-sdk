@@ -15,7 +15,7 @@ services:
         environment:
             OLLAMA_HOST: "ollama"
             HOME: /home/vscode
-            PYTHONPATH: /workspaces/gai-sdk/.venv/lib/python3.10/site-packges
+            PYTHONPATH: /workspaces/gai-sdk/.venv/lib/python3.10/site-packages
             UV_LINK_MODE: symlink # Allow symlink for packages on volumes
             #UV_PROJECT_ENVIRONMENT: /workspaces/.venv
         volumes:
@@ -26,24 +26,25 @@ services:
             - ..:/workspaces/gai-sdk:cached
 
             # Mount the projects directory
-            - $HOME:/home/vscode
+            - $HOME/.gai:/home/vscode/.gai:cached
+
             - /var/run/docker.sock:/var/run/docker.sock
         command: sleep infinity
         networks:
             - gai_network
 
-    # gai-chat-svr:
-    #     image: kakkoii1337/gai-chat-svr-exl2:1.0.96
-    #     container_name: gai-chat-svr
+    # gai-llm-svr:
+    #     image: kakkoii1337/gai-llm-svr-exl2:1.0.97
+    #     container_name: gai-llm-svr
     #     environment:
     #         DEFAULT_GENERATOR: "ttt"
     #         LOG_LEVEL: "DEBUG"
     #         TZ: "Asia/Singapore"
     #         SWAGGER_URL: "/doc"
-    #         PROJECT_NAME: gai-chat-svr-exl2
+    #         PROJECT_NAME: gai-llm-svr-exl2
     #         # UV settings
     #         UV_LINK_MODE: symlink
-    #         UV_PROJECT_ENVIRONMENT: /workspaces/gai-chat-svr-exl2/.venv
+    #         UV_PROJECT_ENVIRONMENT: /workspaces/gai-llm-svr-exl2/.venv
     #     deploy:
     #         resources:
     #             reservations:
@@ -97,23 +98,23 @@ services:
     # #     networks:
     # #         - gai_network
 
-    # gai-mcp-web-svr:
-    #     image: kakkoii1337/gai-tools-web-svr:0.0.57
-    #     container_name: gai-tools-web-svr
-    #     shm_size: "2g" # for non-headless
-    #     environment:
-    #         LOG_LEVEL: "DEBUG"
-    #         SWAGGER_URL: "/doc"
-    #         PROJECT_NAME: gai-tools-web-svr
-    #         # UV settings
-    #         UV_LINK_MODE: symlink
-    #         UV_PROJECT_ENVIRONMENT: /workspaces/gai-tools-web-svr/.venv
-    #     expose:
-    #         - "12036"
-    #     volumes:
-    #         - ~/.gai:/home/vscode/.gai # ✅ Ensure ~/.gai is mounted from host
-    #     networks:
-    #         - gai_network
+    gai-mcp-web-svr:
+        image: kakkoii1337/gai-tools-web-svr:0.0.57
+        container_name: gai-tools-web-svr
+        shm_size: "2g" # for non-headless
+        environment:
+            LOG_LEVEL: "DEBUG"
+            SWAGGER_URL: "/doc"
+            PROJECT_NAME: gai-tools-web-svr
+            # UV settings
+            UV_LINK_MODE: symlink
+            UV_PROJECT_ENVIRONMENT: /workspaces/gai-tools-web-svr/.venv
+        expose:
+            - "12036"
+        volumes:
+            - ~/.gai:/home/vscode/.gai # ✅ Ensure ~/.gai is mounted from host
+        networks:
+            - gai_network
 
     # # # gai-rag-svr:
     # # #     image: kakkoii1337/gai-rag-svr:1.0.81

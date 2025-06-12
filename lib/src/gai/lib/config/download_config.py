@@ -19,6 +19,6 @@ class CivitaiDownloadConfig(DownloadConfigBase):
     download: str
 
 DownloadConfig = Annotated[Union[
-    "HuggingfaceDownloadConfig",
-    "CivitaiDownloadConfig",
+    HuggingfaceDownloadConfig,
+    CivitaiDownloadConfig,
 ],Field(discriminator="type")]

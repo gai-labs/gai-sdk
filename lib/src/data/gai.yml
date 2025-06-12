@@ -15,7 +15,7 @@ clients:
         type: ttt
         name: ttt
         client_type: gai
-        url: http://gai-chat-svr:12031/gen/v1/chat/completions
+        url: http://gai-llm-svr:12031/gen/v1/chat/completions
 
     openai:
         ref: gpt-4o-mini
