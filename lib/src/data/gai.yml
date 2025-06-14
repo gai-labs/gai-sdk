@@ -172,20 +172,34 @@ clients:
         type: mcp
         client_type: gai
         name: mcp-web
-        url: file://../../../../../mcp-servers/src/web/mcp_server.py
+        url: ""
         extra:
-            command: "python"
+            command: "uvx"
+            args:
+                - "gai-tools-web"
     mcp-filesystem:
         type: mcp
-        client_type: gai
+        client_type: anthropic
         name: mcp-filesystem
-        url: file://../../../../../mcp-servers/modelcontextprotocol/servers/src/filesystem/dist/index.js
+        url: ""
         extra:
-            command: "node"
+            command: "npx"
             args:
+                - "-y"
+                - "@modelcontextprotocol/server-filesystem"
                 - "$HOME/.gai/projects"
+                - "$HOME/.gai/logs"
                 - "/tmp"
             blocked: ["directory_tree", "move_file"]
+    mcp-time:
+        type: mcp
+        client_type: anthropic
+        name: mcp-time
+        url: ""
+        extra:
+            command: "npx"
+            args:
+                - "time-mcp"
     mcp-react:
         type: mcp
         client_type: gai
