@@ -57,10 +57,10 @@ class AnthropicToolCallState(StateBase):
             nonlocal assistant_message
 
             async def stream_with_retry():
+                user_message = self.input["user_message"]
                 self.machine.monologue.add_user_message(
-                    state=self, content=self.input["user_message"]
+                    state=self, content=user_message
                 )
-
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
                     messages=self.machine.monologue.list_chat_messages(),
