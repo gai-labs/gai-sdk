@@ -77,8 +77,24 @@ class AnthropicToolCallState(StateBase):
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
 
             async for chunk in retry_policy.run(stream_with_retry):
+                #
+                # The LLM will always return:
+
+                ##  * a stream of strings followed by a tool call. This means the response will be
+                ##    streamed to the user and AthropicToolUseState will use a tool. ContinueToolUseState will return
+                ##    True
+
+                ##  - a tool call only. This means there is nothing to stream to the user, and
+                ##    AnthropicToolUseState will silently use a tool. ContinueToolUseState will return
+                ##    True
+
+                ##  - a stream of strings only. This means the response will be streamed to the user
+                ##    and AnthropicToolUseState will not use a tool. ContinueToolUseState will return
+                ##    False
+
                 if isinstance(chunk, str):
                     yield chunk
+
                 else:
                     self.machine.monologue.add_assistant_message(
                         state=self, content=chunk

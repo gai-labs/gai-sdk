@@ -110,6 +110,9 @@ class Monologue:
         self._messages = messages.copy()
         return self._messages
 
+    def reset(self, path: Optional[str] = None):
+        self._messages.clear()
+
 
 # -----
 
@@ -120,9 +123,12 @@ class FileMonologue(Monologue):
         agent_name: str = "Assistant",
         messages: Optional[Union["Monologue", list[MessagePydantic]]] = None,
         dialogue_id: str = DEFAULT_GUID,
+        file_path: Optional[str] = None,
     ):
         super().__init__(agent_name, messages, dialogue_id)
         self.path = f"/tmp/{self.agent_name}.json"
+        if file_path:
+            self.path = file_path
         self._load(self.path)
 
     def _save(self, path: Optional[str] = None):
@@ -154,7 +160,7 @@ class FileMonologue(Monologue):
     def reset(self, path: Optional[str] = None):
         self._messages.clear()
         if not path:
-            path = f"/tmp/{self.agent_name}.json"
+            path = self.path
         dir_name = os.path.dirname(path)
         with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False) as tmp:
             tmp.write(json.dumps([]))

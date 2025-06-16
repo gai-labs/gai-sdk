@@ -41,7 +41,7 @@ class AnthropicToolUseState(StateBase):
     def __init__(self, machine):
         super().__init__(machine)
 
-    async def _tool_call(self):
+    async def _use_tool(self):
         # Get last assistant message
 
         messages = self.machine.monologue.list_messages()
@@ -86,14 +86,14 @@ class AnthropicToolUseState(StateBase):
         try:
             tool_results = []
             for item in tool_calls:
-                console.print(
-                    f"[green]Using tool: {item['tool_name']} with input: {item['arguments']}[/green]"
+                logger.debug(
+                    f"Using tool: {item['tool_name']} with input: {item['arguments']}"
                 )
 
                 tool_result = await mcp_client.call_tool(
                     tool_name=item["tool_name"], **item["arguments"]
                 )
-                console.print(f"[blue]Tool result: {tool_result}[/blue]")
+                logger.debug(f"Tool result: {tool_result}")
 
                 # Extract just the text content from MCP tool result, not the full structure
                 if hasattr(tool_result, "content") and tool_result.content:
@@ -122,7 +122,7 @@ class AnthropicToolUseState(StateBase):
             return tool_results
 
         except Exception as e:
-            console.print(f"[red]Error processing last message content: {e}[/red]")
+            logger.error(f"Error processing last message content: {e}")
             raise e
 
     async def run_async(self):
@@ -138,7 +138,7 @@ class AnthropicToolUseState(StateBase):
         # Get model
         llm_model = llm_config["model"]
 
-        tool_results = await self._tool_call()
+        tool_results = await self._use_tool()
 
         assistant_message = ""
 

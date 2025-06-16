@@ -1,11 +1,25 @@
-from gai.asm import AsyncStateMachine
+import os
+from gai.asm import AsyncStateMachine, FileMonologue
 from gai.lib.logging import getLogger
+from gai.lib.config import GaiClientConfig
 
 logger = getLogger(__name__)
 
 
 class ToolUseAgent:
-    def __init__(self, user_message: str):
+    def __init__(
+        self,
+        user_message: str,
+        agent_name: str,
+        project_name: str,
+        llm_config: GaiClientConfig,
+    ):
+        log_file_path = os.path.expanduser(
+            f"~/.gai/logs/{project_name}_{agent_name}.log"
+        )
+        monologue = (
+            FileMonologue(file_path=log_file_path) if log_file_path else FileMonologue()
+        )
         with AsyncStateMachine.StateMachineBuilder(
             """
             INIT --> TOOL_CALL
@@ -61,7 +75,7 @@ class ToolUseAgent:
                                 "dependency": "mcp_server_names",
                             },
                         },
-                        "output_data": ["streamer", "get_assistant_message"],
+                        "output_data": ["tool_result"],
                     },
                     "CONTINUE_TOOL_USE": {
                         "module_path": "gai.asm.states",
@@ -75,15 +89,8 @@ class ToolUseAgent:
                         "output_data": ["monologue"],
                     },
                 },
-                get_llm_config=lambda state: {
-                    "client_type": "anthropic",
-                    # "model": "claude-opus-4-20250514",
-                    "model": "claude-sonnet-4-20250514",
-                    "max_tokens": 32000,
-                    "temperature": 0.7,
-                    "top_p": 0.95,
-                    "tools": True,
-                },
+                get_llm_config=lambda state: llm_config.model_dump(),
+                monologue=monologue,
                 continue_tool_use=self.continue_tool_use,
             )
 
@@ -96,7 +103,6 @@ class ToolUseAgent:
                 "Last message is not from assistant or no messages found. Dropping message and retry."
             )
             state.machine.monologue.pop()
-            state.machine.monologue.save()
             messages = state.machine.monologue.list_messages()
             if not messages:
                 raise ValueError(
@@ -119,7 +125,17 @@ class ToolUseAgent:
             logger.error(f"[red]Error processing last message content: {e}[/red]")
             raise e
 
-    async def run_async(self):
+    @classmethod
+    def reset(cls, project_name: str, agent_name: str):
+        log_file_path = os.path.expanduser(
+            f"~/.gai/logs/{project_name}_{agent_name}.log"
+        )
+        monologue = (
+            FileMonologue(file_path=log_file_path) if log_file_path else FileMonologue()
+        )
+        monologue.reset()
+
+    async def run_once_async(self):
         async def streamer():
             async for chunk in self.fsm.state_bag["streamer"]:
                 if isinstance(chunk, str):
@@ -132,3 +148,15 @@ class ToolUseAgent:
             return streamer
         else:
             logger.info("Agent is already in the final state, no action taken.")
+
+    async def run_until_final_async(self):
+        async def streamer():
+            # LOOP UNTIL FINAL STATE
+            while self.fsm.state != "FINAL":
+                await self.run_once_async()
+                async for chunk in self.fsm.state_bag["streamer"]:
+                    if chunk:
+                        if isinstance(chunk, str):
+                            yield (chunk)
+
+        return streamer
