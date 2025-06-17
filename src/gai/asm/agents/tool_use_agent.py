@@ -1,7 +1,9 @@
 import os
 from gai.asm import AsyncStateMachine, FileMonologue
+from gai.mcp.client import McpAggregatedClient
 from gai.lib.logging import getLogger
 from gai.lib.config import GaiClientConfig
+
 
 logger = getLogger(__name__)
 
@@ -13,6 +15,7 @@ class ToolUseAgent:
         agent_name: str,
         project_name: str,
         llm_config: GaiClientConfig,
+        mcp_client: McpAggregatedClient,
     ):
         log_file_path = os.path.expanduser(
             f"~/.gai/logs/{project_name}_{agent_name}.log"
@@ -33,12 +36,18 @@ class ToolUseAgent:
                 {
                     "INIT": {
                         "input_data": {
-                            "user_message": user_message,
+                            "user_message": {
+                                "type": "getter",
+                                "dependency": "get_user_message",
+                            },
                             "llm_config": {
                                 "type": "getter",
                                 "dependency": "get_llm_config",
                             },
-                            "mcp_server_names": ["mcp-filesystem", "mcp-web"],
+                            "mcp_client": {
+                                "type": "getter",
+                                "dependency": "get_mcp_client",
+                            },
                         }
                     },
                     "TOOL_CALL": {
@@ -54,9 +63,9 @@ class ToolUseAgent:
                                 "type": "state_bag",
                                 "dependency": "llm_config",
                             },
-                            "mcp_server_names": {
+                            "mcp_client": {
                                 "type": "state_bag",
-                                "dependency": "mcp_server_names",
+                                "dependency": "mcp_client",
                             },
                         },
                         "output_data": ["streamer", "get_assistant_message"],
@@ -70,9 +79,9 @@ class ToolUseAgent:
                                 "type": "state_bag",
                                 "dependency": "llm_config",
                             },
-                            "mcp_server_names": {
+                            "mcp_client": {
                                 "type": "state_bag",
-                                "dependency": "mcp_server_names",
+                                "dependency": "mcp_client",
                             },
                         },
                         "output_data": ["tool_result"],
@@ -89,7 +98,9 @@ class ToolUseAgent:
                         "output_data": ["monologue"],
                     },
                 },
+                get_user_message=lambda state: user_message,
                 get_llm_config=lambda state: llm_config.model_dump(),
+                get_mcp_client=lambda state: mcp_client,
                 monologue=monologue,
                 continue_tool_use=self.continue_tool_use,
             )

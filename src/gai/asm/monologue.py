@@ -22,8 +22,9 @@ class Monologue:
         agent_name: str = "Assistant",
         messages: Optional[Union["Monologue", list[MessagePydantic]]] = None,
         dialogue_id: str = DEFAULT_GUID,
+        limit: int = 600000,
     ):
-        self.limit = 20000  # Character limit for messages
+        self.limit = limit  # Character limit for messages
         self.dialogue_id = dialogue_id
         self.agent_name = agent_name
 
@@ -35,6 +36,13 @@ class Monologue:
 
         self.created_at = int(time.time())
         self.updated_at = int(time.time())
+
+    def get_total_size(self, new_message: Optional[dict] = None):
+        chat_messages = self.list_chat_messages()
+        total_size = len(json.dumps(chat_messages))
+        if new_message:
+            total_size += len(json.dumps(new_message))
+        return total_size
 
     def add_user_message(self, content: Any, state=None):
         state_name = ""
@@ -52,6 +60,23 @@ class Monologue:
                 content=content,
             ),
         )
+
+        try:
+            while (
+                self.get_total_size({"role": "user", "content": content}) > self.limit
+            ):
+                # Remove second and third oldest message (last being the original user message)
+                if len(self._messages) > 2:
+                    self._messages.pop(1)
+                    self._messages.pop(1)
+                else:
+                    raise Exception(
+                        "add_user_message: content size is bigger than 600,000 char. Are you sending an image?"
+                    )
+        except Exception as e:
+            logger.error(f"add_user_message: error={str(e)}")
+            raise e
+
         self._messages.append(message)
         return self
 
@@ -71,6 +96,25 @@ class Monologue:
                 content=content,
             ),
         )
+
+        try:
+            while (
+                self.get_total_size({"role": "assistant", "content": content})
+                > self.limit
+            ):
+                # Remove second and third oldest message (last being the original user message)
+                if len(self._messages) > 2:
+                    self._messages.pop(1)
+                    self._messages.pop(1)
+                else:
+                    raise Exception(
+                        "add_user_message: content size is bigger than 600,000 char. Are you sending an image?"
+                    )
+
+        except Exception as e:
+            logger.error(f"add_assistant_message: error={str(e)}")
+            raise e
+
         self._messages.append(message)
         return self
 

@@ -190,7 +190,13 @@ clients:
                 - "$HOME/.gai/projects"
                 - "$HOME/.gai/logs"
                 - "/tmp"
-            blocked: ["directory_tree", "move_file"]
+            blocked:
+                [
+                    "directory_tree",
+                    "move_file",
+                    "read_file",
+                    "read_multiple_files",
+                ]
     mcp-time:
         type: mcp
         client_type: anthropic

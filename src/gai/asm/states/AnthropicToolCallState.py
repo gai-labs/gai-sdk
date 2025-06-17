@@ -44,8 +44,7 @@ class AnthropicToolCallState(StateBase):
         llm_client = AsyncOpenAI(llm_config)
 
         # Get mcp client
-        mcp_server_names = self.input["mcp_server_names"]
-        mcp_client = McpAggregatedClient(mcp_server_names)
+        mcp_client = self.input["mcp_client"]
         tools = await mcp_client.list_tools()
 
         # Get model

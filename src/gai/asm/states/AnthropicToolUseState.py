@@ -80,8 +80,7 @@ class AnthropicToolUseState(StateBase):
 
         # Second Pass: Make calls and get results
 
-        mcp_server_names = self.input["mcp_server_names"]
-        mcp_client = McpAggregatedClient(mcp_server_names)
+        mcp_client = self.input["mcp_client"]
 
         try:
             tool_results = []
@@ -131,8 +130,7 @@ class AnthropicToolUseState(StateBase):
         llm_client = AsyncOpenAI(llm_config)
 
         # Get mcp client
-        mcp_server_names = self.input["mcp_server_names"]
-        mcp_client = McpAggregatedClient(mcp_server_names)
+        mcp_client = self.input["mcp_client"]
         tools = await mcp_client.list_tools()
 
         # Get model
@@ -145,11 +143,9 @@ class AnthropicToolUseState(StateBase):
         async def streamer():
             nonlocal assistant_message
 
-            async def stream_with_retry():
-                self.machine.monologue.add_user_message(
-                    state=self, content=tool_results
-                )
+            self.machine.monologue.add_user_message(state=self, content=tool_results)
 
+            async def stream_with_retry():
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
                     messages=self.machine.monologue.list_chat_messages(),
