@@ -17,6 +17,9 @@ build-backend = "hatchling.build"
 [project.optional-dependencies]
 dev = [ "gai-lib[dev]",]
 
+[project.scripts]
+gai = "gai.cli.gai_main:main"
+
 [tool.uv.sources.gai-lib]
 path = "lib"
 editable = true
