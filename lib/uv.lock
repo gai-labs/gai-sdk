@@ -477,6 +477,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi"
+version = "0.115.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/20/64/ec0788201b5554e2a87c49af26b77a4d132f807a0fa9675257ac92c6aa0e/fastapi-0.115.13.tar.gz", hash = "sha256:55d1d25c2e1e0a0a50aceb1c8705cd932def273c102bff0b1c1da88b3c6eb307", size = 295680, upload-time = "2025-06-17T11:49:45.575Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/4a/e17764385382062b0edbb35a26b7cf76d71e27e456546277a42ba6545c6e/fastapi-0.115.13-py3-none-any.whl", hash = "sha256:0a0cab59afa7bab22f5eb347f8c9864b681558c278395e94035a741fc10cd865", size = 95315, upload-time = "2025-06-17T11:49:44.106Z" },
+]
+
+[[package]]
 name = "fastjsonschema"
 version = "2.21.1"
 source = { registry = "https://pypi.org/simple" }
@@ -527,14 +541,15 @@ wheels = [
 ]
 
 [[package]]
-name = "gai-sdk"
-version = "1.0.218"
+name = "gai-lib"
+version = "0.181.4"
 source = { editable = "." }
 dependencies = [
+    { name = "fastapi" },
     { name = "huggingface-hub" },
+    { name = "nest-asyncio" },
     { name = "openai" },
     { name = "pydantic" },
-    { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "rich" },
@@ -557,19 +572,36 @@ dev = [
     { name = "wheel" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "build" },
+    { name = "flake8" },
+    { name = "ipykernel" },
+    { name = "jupyterlab" },
+    { name = "keyrings-alt" },
+    { name = "notebook" },
+    { name = "nox" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-ordering" },
+    { name = "twine" },
+    { name = "wheel" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2.2.post1" },
+    { name = "fastapi", specifier = ">=0.115.12" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=7.1.1,<8.0" },
     { name = "huggingface-hub", specifier = ">=0.24.5,<0.25" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29.5,<7.0" },
     { name = "jupyterlab", marker = "extra == 'dev'", specifier = ">=4.4.2" },
     { name = "keyrings-alt", marker = "extra == 'dev'", specifier = ">=5.0.1,<6.0" },
+    { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "notebook", marker = "extra == 'dev'", specifier = ">=7.4.2" },
     { name = "nox", marker = "extra == 'dev'", specifier = ">=2024.4.15,<2025.0" },
     { name = "openai", specifier = ">=1.43.0,<2.0.0" },
-    { name = "pydantic" },
-    { name = "pydantic-settings", specifier = ">=2.6.1" },
+    { name = "pydantic", specifier = ">=1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.5" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = "==0.25.2" },
     { name = "pytest-ordering", marker = "extra == 'dev'", specifier = ">=0.6,<1.0" },
@@ -581,6 +613,22 @@ requires-dist = [
     { name = "wheel", marker = "extra == 'dev'", specifier = ">=0.45.1" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "build", specifier = ">=1.2.2.post1" },
+    { name = "flake8", specifier = ">=7.1.1,<8.0" },
+    { name = "ipykernel", specifier = ">=6.29.5,<7.0" },
+    { name = "jupyterlab", specifier = ">=4.4.2" },
+    { name = "keyrings-alt", specifier = ">=5.0.1,<6.0" },
+    { name = "notebook", specifier = ">=7.4.2" },
+    { name = "nox", specifier = ">=2024.4.15,<2025.0" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-asyncio", specifier = "==0.25.2" },
+    { name = "pytest-ordering", specifier = ">=0.6,<1.0" },
+    { name = "twine", specifier = ">=6.1.0" },
+    { name = "wheel", specifier = ">=0.45.1" },
+]
 
 [[package]]
 name = "h11"
@@ -1671,20 +1719,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pydantic-settings"
-version = "2.9.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "typing-inspection" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/67/1d/42628a2c33e93f8e9acbde0d5d735fa0850f3e6a2f8cb1eb6c40b9a732ac/pydantic_settings-2.9.1.tar.gz", hash = "sha256:c509bf79d27563add44e8446233359004ed85066cd096d8b510f715e6ef5d268", size = 163234, upload-time = "2025-04-18T16:44:48.265Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/5f/d6d641b490fd3ec2c4c13b4244d68deea3a1b970a97be64f34fb5504ff72/pydantic_settings-2.9.1-py3-none-any.whl", hash = "sha256:59b4f431b1defb26fe620c71a7d3968a710d719f5f4cdbbdb7926edeb770f6ef", size = 44356, upload-time = "2025-04-18T16:44:46.617Z" },
-]
-
-[[package]]
 name = "pyflakes"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2205,6 +2239,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
+]
+
+[[package]]
+name = "starlette"
+version = "0.46.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/20/08dfcd9c983f6a6f4a1000d934b9e6d626cff8d2eeb77a89a68eef20a2b7/starlette-0.46.2.tar.gz", hash = "sha256:7f7361f34eed179294600af672f565727419830b54b7b084efe44bb82d2fccd5", size = 2580846, upload-time = "2025-04-13T13:56:17.942Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/0c/9d30a4ebeb6db2b25a841afbb80f6ef9a854fc3b41be131d249a977b4959/starlette-0.46.2-py3-none-any.whl", hash = "sha256:595633ce89f8ffa71a015caed34a5b2dc1c0cdb3f0f1fbd1e69339cf2abeec35", size = 72037, upload-time = "2025-04-13T13:56:16.21Z" },
 ]
 
 [[package]]
