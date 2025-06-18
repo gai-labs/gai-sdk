@@ -3,9 +3,9 @@ from pathlib import Path
 import json
 import sys,os
 from openai import OpenAI
-from .gai_create_tool import create_tool
-from .gai_init import init
-from .gai_pull import pull
+from gai.cli.gai_create_tool import create_tool
+from gai.cli.gai_init import init
+from gai.cli.gai_pull import pull
 from rich.console import Console
 console=Console()
 
@@ -39,7 +39,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Gai CLI Tool')
-    parser.add_argument('command', choices=['init', 'pull','create'], help='Command to run')
+    parser.add_argument('command', choices=['init', 'pull','create','version'], help='Command to run')
     parser.add_argument('-f', '--force', action='store_true', help='Force initialization')
     parser.add_argument('extra_args', nargs='*', help='Additional arguments for commands')
     parser.add_argument("--repo-name", default="kakkoii1337", help="Repository name for Docker image.")
@@ -59,8 +59,18 @@ def main():
         console.print(GENERAL_USAGE_HINT)
         raise
 
-    if args.command == "init":
-        
+    if args.command == "version":
+        get_pyproject_path = Path(__file__).parent.parent.parent.parent / "pyproject.toml"
+        pyproject_path = str(get_pyproject_path)
+        if not get_pyproject_path.exists():
+            console.print(f"[red]Error: pyproject.toml not found at {pyproject_path}[/]")
+            sys.exit(1)
+        with open(get_pyproject_path, "r") as f:
+            import toml
+            pyproject = toml.load(f)
+            version = pyproject.get("project", {}).get("version", "unknown")
+        console.print(f"[green]GAI SDK Version: {version}[/]")
+    elif args.command == "init":
         print("Initializing...by force" if args.force else "Initializing...")
         init(force=args.force)
     elif args.command == "pull":

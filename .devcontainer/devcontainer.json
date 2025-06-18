@@ -9,7 +9,7 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "python.defaultInterpreterPath": "/workspaces/gai-sdk/.venv/bin/python",
+                "python.defaultInterpreterPath": ".venv/bin/python",
             },
             "extensions": [
                 "ms-python.python",

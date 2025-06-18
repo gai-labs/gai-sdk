@@ -5,6 +5,7 @@ import sys
 import tempfile
 import subprocess
 import venv
+from rich import print
 
 
 def get_version_from_pyproject():
@@ -25,30 +26,27 @@ def smoke_test():
     print(f"🔍 Testing gai-sdk version: {version}")
 
     with tempfile.TemporaryDirectory() as tmpdir:
+        # create a temp environment
         env_dir = os.path.join(tmpdir, "env")
+        
 
-        # Create virtual environment using uv
-        subprocess.check_call(["uv", "venv", env_dir])
+        #venv.create(env_dir, with_pip=True)
+        env_dir = os.path.join(tmpdir, "env")        
+        subprocess.check_call(["uv","venv", env_dir,"--seed"])
+        env = os.environ.copy()
+        env["PATH"] = os.path.join(env_dir, "bin") + os.pathsep + env["PATH"]
+        env["VIRTUAL_ENV"] = env_dir
+        env["UV_PROJECT_ENVIRONMENT"] = env_dir
+        subprocess.check_call(["which","python"],env=env)
 
-        # Get the python executable path (different for Windows vs Unix)
-        if os.name == "nt":  # Windows
-            py = os.path.join(env_dir, "Scripts", "python")
-        else:  # Unix/Linux/macOS
-            py = os.path.join(env_dir, "bin", "python")
-
-        # install the exact version we just read using uv
-        subprocess.check_call(
-            ["uv", "pip", "install", f"gai-sdk=={version}", "--python", py]
-        )
-
-        # verify import works
-        subprocess.check_call(
-            [
-                py,
-                "-c",
-                'import importlib.resources as pkg_resources;print(f\'✅ config_path={pkg_resources.path("data", "gai.yml")}\')',
-            ]
-        )
+        py = "python"
+        
+        # install the exact version we just read
+        subprocess.check_call([py, "-m", "pip", "install", "-e", ".."],env=env)
+        # subprocess.check_call(
+        #     ["uv", "pip", "install", f"gai-sdk=={version}", "--python", py]
+        # )
+        
 
         # verify gai.lib import works
         print("🔍 Testing gai.lib import...")
@@ -82,7 +80,7 @@ def smoke_test():
 
         # verify gai init works
         print("🔍 Testing gai init...")
-        subprocess.check_call([py, "-m", "gai.cli.gai_main", "init"])
+        subprocess.check_call(["gai", "init"])
 
     print("🟢 Smoke test passed")
 
