@@ -147,6 +147,13 @@ class ToolUseAgent:
         monologue.reset()
 
     async def run_once_async(self):
+        # Check if monologue is terminated before running the state machine
+        if self.fsm.monologue.is_terminated():
+            logger.warning(
+                "Monologue is terminated. Resetting the monologue before running the state machine."
+            )
+            return None
+
         async def streamer():
             async for chunk in self.fsm.state_bag["streamer"]:
                 if isinstance(chunk, str):

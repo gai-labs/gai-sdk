@@ -39,6 +39,14 @@ class AnthropicToolCallState(StateBase):
         super().__init__(machine)
 
     async def run_async(self):
+        if self.machine.monologue.is_terminated():
+            logger.info("Monologue is terminated, skipping tool call state.")
+            return
+
+        if not self.machine.monologue.is_new():
+            logger.info("Monologue is not new, skipping tool call state.")
+            return
+
         # Get llm client
         llm_config = self.input["llm_config"]
         llm_client = AsyncOpenAI(llm_config)

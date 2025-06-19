@@ -44,6 +44,29 @@ class Monologue:
             total_size += len(json.dumps(new_message))
         return total_size
 
+    def is_terminated(self):
+        """
+        Check if the monologue is terminated.
+        A monologue is considered terminated if it contains a user message with content="TERMINATE"
+        """
+        for message in self._messages:
+            if (
+                message.body.role == "user"
+                and isinstance(message.body.content, str)
+                and message.body.content.strip().upper() == "TERMINATE"
+            ):
+                return True
+        return False
+
+    def is_new(self):
+        """
+        Check if the monologue is new.
+        A monologue is considered new if it has no messages or only contains a system message.
+        """
+        if not self._messages:
+            return True
+        return False
+
     def add_user_message(self, content: Any, state=None):
         state_name = ""
         step_no = -1
