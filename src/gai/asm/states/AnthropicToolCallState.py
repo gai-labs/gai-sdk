@@ -39,12 +39,13 @@ class AnthropicToolCallState(StateBase):
         super().__init__(machine)
 
     async def run_async(self):
-        if self.machine.monologue.is_terminated():
-            logger.info("Monologue is terminated, skipping tool call state.")
-            return
+        async def stream_nothing():
+            """A streamer that does nothing."""
+            yield None
 
         if not self.machine.monologue.is_new():
             logger.info("Monologue is not new, skipping tool call state.")
+            self.machine.state_bag["streamer"] = stream_nothing()
             return
 
         # Get llm client

@@ -302,9 +302,6 @@ class AsyncStateMachine:
                 self.state_history.append(
                     {"state": state_id, "input": state_input, "output": state_output}
                 )
-
-                self.monologue.add_user_message(state=self, content="TERMINATE")
-
                 return self.state
 
             if state_id == "INIT":
