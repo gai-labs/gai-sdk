@@ -23,7 +23,6 @@ class AnthropicToolCallState(StateBase):
             "class_name": "AnthropicToolCallState",
             "title": "TOOL_CALL",
             "input_data": {
-                "user_message": {"type": "state_bag", "dependency": "user_message"},
                 "llm_config": {"type": "state_bag", "dependency": "llm_config"},
                 "mcp_server_names": {
                     "type": "state_bag",
@@ -39,14 +38,13 @@ class AnthropicToolCallState(StateBase):
         super().__init__(machine)
 
     async def run_async(self):
-        async def stream_nothing():
-            """A streamer that does nothing."""
-            yield None
+        # Get User Message
 
-        if not self.machine.monologue.is_new():
-            logger.info("Monologue is not new, skipping tool call state.")
-            self.machine.state_bag["streamer"] = stream_nothing()
-            return
+        # If user_message is missing, the machine should transition into AnthropicToolUseState
+        # directly instead of here.
+
+        if not self.input.get("user_message", None):
+            raise Exception("AnthropicToolCallState: user_message is missing.")
 
         # Get llm client
         llm_config = self.input["llm_config"]
@@ -65,7 +63,7 @@ class AnthropicToolCallState(StateBase):
             nonlocal assistant_message
 
             async def stream_with_retry():
-                user_message = self.input["user_message"]
+                user_message = self.machine.user_message
                 self.machine.monologue.add_user_message(
                     state=self, content=user_message
                 )
@@ -89,16 +87,19 @@ class AnthropicToolCallState(StateBase):
                 # The LLM will always return:
 
                 ##  * a stream of strings followed by a tool call. This means the response will be
-                ##    streamed to the user and AthropicToolUseState will use a tool. ContinueToolUseState will return
-                ##    True
+                ##    streamed to the user and AthropicToolUseState will use a tool.
+                ##    The session will continue.
+                ##    ContinueToolUseState will return True
 
                 ##  - a tool call only. This means there is nothing to stream to the user, and
-                ##    AnthropicToolUseState will silently use a tool. ContinueToolUseState will return
-                ##    True
+                ##    AnthropicToolUseState will silently use a tool.
+                ##    The session will continue.
+                ##    ContinueToolUseState will return True
 
                 ##  - a stream of strings only. This means the response will be streamed to the user
-                ##    and AnthropicToolUseState will not use a tool. ContinueToolUseState will return
-                ##    False
+                ##    and AnthropicToolUseState will not use a tool.
+                ##    This signifies the session has ended.
+                ##    ContinueToolUseState will return False
 
                 if isinstance(chunk, str):
                     yield chunk

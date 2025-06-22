@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from gai.asm import AsyncStateMachine, FileMonologue
 from gai.mcp.client import McpAggregatedClient
 from gai.lib.logging import getLogger
@@ -11,12 +12,13 @@ logger = getLogger(__name__)
 class ToolUseAgent:
     def __init__(
         self,
-        user_message: str,
         agent_name: str,
+        prompt_template: str,
         project_name: str,
         llm_config: GaiClientConfig,
         mcp_client: McpAggregatedClient,
     ):
+        self.prompt_template = prompt_template
         log_file_path = os.path.expanduser(
             f"~/.gai/logs/{project_name}_{agent_name}.log"
         )
@@ -25,21 +27,22 @@ class ToolUseAgent:
         )
         with AsyncStateMachine.StateMachineBuilder(
             """
-            INIT --> TOOL_CALL
+            INIT --> IS_TERMINATED
+            IS_TERMINATED --> FINAL: condition_true
+            IS_TERMINATED --> HAS_MESSAGE
+            HAS_MESSAGE --> TOOL_CALL: condition_true
+            HAS_MESSAGE --> TOOL_USE: condition_false
             TOOL_CALL--> TOOL_USE
             TOOL_USE --> CONTINUE_TOOL_USE
-            CONTINUE_TOOL_USE --> TOOL_USE: condition_true
-            CONTINUE_TOOL_USE --> FINAL: condition_false            
+            CONTINUE_TOOL_USE --> FINAL: condition_true
+            CONTINUE_TOOL_USE --> TERMINATE: condition_false
+            TERMINATE --> FINAL
             """
         ) as builder:
             self.fsm = builder.build(
                 {
                     "INIT": {
                         "input_data": {
-                            "user_message": {
-                                "type": "getter",
-                                "dependency": "get_user_message",
-                            },
                             "llm_config": {
                                 "type": "getter",
                                 "dependency": "get_llm_config",
@@ -55,10 +58,6 @@ class ToolUseAgent:
                         "class_name": "AnthropicToolCallState",
                         "title": "TOOL_CALL",
                         "input_data": {
-                            "user_message": {
-                                "type": "state_bag",
-                                "dependency": "user_message",
-                            },
                             "llm_config": {
                                 "type": "state_bag",
                                 "dependency": "llm_config",
@@ -94,16 +93,59 @@ class ToolUseAgent:
                         "output_data": ["predicate_result"],
                         "conditions": ["condition_true", "condition_false"],
                     },
+                    "IS_TERMINATED": {
+                        "module_path": "gai.asm.states",
+                        "class_name": "PurePredicateState",
+                        "title": "IS_TERMINATED",
+                        "predicate": "is_terminated",
+                        "output_data": ["predicate_result"],
+                        "conditions": ["condition_true", "condition_false"],
+                    },
+                    "HAS_MESSAGE": {
+                        "module_path": "gai.asm.states",
+                        "class_name": "PurePredicateState",
+                        "title": "HAS_MESSAGE",
+                        "predicate": "has_message",
+                        "output_data": ["predicate_result"],
+                        "conditions": ["condition_true", "condition_false"],
+                    },
+                    "TERMINATE": {
+                        "module_path": "gai.asm.states",
+                        "class_name": "PureActionState",
+                        "title": "TERMINATE",
+                        "action": "terminate",
+                    },
                     "FINAL": {
                         "output_data": ["monologue"],
                     },
                 },
-                get_user_message=lambda state: user_message,
                 get_llm_config=lambda state: llm_config.model_dump(),
                 get_mcp_client=lambda state: mcp_client,
                 monologue=monologue,
+                terminate=self.terminate,
+                is_terminated=self.is_terminated,
+                has_message=self.has_message,
                 continue_tool_use=self.continue_tool_use,
             )
+
+    async def terminate(self, state):
+        logger.info("Terminating the state machine.")
+        state.machine.monologue.add_user_message(state=state, content="TERMINATE")
+        return state
+
+    def is_terminated(self, state):
+        state.machine.state_bag["predicate_result"] = self.fsm.monologue.is_terminated()
+        return state.machine.state_bag["predicate_result"]
+
+    def has_message(self, state):
+        state.machine.state_bag["predicate_result"] = False
+
+        if not state.machine.state_bag.get("user_message", None):
+            logger.info("user_message not provided.")
+            return state.machine.state_bag["predicate_result"]
+
+        state.machine.state_bag["predicate_result"] = True
+        return state.machine.state_bag["predicate_result"]
 
     def continue_tool_use(self, state):
         messages = state.machine.monologue.list_messages()
@@ -146,35 +188,74 @@ class ToolUseAgent:
         )
         monologue.reset()
 
-    async def run_once_async(self):
-        # Check if monologue is terminated before running the state machine
-        if self.fsm.monologue.is_terminated():
-            logger.warning(
-                "Monologue is terminated. Resetting the monologue before running the state machine."
-            )
-            return None
+    def make_user_message(self, goal: str):
+        return (
+            f"""
+        1. Goal
+        
+        {goal}
+        
+        """
+            + self.prompt_template
+        )
 
-        async def streamer():
-            async for chunk in self.fsm.state_bag["streamer"]:
-                if isinstance(chunk, str):
-                    yield chunk
-
-        if self.fsm.state != "FINAL":
-            current_state = self.fsm.state
-            await self.fsm.run_async()
-            logger.info(f"Final state: {current_state} --> {self.fsm.state}")
-            return streamer
+    async def run_async(self, goal: Optional[str] = None):
+        self.fsm.state = "INIT"
+        if goal:
+            # self.fsm.user_message = self.prompt_template.format(goal=goal)
+            self.fsm.user_message = self.make_user_message(goal)
         else:
-            logger.info("Agent is already in the final state, no action taken.")
+            self.fsm.user_message = None
 
-    async def run_until_final_async(self):
         async def streamer():
             # LOOP UNTIL FINAL STATE
             while self.fsm.state != "FINAL":
-                await self.run_once_async()
-                async for chunk in self.fsm.state_bag["streamer"]:
-                    if chunk:
-                        if isinstance(chunk, str):
-                            yield (chunk)
+                current_state = self.fsm.state
+                await self.fsm.run_async()
+                logger.info(f"Final state: {current_state} --> {self.fsm.state}")
+                if self.fsm.state_bag.get("streamer"):
+                    async for chunk in self.fsm.state_bag["streamer"]:
+                        if chunk:
+                            if isinstance(chunk, str):
+                                yield (chunk)
+                else:
+                    yield None
+
+        return streamer
+
+    async def interrupt_async(self, message):
+        self.fsm.state = "INIT"
+
+        # hijack the agent's instruction
+        interrupt_template = """
+        I am going to deviate a little and talk about something adhoc. 
+        But I want you to come back on track after responding to this. 
+        What I want to talk about is this - {message}
+        """
+        self.fsm.user_message = interrupt_template.format(message=message)
+
+        # Remove the last tool_use from assistant since the user has interrupted the flow.
+        last_message = self.fsm.monologue.list_messages()[-1]
+        if isinstance(last_message.body.content, list):
+            # Create a new list without tool_use blocks
+            last_message.body.content = [
+                content_block
+                for content_block in last_message.body.content
+                if content_block["type"] != "tool_use"
+            ]
+
+        async def streamer():
+            # LOOP UNTIL FINAL STATE
+            while self.fsm.state != "FINAL":
+                current_state = self.fsm.state
+                await self.fsm.run_async()
+                logger.info(f"Final state: {current_state} --> {self.fsm.state}")
+                if self.fsm.state_bag.get("streamer"):
+                    async for chunk in self.fsm.state_bag["streamer"]:
+                        if chunk:
+                            if isinstance(chunk, str):
+                                yield (chunk)
+                else:
+                    yield None
 
         return streamer

@@ -24,6 +24,7 @@ class AsyncStateMachine:
             self.state_history = []
             self.state_data = {}
             self.state_bag = {}
+            self.user_message = None
 
             if not monologue:
                 monologue = Monologue(agent_name=agent_name)
@@ -46,6 +47,10 @@ class AsyncStateMachine:
                 if k == "monologue":
                     raise ValueError(
                         "input_data cannot contain reserved key `monologue`"
+                    )
+                if k == "user_message":
+                    raise ValueError(
+                        "input_data cannot contain reserved key `user_message`"
                     )
 
                 if k == "step":
@@ -72,6 +77,7 @@ class AsyncStateMachine:
                         else:
                             resolved_input_data[k] = v
 
+            resolved_input_data["user_message"] = self.user_message
             resolved_input_data["monologue"] = self.monologue.copy()
             resolved_input_data["step"] = self.step
             resolved_input_data["time"] = datetime.now()
@@ -186,6 +192,10 @@ class AsyncStateMachine:
                         raise ValueError(
                             "output_data cannot contain reserved key `monologue`"
                         )
+                    if k == "user_message":
+                        raise ValueError(
+                            "output_data cannot contain reserved key `user_message`"
+                        )
                     if k == "time":
                         raise ValueError(
                             "output_data cannot contain reserved key `time`"
@@ -202,6 +212,9 @@ class AsyncStateMachine:
 
             # Built-In State: Name
             output["name"] = self.state_bag["name"]
+
+            # Built-In State: User Message
+            output["user_message"] = self.state_bag["user_message"]
 
             # Built-In State: Monologues Messages
             # Keep a snapshot of the original monologue after action
@@ -254,21 +267,7 @@ class AsyncStateMachine:
                 # 'INIT' can be omitted from manifest, then create an empty one.
 
                 state.input = await self.resolve_input(state)
-                state.output = {}
-
-                # Built-In State: Name
-
-                state.output["name"] = self.agent_name
-
-                # Built-In State: Monologues Messages
-                state.output["monologue"] = self.monologue.copy()
-
-                # Built-In State: Step
-                self.step += 1
-                state.output["step"] = self.step
-
-                # Build-In State: timestamp
-                state.output["time"] = datetime.now()
+                state.output = self.finalize_output(state)
 
                 # Update history
                 self.state_history.append(
@@ -341,36 +340,6 @@ class AsyncStateMachine:
                 raise ValueError(f"State {state_id} not found in state manifest.")
 
             return self.state
-
-        async def run_till_final_async(self):
-            # Keep triggering run_async() until the state becomes "FINAL".
-
-            self.state = "INIT"
-            while self.state != "FINAL":
-                try:
-                    await self.run_async()
-                except Exception as e:
-                    # Set error value and jump to FINAL state
-                    self.state_bag["ERROR"] = {
-                        "state": self.state,
-                        "error_message": str(e),
-                    }
-                    self.state = "FINAL"
-
-        async def run_till_generate_async(self):
-            # Keep triggering run_async() until the state becomes "GENERATE" or "FINAL".
-
-            self.state = "INIT"
-            while self.state != "GENERATE" and self.state != "FINAL":
-                try:
-                    await self.run_async()
-                except Exception as e:
-                    # Set error value and jump to FINAL state
-                    self.state_bag["ERROR"] = {
-                        "state": self.state,
-                        "error_message": str(e),
-                    }
-                    self.state = "FINAL"
 
         def restart(self):
             self.state = "INIT"
