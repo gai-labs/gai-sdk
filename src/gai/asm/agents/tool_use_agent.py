@@ -235,17 +235,20 @@ class ToolUseAgent:
         self.fsm.user_message = interrupt_template.format(message=message)
 
         # Remove the last tool_use from assistant since the user has interrupted the flow.
-        last_message = self.fsm.monologue.list_messages()[-1]
-        if isinstance(last_message.body.content, list):
-            # Create a new list without tool_use blocks
-            last_message.body.content = [
-                content_block
-                for content_block in last_message.body.content
-                if content_block["type"] != "tool_use"
-            ]
-        if last_message.body.content == []:
-            # If the content is empty, remove the message
-            self.fsm.monologue.pop()
+
+        messages = self.fsm.monologue.list_messages()
+        if messages:
+            last_message = messages[-1]
+            if isinstance(last_message.body.content, list):
+                # Create a new list without tool_use blocks
+                last_message.body.content = [
+                    content_block
+                    for content_block in last_message.body.content
+                    if content_block["type"] != "tool_use"
+                ]
+            if last_message.body.content == []:
+                # If the content is empty, remove the message
+                self.fsm.monologue.pop()
 
         async def streamer():
             # LOOP UNTIL FINAL STATE
