@@ -243,6 +243,9 @@ class ToolUseAgent:
                 for content_block in last_message.body.content
                 if content_block["type"] != "tool_use"
             ]
+        if last_message.body.content == []:
+            # If the content is empty, remove the message
+            self.fsm.monologue.pop()
 
         async def streamer():
             # LOOP UNTIL FINAL STATE
