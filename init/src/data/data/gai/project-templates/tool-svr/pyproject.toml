@@ -1,0 +1,32 @@
+[project]
+    name = "{{PROJECT_NAME}}"
+    version = "0.0.1"
+    requires-python = ">=3.10"
+    authors = [
+        { name = "kakkoii1337", email = "kakkoii1337@gmail.com" }
+    ]
+    dependencies = [
+        "gai-lib",
+        "mcp[cli]>=1.8.1",
+    ]
+    readme = "README.md"
+    license = {file = "LICENSE"}    
+
+[project.optional-dependencies]
+    dev = [ "gai-lib[dev]>=1.0.218",]
+
+[dependency-groups]
+    dev = ["gai-lib[dev]"]
+
+[tool.uv]
+    link-mode = "symlink"
+
+[tool.uv.sources]
+    gai-lib = { path = "gai-lib", editable = true }
+
+[build-system]
+    requires = [ "hatchling",]
+    build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+    packages = [ "src/gai",]

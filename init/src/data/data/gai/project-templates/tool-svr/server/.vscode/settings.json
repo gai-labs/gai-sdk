@@ -1,0 +1,10 @@
+{
+    "python.debugger": {
+        "justMyCode": false // Set to false to step into external code
+    },
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    // python.terminal
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python.terminal.activateEnvironment": true,
+}

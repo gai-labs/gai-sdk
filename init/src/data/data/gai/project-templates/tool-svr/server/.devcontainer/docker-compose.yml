@@ -1,0 +1,38 @@
+version: "3"
+services:
+    devcontainer:
+        image: {{PROJECT_NAME}}_devcontainer:0.0.1
+        container_name: {{PROJECT_NAME}}        
+        build:
+            context: ..
+            dockerfile: .devcontainer/Dockerfile.devcontainer
+            args:
+                VARIANT: "3.10-bullseye"
+                NODE_VERSION: "22.15.0"
+                USERNAME: "vscode"
+                PROJECT_NAME: "{{PROJECT_NAME}}"
+        environment:
+            PYTHONPATH: /workspaces/{{PROJECT_NAME}}/.venv/lib/python3.10/site-packages
+        volumes:
+            # Use anonymous volume for virtual environment
+            - /workspaces/{{PROJECT_NAME}}/.venv
+
+            # Make sure this matches the workspaceFolder in .devcontainer/devcontainer.json
+            - ..:/workspaces/{{PROJECT_NAME}}:cached
+
+            # Mount ~/.gai directory
+            - $HOME/.gai:/home/vscode/.gai
+
+            # Mount gai-lib directory
+            - ../../../lib:/workspaces/{{PROJECT_NAME}}/gai-lib
+
+            # Mount tool client directory
+            - ../../src/gai/mcp/{{TOOL_NAME}}/client:/workspaces/{{PROJECT_NAME}}/src/gai/mcp/{{TOOL_NAME}}/client
+
+            # Mount tool lib directory
+            - ../../src/gai/mcp/{{TOOL_NAME}}/lib:/workspaces/{{PROJECT_NAME}}/src/gai/{{TOOL_NAME}}/web/lib
+
+            - ../../test/integrationtest:/workspaces/{{PROJECT_NAME}}/test/integrationtest/client
+            - $HOME/.cache/pip:/home/vscode/.cache/pip
+            - $HOME/.cache/apt:/root/.cache/apt
+        command: sleep infinity

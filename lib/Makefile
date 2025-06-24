@@ -1,9 +1,9 @@
 # Makefile ──────────────────────────────────────────────────────────────────
-.PHONY: dev test build clean publish          # publish is new
+.PHONY: dev test build clean publish
 
-VENV       := .venv
-TEST_VENV  := /tmp/gai-test
-SHELL := /bin/bash
+VENV       	:= .venv
+TEST_VENV  	:= /tmp/gai-test
+SHELL 		:= /bin/bash
 
 # ── 1. house-keeping ───────────────────────────────────────────────────────
 clean:
@@ -20,7 +20,7 @@ bump:
 	source $(VENV)/bin/activate && python -m gai._utils.devtools bump-version $(if $(PART),--part $(PART),)
 
 # ── 4. build artefacts from src/ ───────────────────────────────────────────
-build: clean
+build:
 	source $(VENV)/bin/activate && python -m gai._utils.devtools build
 
 # ── 5. inspect package data ─────────────────────────────────────────────────
@@ -29,7 +29,7 @@ inspect:
 
 # ── 6. smoke-test the built wheel in a fresh venv ─────────────────────────
 test:
-	source $(VENV)/bin/activate && python test/test_smoke.py
+	source $(VENV)/bin/activate && python test/smoke_test.py
 
 # ── 7. publish to PyPI  (version bump + build + upload) ───────────────────
 publish: bump build test

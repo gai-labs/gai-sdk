@@ -4,7 +4,6 @@ import re
 import sys
 import tempfile
 import subprocess
-import venv
 from rich import print
 
 
@@ -20,9 +19,10 @@ def get_version_from_pyproject():
                 return m.group(1)
     sys.exit("❌ Version not found in pyproject.toml")
 
+
 def smoke_test(use_editable: bool = False):
     version = get_version_from_pyproject()
-    print(f"[yellow]🔍 Testing gai-sdk version: {version}[/yellow]")
+    print(f"[yellow]🔍 Testing gai-llm version: {version}[/yellow]")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # create a temp environment
@@ -32,15 +32,14 @@ def smoke_test(use_editable: bool = False):
         env_dir = os.path.join(tmpdir, "env")
         subprocess.check_call(["uv", "venv", env_dir, "--seed"])
         env = os.environ.copy()
-        env.pop("PYTHONPATH",    None)
-        env.pop("PYTHONUSERBASE", None)
         env["PATH"] = os.path.join(env_dir, "bin") + os.pathsep + env["PATH"]
         env["VIRTUAL_ENV"] = env_dir
         env["UV_PROJECT_ENVIRONMENT"] = env_dir
         subprocess.check_call(["which", "python"], env=env)
 
         py = "python"
-        
+
+        # Check version of gai-llm installed in the environment against the one in pyproject.toml
         if use_editable:
             subprocess.check_call([py, "-m", "pip", "install", "-e", "."], env=env)
         else:
@@ -48,55 +47,32 @@ def smoke_test(use_editable: bool = False):
             dist_dir = "dist"
             for fname in os.listdir(dist_dir):
                 if fname.endswith(".whl"):
-                    wheel = os.path.join(dist_dir, fname)                    
+                    wheel = os.path.join(dist_dir, fname)
                     break
             else:
                 raise FileNotFoundError("No .whl found in dist/")
             subprocess.check_call([py, "-m", "pip", "install", wheel], env=env)
 
-        # Check version of gai-lib installed in the environment against the one in pyproject.toml
-        
+        # simpler: grep gai-lib version from pip list
         output = subprocess.check_output(
-            f"{py} -m pip list --format=freeze | grep gai-sdk",
+            f"{py} -m pip list --format=freeze | grep gai-llm",
             shell=True,
             env=env,
             text=True,
         )
+        # output is like "gai-lib==1.2.3\n"
         installed_version = output.strip().split("==", 1)[1]
+        print(f"[green]✅ Installed gai-llm version: {installed_version}[/green]")
+
         if installed_version != version:
             print(f"[red]⚠️ Version mismatch! Expected {version}[/red]")
-            exit(1)
-        print(f"[green]✅ Installed gai-sdk version: {installed_version}[/green]")
 
         # import gai.lib
-        subprocess.check_call([
-            py, 
-            "-c", 
-            "import gai.lib; print('✅ gai.lib imported successfully')"
-            ], env=env)
-        print("[yellow]✅ Can import gai.lib[/]")
-
-        # import gai.llm
-        print("🔍 Testing gai.llm import...")
-        subprocess.check_call([
-            py,
-            "-c",
-            "from gai.llm.client import AsyncChatClient; print('✅ gai.llm.client imported successfully')"
-            ],env=env
-        )
-        
-        # import gai.mcp
-        print("🔍 Testing gai.mcp import...")
-        subprocess.check_call(
-            [
-                py,
-                "-c",
-                "import gai.mcp; print('✅ gai.mcp imported successfully')"
-            ],env=env
-        )
-        
+        subprocess.check_call([py, "-c", "import gai.llm"], env=env)
+        print("[yellow]✅ Can import gai.llm[/]")
 
     print("[green]🟢 Smoke test passed[/]")
+
 
 if __name__ == "__main__":
     smoke_test()

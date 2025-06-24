@@ -3,7 +3,7 @@ TEST_VENV  := /tmp/gai-test
 SHELL := /bin/bash
 
 # Makefile ──────────────────────────────────────────────────────────────────
-.PHONY: clean install bump build inspect test publish docker_build docker_push
+.PHONY: clean
 
 # ── 1. house-keeping ───────────────────────────────────────────────────────
 clean:
@@ -21,6 +21,9 @@ install:
 	source $(VENV)/bin/activate && uv pip install -e ".[dev]"
 
 # ─ 3. bump up the version in pyproject.toml ─────────────────────────────────────────────────
+# Usage: make bump            (patch++)
+#        make bump PART=minor (minor++)
+#        make bump PART=major (major++)
 bump:
 	source $(VENV)/bin/activate && python -m gai._utils.devtools bump-version $(if $(PART),--part $(PART),)
 
@@ -35,10 +38,10 @@ inspect:
 
 # ── 6. smoke-test the built wheel in a fresh venv ─────────────────────────
 test:
-	source $(VENV)/bin/activate && python test/smoke_test.py
+	source $(VENV)/bin/activate && python -m gai._utils.devtools smoke-test
 
 # ── 7. publish to PyPI  (version bump + build + upload) ───────────────────
-publish: bump build
+publish: bump build test
 	source $(VENV)/bin/activate && python -m gai._utils.devtools publish
 
 # ── 8. build docker image ───────────────────────────────────────────────────

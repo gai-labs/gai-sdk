@@ -1,0 +1,21 @@
+[project]
+name = "{{PROJECT_NAME}}-svr"
+version = "0.0.1"
+requires-python = ">=3.10"
+dependencies = [ "toml==0.10.2", "numpy==1.26.4", "uvicorn==0.30.6", "python-multipart>=0.0.9", "gai-lib"]
+[[project.authors]]
+name = "kakkoii1337"
+email = "kakkoii1337@gmail.com"
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+dev = [ "gai-lib[dev]>=1.0.218",]
+
+[tool.uv.sources]
+gai-lib = { path = "gai-lib", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/gai",]

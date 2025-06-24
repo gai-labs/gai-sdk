@@ -3,6 +3,7 @@ from rich.console import Console
 import shutil
 import json, os
 import importlib.resources as pkg_resources
+import tempfile
 
 PACKAGED_DATA_PATH = pkg_resources.path("data", "")
 PACKAGED_CONFIG_PATH = pkg_resources.path("data", "gai.yml")

@@ -1,8 +1,9 @@
-VENV       := ./.venv
-TEST_VENV  := /tmp/gai-test
-
 # Makefile ──────────────────────────────────────────────────────────────────
-.PHONY: clean
+.PHONY: dev test build clean publish
+
+VENV       	:= .venv
+TEST_VENV  	:= /tmp/gai-test
+SHELL 		:= /bin/bash
 
 # ── 1. house-keeping ───────────────────────────────────────────────────────
 clean:
@@ -14,39 +15,30 @@ clean:
 	find . -type d -name 'node_modules' -exec rm -rf {} +
 
 # ── 2. editable dev env  (one-off per workstation) ────────────────────────
-dev: $(VENV)/bin/activate
-$(VENV)/bin/activate:
-	python -m venv $(VENV)
-	$(VENV)/bin/pip install -e ".[dev]"
+install: 	
+	rm -rf $(VENV)
+	uv venv
+	source $(VENV)/bin/activate && uv pip install -e ".[dev]"
 
 # ─ 3. bump up the version in pyproject.toml ─────────────────────────────────────────────────
 bump:
-	# Usage: make bump            (patch++)
-	#        make bump PART=minor (minor++)
-	#        make bump PART=major (major++)
-	python -m gai._utils.devtools bump-version $(if $(PART),--part $(PART),)
+	source $(VENV)/bin/activate && python -m gai._utils.devtools bump-version $(if $(PART),--part $(PART),)
 
 # ── 4. build artefacts from src/ ───────────────────────────────────────────
-build: 
-	rm -rf build/ dist/
-	python -m gai._utils.devtools build
+build:
+	source $(VENV)/bin/activate && python -m gai._utils.devtools build
 
 # ── 5. inspect package data ─────────────────────────────────────────────────
 inspect:
-	python -m gai._utils.devtools inspect-pkg-data
+	source $(VENV)/bin/activate && python -m gai._utils.devtools inspect-pkg-data
 
 # ── 6. smoke-test the built wheel in a fresh venv ─────────────────────────
-test: build
-	python -m gai._utils.devtools testdist
-
-	#rm -rf $(TEST_VENV)
-	#python -m venv $(TEST_VENV)
-	#$(TEST_VENV)/bin/pip install dist/*.whl
-	#$(TEST_VENV)/bin/gai init --force   # verifies resources copy
+test:
+	source $(VENV)/bin/activate && python test/smoke_test.py
 
 # ── 7. publish to PyPI  (version bump + build + upload) ───────────────────
-publish:
-	python -m gai._utils.devtools publish
+publish: bump build test
+	source $(VENV)/bin/activate && python -m gai._utils.devtools publish
 
 # ── 8. build docker image ───────────────────────────────────────────────────
 docker_build:
