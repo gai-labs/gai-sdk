@@ -17,9 +17,6 @@ install:
 
 # ─ 3. bump up the version in pyproject.toml ─────────────────────────────────────────────────
 bump:
-	# Usage: make bump            (patch++)
-	#        make bump PART=minor (minor++)
-	#        make bump PART=major (major++)
 	source $(VENV)/bin/activate && python -m gai._utils.devtools bump-version $(if $(PART),--part $(PART),)
 
 # ── 4. build artefacts from src/ ───────────────────────────────────────────
@@ -31,16 +28,11 @@ inspect:
 	source $(VENV)/bin/activate && python -m gai._utils.devtools inspect-pkg-data
 
 # ── 6. smoke-test the built wheel in a fresh venv ─────────────────────────
-test: build
-	source $(VENV)/bin/activate && python -m gai._utils.devtools testdist
-
-	#rm -rf $(TEST_VENV)
-	#python -m venv $(TEST_VENV)
-	#$(TEST_VENV)/bin/pip install dist/*.whl
-	#$(TEST_VENV)/bin/gai init --force   # verifies resources copy
+test:
+	source $(VENV)/bin/activate && python test/test_smoke.py
 
 # ── 7. publish to PyPI  (version bump + build + upload) ───────────────────
-publish:
+publish: bump build test
 	source $(VENV)/bin/activate && python -m gai._utils.devtools publish
 
 # ── 8. build docker image ───────────────────────────────────────────────────

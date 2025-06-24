@@ -1,6 +1,6 @@
 [project]
 name = "gai-lib"
-version = "0.181.9"
+version = "0.181.11"
 readme = "README.md"
 requires-python = ">=3.10"
 description = "Refer to https://gai-labs.github.io/gai for more information"
@@ -27,4 +27,4 @@ documentation = "https://gai-labs.github.io/gai/docs"
 dev = [ "build>=1.2.2.post1", "flake8>=7.1.1,<8.0", "ipykernel>=6.29.5,<7.0", "keyrings.alt>=5.0.1,<6.0", "jupyterlab>=4.4.2", "notebook>=7.4.2", "nox>=2024.4.15,<2025.0", "pytest>=8.3.5", "pytest-ordering>=0.6,<1.0", "pytest-asyncio==0.25.2", "twine>=6.1.0", "wheel>=0.45.1",]
 
 [tool.hatch.build.targets.wheel]
-packages = [ "src/gai", "src/data",]
+packages = [ "src/gai",]

@@ -4,7 +4,8 @@ import re
 import sys
 import tempfile
 import subprocess
-import venv
+from rich import print
+
 
 def get_version_from_pyproject():
     # locate pyproject.toml one directory up from this script
@@ -18,25 +19,60 @@ def get_version_from_pyproject():
                 return m.group(1)
     sys.exit("❌ Version not found in pyproject.toml")
 
-def smoke_test():
+
+def smoke_test(use_editable: bool = False):
     version = get_version_from_pyproject()
-    print(f"🔍 Testing gai-sdk version: {version}")
+    print(f"[yellow]🔍 Testing gai-lib version: {version}[/yellow]")
 
     with tempfile.TemporaryDirectory() as tmpdir:
+        # create a temp environment
         env_dir = os.path.join(tmpdir, "env")
-        venv.create(env_dir, with_pip=True)
-        py = os.path.join(env_dir, "bin", "python")
 
-        # install the exact version we just read
-        subprocess.check_call([py, "-m", "pip", "install", f"gai-sdk=={version}"])
+        # venv.create(env_dir, with_pip=True)
+        env_dir = os.path.join(tmpdir, "env")
+        subprocess.check_call(["uv", "venv", env_dir, "--seed"])
+        env = os.environ.copy()
+        env["PATH"] = os.path.join(env_dir, "bin") + os.pathsep + env["PATH"]
+        env["VIRTUAL_ENV"] = env_dir
+        env["UV_PROJECT_ENVIRONMENT"] = env_dir
+        subprocess.check_call(["which", "python"], env=env)
 
-        # verify import works
-        subprocess.check_call([
-            py, "-c",
-            "import importlib.resources as pkg_resources;print(f'config_path={pkg_resources.path(\"data\", \"gai.yml\")}')"
-        ])
+        py = "python"
 
-    print("🟢 Smoke test passed")
+        # Check version of gai-lib installed in the environment against the one in pyproject.toml
+        if use_editable:
+            subprocess.check_call([py, "-m", "pip", "install", "-e", "."], env=env)
+        else:
+            # find all .whl files in dist/
+            dist_dir = "dist"
+            for fname in os.listdir(dist_dir):
+                if fname.endswith(".whl"):
+                    wheel = os.path.join(dist_dir, fname)
+                    break
+            else:
+                raise FileNotFoundError("No .whl found in dist/")
+            subprocess.check_call([py, "-m", "pip", "install", wheel], env=env)
+
+        # simpler: grep gai-lib version from pip list
+        output = subprocess.check_output(
+            f"{py} -m pip list --format=freeze | grep gai-lib",
+            shell=True,
+            env=env,
+            text=True,
+        )
+        # output is like "gai-lib==1.2.3\n"
+        installed_version = output.strip().split("==", 1)[1]
+        print(f"[green]✅ Installed gai-lib version: {installed_version}[/green]")
+
+        if installed_version != version:
+            print(f"[red]⚠️ Version mismatch! Expected {version}[/red]")
+
+        # import gai.lib
+        subprocess.check_call([py, "-c", "import gai.lib"], env=env)
+        print("[yellow]✅ Can import gai.lib[/]")
+
+    print("[green]🟢 Smoke test passed[/]")
+
 
 if __name__ == "__main__":
     smoke_test()
