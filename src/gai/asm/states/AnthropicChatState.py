@@ -58,6 +58,25 @@ class AnthropicChatState(StateBase):
         # Get model
         llm_model = llm_config["model"]
 
+        last_tool_calls = []
+        if self.machine.monologue.list_messages():
+            last_tool_calls = self.machine.monologue.get_last_toolcalls()
+
+        async def stream_nothing():
+            # This will yield nothing, effectively ending the state
+            yield
+
+        if (
+            last_tool_calls
+            and any(result["tool_name"] == "user_input" for result in last_tool_calls)
+            and self.machine.user_message
+        ):
+            # Case 1: LLM interrupt flow.
+            # LLM request input from user using "user_input" and user_message is provided.
+            # Stream nothing and forward to the "tool_use" state for processing.
+            self.machine.state_bag["streamer"] = stream_nothing()
+            return  # Exit the state early
+
         assistant_message = ""
 
         async def streamer():

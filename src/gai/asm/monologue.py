@@ -198,13 +198,52 @@ class Monologue:
 
     def is_terminated(self):
         """
-        From the last message in the monologue, check if it contains "task_completed" tool_use.
+        LLM Terminated: If the last message is an assistant message,
+        check if it doesn't contain any tools or if it contains "task_completed" tool.
+
+        User Terminated: If the last message is a user message,
+        check if it contains "TERMINATE".
         """
         last_tool_calls = self.get_last_toolcalls()
+        if not last_tool_calls:
+            return True
+
         if last_tool_calls and any(
             result["tool_name"] == "task_completed" for result in last_tool_calls
         ):
             return True
+
+        last_message = self._messages[-1] if self._messages else None
+        last_content = last_message.body.content
+        if (
+            last_message.body.role == "user"
+            and isinstance(last_content, str)
+            and last_content.upper() == "TERMINATE"
+        ):
+            return True
+
+        return False
+
+    def is_interrupted(self, user_message: str):
+        """
+        LLM Interrupted:
+        If the last message is an assistant message containing "user_input"
+        and no user_message, that means LLM is still pending for user_message
+        and should terminate the flow.
+        If user_message is present, that means it is no longer pending for user_message
+        and so the flow will continue.
+        """
+        last_tool_calls = self.get_last_toolcalls()
+        if not last_tool_calls:
+            return True
+
+        if (
+            last_tool_calls
+            and any(result["tool_name"] == "user_input" for result in last_tool_calls)
+            and not user_message
+        ):
+            return True
+
         return False
 
 
@@ -320,3 +359,10 @@ class FileMonologue(Monologue):
         """
         self._load(self.path)
         return super().is_terminated()
+
+    def is_interrupted(self, user_message):
+        """
+        From the last message in the monologue, check if it contains "task_completed" tool_use.
+        """
+        self._load(self.path)
+        return super().is_interrupted(user_message=user_message)

@@ -170,10 +170,20 @@ class ToolUseAgent:
         monologue.reset()
 
     async def start_async(self, user_message: str):
+        """
+        The user_message in this case contains the "goal" message.
+        """
         return await self.run_async(user_message=user_message)
 
-    async def continue_async(self):
-        return await self.run_async()
+    async def continue_async(self, user_message: Optional[str] = None):
+        """
+        If there is no user_message, then this is a regular call
+        to continue with tool_use.
+
+        If there is a user_message, then this user_message is
+        a response to the llm interrupted flow by the tool 'user_input'.
+        """
+        return await self.run_async(user_message=user_message)
 
     async def run_async(self, user_message: Optional[str] = None):
         self.fsm.state = "INIT"
@@ -196,6 +206,8 @@ class ToolUseAgent:
         return streamer
 
     async def interrupt_async(self, user_message):
+        """ """
+
         self.fsm.state = "INIT"
 
         # hijack the agent's instruction
