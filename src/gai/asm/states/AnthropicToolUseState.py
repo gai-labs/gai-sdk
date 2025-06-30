@@ -41,44 +41,59 @@ class AnthropicToolUseState(StateBase):
     def __init__(self, machine):
         super().__init__(machine)
 
-    async def _use_tool(self):
-        # Get last assistant message
+    # async def _get_last_toolcalls(self, monologue_messages):
+    #     # Get last assistant message
 
-        messages = self.machine.monologue.list_messages()
-        last_message = messages[-1] if messages else None
-        if not last_message or last_message.body.role != "assistant":
-            raise ValueError("Last message is not from assistant or no messages found.")
+    #     # messages = self.machine.monologue.list_messages()
+    #     last_message = monologue_messages[-1] if monologue_messages else None
+    #     if not last_message:
+    #         raise ValueError("AthropicToolUseState: No messages found.")
+    #     if last_message.body.role != "assistant":
+    #         raise ValueError(
+    #             "AthropicToolUseState: Last message is not from assistant or no messages found."
+    #         )
+    #     tool_calls = []
+    #     if isinstance(last_message.body.content, list):
+    #         for item in last_message.body.content:
+    #             if isinstance(item, str):
+    #                 continue
+    #             if not isinstance(item, dict):
+    #                 item = item.model_dump()
+    #             if item["type"] == "tool_use":
+    #                 tool_calls.append(
+    #                     {
+    #                         "tool_use_id": item["id"],
+    #                         "tool_name": item["name"],
+    #                         "arguments": item["input"],
+    #                     }
+    #                 )
 
-        # First Pass: Create list of tool calls
+    #             # if not isinstance(item, dict):
+    #             #     if item.type == "tool_use":
+    #             #         tool_calls.append(
+    #             #             {
+    #             #                 "tool_use_id": item.id,
+    #             #                 "tool_name": item.name,
+    #             #                 "arguments": item.input,
+    #             #             }
+    #             #         )
+    #             # else:
+    #             #     if item["type"] == "tool_use":
+    #             #         tool_calls.append(
+    #             #             {
+    #             #                 "tool_use_id": item["id"],
+    #             #                 "tool_name": item["name"],
+    #             #                 "arguments": item["input"],
+    #             #             }
+    #             #         )
+    #     return tool_calls
 
-        tool_calls = []
-        if isinstance(last_message.body.content, list):
-            for item in last_message.body.content:
-                if isinstance(item, str):
-                    continue
+    async def _use_tool(self, last_tool_calls):
+        """
+        This function is used to make a tool call to the MCP client and return the result.
+        """
 
-                if not isinstance(item, dict):
-                    if item.type == "tool_use":
-                        tool_calls.append(
-                            {
-                                "tool_use_id": item.id,
-                                "tool_name": item.name,
-                                "arguments": item.input,
-                            }
-                        )
-                else:
-                    if item["type"] == "tool_use":
-                        tool_calls.append(
-                            {
-                                "tool_use_id": item["id"],
-                                "tool_name": item["name"],
-                                "arguments": item["input"],
-                            }
-                        )
-        if not tool_calls:
-            raise ValueError("Last message does not contain a tool_use content block.")
-
-        # Second Pass: Make calls and get results
+        tool_calls = last_tool_calls
 
         mcp_client = self.input["mcp_client"]
 
@@ -124,6 +139,26 @@ class AnthropicToolUseState(StateBase):
             logger.error(f"Error processing last message content: {e}")
             raise e
 
+    def _make_user_input_tool_result(self, last_tool_calls):
+        """
+        This function is used to artificially create a tool result for user_input using user_message as opposed to using MCP tool.
+        """
+
+        # This function is used to create a tool result for user input
+        item = next(
+            (t for t in last_tool_calls if t.get("tool_name") == "user_input"),
+            None,
+        )
+        if item:
+            logger.info("AnthropicToolUseState: user_input tool found.")
+            tool_result = {
+                "type": "tool_result",
+                "tool_use_id": item["tool_use_id"],
+                "content": self.machine.state_bag["user_message"],
+            }
+            return tool_result
+        return None
+
     async def run_async(self):
         # Get llm client
         llm_config = self.input["llm_config"]
@@ -136,7 +171,59 @@ class AnthropicToolUseState(StateBase):
         # Get model
         llm_model = llm_config["model"]
 
-        tool_results = await self._use_tool()
+        messages = self.machine.monologue.list_messages()
+        last_tool_calls = self.machine.monologue.get_last_toolcalls()
+
+        async def stream_nothing():
+            # This will yield nothing, effectively ending the state
+            yield
+
+        if not last_tool_calls:
+            logger.info(
+                "AnthropicToolUseState: No tool calls found in the last message, nothing to continue."
+            )
+            self.machine.state_bag["streamer"] = stream_nothing()
+            return  # Exit the state early
+
+        # Case 1: LLM confirms task completion by responding with a tool call of "task_completed". Stream nothing.
+
+        if self.machine.monologue.is_terminated():
+            logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
+            self.machine.state_bag["streamer"] = stream_nothing()
+            return  # Exit the state early
+
+        # if any(result["tool_name"] == "task_completed" for result in last_tool_calls):
+        #     logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
+        #     self.machine.state_bag["streamer"] = stream_nothing()
+        #     return  # Exit the state early
+
+        # Case 2a: LLM interrupt flow. LLM request input from user by responding with a tool call of "user_input" but user_message is None. Stream nothing.
+
+        if (
+            any(result["tool_name"] == "user_input" for result in last_tool_calls)
+            and not self.machine.user_message
+        ):
+            logger.info(
+                "AnthropicToolUseState: Pending user input, nothing to continue."
+            )
+            self.machine.state_bag["streamer"] = stream_nothing()
+            return  # Exit the state early
+
+        if any(result["tool_name"] == "user_input" for result in last_tool_calls):
+            # Case 2b: LLM interrupt flow. LLM request input from user by responding with a tool call of "user_input" and user_message is provided. Stream LLM response.
+            # tool_result is created from user_input instead of using any tools. That is why "user_input" is a pseudo tool.
+
+            tool_result = self._make_user_input_tool_result(
+                last_tool_calls=last_tool_calls
+            )
+            tool_results = [tool_result]
+
+        else:
+            # Case 3: Normal flow. Proceed to use MCP tools and stream LLM response.
+
+            tool_results = await self._use_tool(last_tool_calls=last_tool_calls)
+
+        # At this point, tool_results should either be a list of real tool results or psuedo tool result.
 
         assistant_message = ""
 

@@ -213,10 +213,10 @@ clients:
         url: file://../../../../../mcp-servers/src/react/mcp_server.py
         extra:
             command: "python"
-    mcp-figma:
+    mcp-pseudo:
         type: mcp
         client_type: gai
-        name: mcp-figma
-        url: file://../../../../../mcp-servers/figma/servers/dist/index.js
+        name: mcp-pseudo
+        url: file://../servers/mcp_pseudo.py
         extra:
-            command: "node"
+            command: "python"

@@ -14,10 +14,12 @@ class ToolUseAgent:
     def __init__(
         self,
         agent_name: str,
+        prompt_template: str,
         project_name: str,
         llm_config: GaiClientConfig,
         mcp_client: McpAggregatedClient,
     ):
+        self.prompt_template = prompt_template
         log_file_path = os.path.expanduser(
             f"~/.gai/logs/{project_name}_{agent_name}.log"
         )
@@ -169,15 +171,30 @@ class ToolUseAgent:
         )
         monologue.reset()
 
-    async def start_async(self, user_message: str):
-        return await self.run_async(user_message=user_message)
+    def make_user_message(self, goal: str):
+        return (
+            f"""
+        ## Goal
+        
+        {goal}
+        
+        """
+            + self.prompt_template
+        )
+
+    async def start_async(self, goal: str):
+        return await self.run_async(goal=goal)
 
     async def continue_async(self):
         return await self.run_async()
 
-    async def run_async(self, user_message: Optional[str] = None):
+    async def run_async(self, goal: Optional[str] = None):
         self.fsm.state = "INIT"
-        self.fsm.user_message = user_message
+        if goal:
+            # self.fsm.user_message = self.prompt_template.format(goal=goal)
+            self.fsm.user_message = self.make_user_message(goal)
+        else:
+            self.fsm.user_message = None
 
         async def streamer():
             # LOOP UNTIL FINAL STATE
@@ -195,16 +212,16 @@ class ToolUseAgent:
 
         return streamer
 
-    async def interrupt_async(self, user_message):
+    async def interrupt_async(self, message):
         self.fsm.state = "INIT"
 
         # hijack the agent's instruction
         interrupt_template = """
         I am going to deviate a little and talk about something adhoc. 
         But I want you to come back on track after responding to this. 
-        What I want to talk about is this - {user_message}
+        What I want to talk about is this - {message}
         """
-        self.fsm.user_message = interrupt_template.format(user_message=user_message)
+        self.fsm.user_message = interrupt_template.format(message=message)
 
         # Remove the last tool_use from assistant since the user has interrupted the flow.
 

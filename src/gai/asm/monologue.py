@@ -44,20 +44,6 @@ class Monologue:
             total_size += len(json.dumps(new_message))
         return total_size
 
-    def is_terminated(self):
-        """
-        Check if the monologue is terminated.
-        A monologue is considered terminated if it contains a user message with content="TERMINATE"
-        """
-        for message in self._messages:
-            if (
-                message.body.role == "user"
-                and isinstance(message.body.content, str)
-                and message.body.content.strip().upper() == "TERMINATE"
-            ):
-                return True
-        return False
-
     def is_new(self):
         """
         Check if the monologue is new.
@@ -180,6 +166,47 @@ class Monologue:
     def reset(self, path: Optional[str] = None):
         self._messages.clear()
 
+    def get_last_toolcalls(self):
+        """
+        From the last message in the monologue, extract all tool_call content.
+        """
+
+        # messages = self.machine.monologue.list_messages()
+        last_message = self._messages[-1] if self._messages else None
+        if not last_message:
+            raise ValueError("AthropicToolUseState: No messages found.")
+        if last_message.body.role != "assistant":
+            raise ValueError(
+                "AthropicToolUseState: Last message is not from assistant or no messages found."
+            )
+        tool_calls = []
+        if isinstance(last_message.body.content, list):
+            for item in last_message.body.content:
+                if isinstance(item, str):
+                    continue
+                if not isinstance(item, dict):
+                    item = item.model_dump()
+                if item["type"] == "tool_use":
+                    tool_calls.append(
+                        {
+                            "tool_use_id": item["id"],
+                            "tool_name": item["name"],
+                            "arguments": item["input"],
+                        }
+                    )
+        return tool_calls
+
+    def is_terminated(self):
+        """
+        From the last message in the monologue, check if it contains "task_completed" tool_use.
+        """
+        last_tool_calls = self.get_last_toolcalls()
+        if last_tool_calls and any(
+            result["tool_name"] == "task_completed" for result in last_tool_calls
+        ):
+            return True
+        return False
+
 
 # -----
 
@@ -224,6 +251,20 @@ class FileMonologue(Monologue):
             dialogue_id=self.dialogue_id,
         )
 
+    def list_messages(self) -> list[MessagePydantic]:
+        """
+        Returns the list of messages in the monologue.
+        """
+        self._load(self.path)
+        return super().list_messages()
+
+    def list_chat_messages(self) -> list[dict[str, Any]]:
+        """
+        Returns the list of chat messages in the monologue.
+        """
+        self._load(self.path)
+        return super().list_chat_messages()
+
     def reset(self, path: Optional[str] = None):
         self._messages.clear()
         if not path:
@@ -237,11 +278,13 @@ class FileMonologue(Monologue):
         time.sleep(1)
 
     def add_user_message(self, content: Any, state=None):
+        self._load(self.path)
         result = super().add_user_message(content, state)
         self._save(self.path)
         return result
 
     def add_assistant_message(self, content: Any, state=None):
+        self._load(self.path)
         result = super().add_assistant_message(content, state)
         self._save(self.path)
         return result
@@ -250,6 +293,7 @@ class FileMonologue(Monologue):
         """
         pop the last message
         """
+        self._load(self.path)
         popped = super().pop()
         self._save(self.path)
         return popped
@@ -258,6 +302,21 @@ class FileMonologue(Monologue):
         """
         Update the internal list
         """
+        self._load(self.path)
         result = super().update(messages)
         self._save(self.path)
         return result
+
+    def get_last_toolcalls(self):
+        """
+        From the last message in the monologue, extract all tool_call content.
+        """
+        self._load(self.path)
+        return super().get_last_toolcalls()
+
+    def is_terminated(self):
+        """
+        From the last message in the monologue, check if it contains "task_completed" tool_use.
+        """
+        self._load(self.path)
+        return super().is_terminated()
