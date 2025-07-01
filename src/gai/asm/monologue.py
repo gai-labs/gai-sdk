@@ -199,7 +199,7 @@ class Monologue:
     def is_terminated(self):
         """
         LLM Terminated: If the last message is an assistant message,
-        check if it doesn't contain any tools or if it contains "task_completed" tool.
+        check if it doesn't contain any tool calls (or if it contains "task_completed" tool - this is obsoleted by remain for compatibility).
 
         User Terminated: If the last message is a user message,
         check if it contains "TERMINATE".
@@ -208,6 +208,7 @@ class Monologue:
         if not last_tool_calls:
             return True
 
+        # Note: Use of "task_completed" is obsoleted.
         if last_tool_calls and any(
             result["tool_name"] == "task_completed" for result in last_tool_calls
         ):
@@ -355,14 +356,14 @@ class FileMonologue(Monologue):
 
     def is_terminated(self):
         """
-        From the last message in the monologue, check if it contains "task_completed" tool_use.
+        From the last message in the monologue, check if last message contains tool_use
         """
         self._load(self.path)
         return super().is_terminated()
 
     def is_interrupted(self, user_message):
         """
-        From the last message in the monologue, check if it contains "task_completed" tool_use.
+        From the last message in the monologue, check if it contains "user_input" tool_use.
         """
         self._load(self.path)
         return super().is_interrupted(user_message=user_message)
