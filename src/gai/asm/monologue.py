@@ -174,11 +174,22 @@ class Monologue:
         # messages = self.machine.monologue.list_messages()
         last_message = self._messages[-1] if self._messages else None
         if not last_message:
-            raise ValueError("AthropicToolUseState: No messages found.")
-        if last_message.body.role != "assistant":
             raise ValueError(
-                "AthropicToolUseState: Last message is not from assistant or no messages found."
+                "AthropicToolUseState: No messages found. Check if 'start' was called."
             )
+        if last_message.body.role != "assistant":
+            # If last message is not an assistant's message, then something might have gone wrong previously preventing the successful completion of the state.
+            logger.warning(
+                "AthropicToolUseState: Last message is not from assistant. Removing last message to try again."
+            )
+            # Remove the last message try again.
+            self._messages.pop()
+            last_message = self._messages[-1] if self._messages else None
+            if not last_message:
+                raise ValueError(
+                    "AthropicToolUseState: No messages found in ToolUseState. Check the output from ChatState."
+                )
+
         tool_calls = []
         if isinstance(last_message.body.content, list):
             for item in last_message.body.content:
