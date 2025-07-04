@@ -1,26 +1,56 @@
 import os
+from typing import overload, Union
 from typing import Optional
 from gai.asm import AsyncStateMachine, FileMonologue
 from gai.mcp.client import McpAggregatedClient
 from gai.lib.logging import getLogger
 from gai.lib.config import GaiClientConfig
-from gai.asm.states import AnthropicToolUseState
-
 
 logger = getLogger(__name__)
 
 
 class ToolUseAgent:
+    @classmethod
+    @overload
+    def reset(cls, project_name: str, agent_name: str) -> None: ...
+
+    @classmethod
+    @overload
+    def reset(cls, path: str) -> None: ...
+
+    @classmethod
+    def reset(
+        cls,
+        project_name: Optional[str] = None,
+        agent_name: Optional[str] = None,
+        *,
+        path: Optional[str] = None,
+    ) -> None:
+        if path:
+            pass
+        elif project_name and agent_name:
+            path = os.path.expanduser(f"~/.gai/logs/{project_name}_{agent_name}.log")
+        else:
+            raise TypeError(
+                "reset() takes either (project_name, agent_name) or (path,)"
+            )
+
+        monologue = FileMonologue(file_path=path) if path else FileMonologue()
+        monologue.reset()
+
     def __init__(
         self,
         agent_name: str,
         project_name: str,
         llm_config: GaiClientConfig,
         mcp_client: McpAggregatedClient,
+        path: Optional[str] = None,
     ):
-        log_file_path = os.path.expanduser(
-            f"~/.gai/logs/{project_name}_{agent_name}.log"
-        )
+        log_file_path = path
+        if not path:
+            log_file_path = os.path.expanduser(
+                f"~/.gai/logs/{project_name}_{agent_name}.log"
+            )
         monologue = (
             FileMonologue(file_path=log_file_path) if log_file_path else FileMonologue()
         )
@@ -37,18 +67,6 @@ class ToolUseAgent:
 
             TOOL_USE --> FINAL
             """
-            # """
-            # INIT --> IS_TERMINATED
-            # IS_TERMINATED --> FINAL: condition_true
-            # IS_TERMINATED --> HAS_MESSAGE
-            # HAS_MESSAGE --> TOOL_CALL: condition_true
-            # HAS_MESSAGE --> TOOL_USE: condition_false
-            # TOOL_CALL--> TOOL_USE
-            # TOOL_USE --> CONTINUE_TOOL_USE
-            # CONTINUE_TOOL_USE --> FINAL: condition_true
-            # CONTINUE_TOOL_USE --> TERMINATE: condition_false
-            # TERMINATE --> FINAL
-            # """
         ) as builder:
             self.fsm = builder.build(
                 {
@@ -143,10 +161,6 @@ class ToolUseAgent:
                 "ToolUseAgent.is_tool_call: Last message is not from assistant."
             )
         try:
-            # tool_use = next(
-            #     (t for t in last_message.body.content if t.get("type") == "tool_use"),
-            #     None,
-            # )
             tool_use = None
             if isinstance(last_message.body.content, list):
                 for t in last_message.body.content:
@@ -158,16 +172,6 @@ class ToolUseAgent:
         except Exception as e:
             logger.error(f"[red]Error processing last message content: {e}[/red]")
             raise e
-
-    @classmethod
-    def reset(cls, project_name: str, agent_name: str):
-        log_file_path = os.path.expanduser(
-            f"~/.gai/logs/{project_name}_{agent_name}.log"
-        )
-        monologue = (
-            FileMonologue(file_path=log_file_path) if log_file_path else FileMonologue()
-        )
-        monologue.reset()
 
     async def start_async(self, user_message: str):
         """
