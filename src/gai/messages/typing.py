@@ -93,13 +93,69 @@ class ReplyBodyPydantic(BaseModel, MessageBodyMixin):
     content_type: Literal["text", "image", "video", "audio"] = "text"
     content: Optional[Any] = None
 
+# Rollcall -----------------------------------------------------------------------------------
+
+class ProfileBodyPydantic(BaseModel,MessageBodyMixin):
+    type: Literal["system.profile"] = "system.profile"
+    name: str
+    desc: Optional[str]
+    skills: Optional[str] = None
+    agent_class: str
+    image_64x64: Optional[str] = None
+    image_128x128: Optional[str] = None
+
+class RollcallBodyPydantic(BaseModel,MessageBodyMixin):
+    type: Literal["system.rollcall"] = "system.rollcall"
+
+# Handshake -----------------------------------------------------------------------------------
+
+class HandshakeBodyPydantic(BaseModel,MessageBodyMixin):
+    type: Literal["system.handshake"] = "system.handshake"
+    body: dict # Orchestration Plan
+    
+class HandshakeAckBodyPydantic(BaseModel,MessageBodyMixin):
+    type: Literal["system.handshake_ack"] = "system.handshake_ack"
+    body: dict # Orchestration Plan
+
+# Chat -----------------------------------------------------------------------------------
+
+class ChatSendBodyPydantic(BaseModel):
+    type: Literal["chat.send"] = "chat.send"
+    dialogue_id: Optional[str]
+    round_no: Optional[int]
+    turn_no: Optional[int]
+    step_no: Optional[int]
+    message_id: Optional[str]
+    content_type: Literal["text", "image", "video", "audio"]="text"
+    content: Optional[str]
+
+class ChatReplyBodyPydantic(BaseModel):
+    type: Literal["chat.reply"] = "chat.reply"
+    dialogue_id: Optional[str]
+    round_no: Optional[int]
+    turn_no: Optional[int]
+    step_no: Optional[int]
+    message_id: Optional[str]
+    chunk_no: Optional[int]
+    chunk: Optional[str]
+    content: Optional[str]
 
 # Message Class -----------------------------------------------------------------------------------
 UnionBodyType: TypeAlias = Annotated[
-    Union[DefaultBodyPydantic, StateBodyPydantic, SendBodyPydantic, ReplyBodyPydantic],
+    Union[
+        DefaultBodyPydantic, 
+        StateBodyPydantic, 
+        SendBodyPydantic, 
+        ReplyBodyPydantic,
+        RollcallBodyPydantic,
+        ProfileBodyPydantic,
+        HandshakeBodyPydantic,        
+        HandshakeAckBodyPydantic,
+        ChatSendBodyPydantic,
+        ChatReplyBodyPydantic
+        ],
     Field(discriminator="type"),
 ]
-
 
 class MessagePydantic(BaseModel):
     """

@@ -82,4 +82,4 @@ RUN uv venv
 
 # Startup
 RUN mkdir /workspaces/projects
-RUN echo "source ${UV_PROJECT_ENVIRONMENT}/bin/activate" >> $HOME/.bashrc
+

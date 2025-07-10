@@ -226,17 +226,35 @@ class AsyncMessageBus(MessageBusProtocol):
             si += 1
         return si == len(subject_tokens)
 
-    async def _safe_call(self, cb:Callable, message: MessagePydantic) -> asyncio.Task:
+    async def _safe_call(self, cb: Callable, message: MessagePydantic) -> asyncio.Task:
         """Create and return a task that safely calls the callback"""
         async def _wrapped_call():
             try:
-                if inspect.iscoroutinefunction(cb):
+                # 1) async-generator subscriber?
+                if inspect.isasyncgenfunction(cb):
+                    # call it -> returns an async generator
+                    agen = cb(message)
+                    try:
+                        async for chunk in agen:
+                            # handle each chunk however you want;
+                            # e.g. republish, push to a queue, etc.
+                            logger.debug(f"AsyncMessageBus: chunk from {cb}: {chunk!r}")
+                    finally:
+                        # make sure generator is closed
+                        await agen.aclose()
+
+                # 2) normal coroutine subscriber?
+                elif inspect.iscoroutinefunction(cb):
                     await cb(message)
+
+                # 3) sync subscriber?
                 else:
                     await asyncio.to_thread(cb, message)
-            except Exception as e:
-                logger.exception(f"AsyncMessageBus: Subscriber error= {e}")
 
+            except Exception as e:
+                logger.exception(f"AsyncMessageBus: Subscriber error in {cb}= {e}")
+
+        # create_task wants a *coroutine* – and _wrapped_call is one.
         return asyncio.create_task(_wrapped_call())
 
     async def _deliver(self, message_or_dict: MessageInput):

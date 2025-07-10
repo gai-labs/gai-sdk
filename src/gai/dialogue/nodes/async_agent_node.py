@@ -1,11 +1,8 @@
 from gai.dialogue import DialogueBus
 from gai.messages import MessagePydantic, message_helper
-from gai.lib.utils import run_async_function
 from rich import print
 
 class AsyncAgentNode:
-    
-    # dummy agent that will return simulated messages
 
     def __init__(self, name: str, handle_send_cb=None):
         self.name = name
@@ -50,7 +47,7 @@ class AsyncAgentNode:
         
         response=None
         if self.handle_send_cb:
-            response = await self.handle_send_cb(message)
+            response = self.handle_send_cb(message)
         content = ""
         chunk_no = 0
         if not response:

@@ -47,13 +47,14 @@ def convert_to_chat_messages(messages: list[MessagePydantic]) -> list[dict[str, 
     """
     chat_messages = []
     for message in messages:
-        if message.header.sender == "User":
-            role = "user"
-        elif message.header.sender == "System":
-            role = "system"
-        else:
-            role = "assistant"
-        chat_messages.append({"role": role, "content": message.body.content})
+        if message.body.type in [ "chat.reply","chat.send","reply","send" ]:
+            if message.header.sender == "User":
+                role = "user"
+            elif message.header.sender == "System":
+                role = "system"
+            else:
+                role = "assistant"
+            chat_messages.append({"role": role, "content": message.body.content})
     return chat_messages
 
 

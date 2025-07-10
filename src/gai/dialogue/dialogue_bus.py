@@ -21,12 +21,13 @@ from gai.messages import MessagePydantic, AsyncMessageBus
 
 class DialogueBus:
 
-    def __init__(self, max_recap_size = 4096):
+    def __init__(self, max_recap_size:int = 4096,dialogue_id:str = DEFAULT_GUID):
         self.max_recap_size = max_recap_size   # This represents the maximum kilobyte size of message history text content before truncation
         self._amb = AsyncMessageBus() # <- single-process
         self._amb_task = None
         self.messages: list[MessagePydantic] = []
-
+        self.dialogue_id = dialogue_id
+        
     def list_messages(self) -> list[MessagePydantic]:
         return self.messages
 
@@ -98,7 +99,7 @@ class DialogueBus:
         # do not save the message if it is a chunk
         try:
             
-            if pydantic.body.type == "reply" and pydantic.body.chunk != "<eom>":
+            if (pydantic.body.type == "reply" or pydantic.body.type == "chat.reply") and pydantic.body.chunk != "<eom>":
                 # Do not save message of a mid-stream chunk
                 pass
             else:
@@ -172,6 +173,13 @@ class DialogueBus:
 
 class FileDialogueBus(DialogueBus):
     
+    @classmethod
+    def create_dialogue_id(cls):
+        import uuid
+        dialogue_id = str(uuid.uuid4())
+        return dialogue_id
+    
+    
     # Performs CRUD operations on dialogue file.
     # The file is stored in the app_dir/data/<caller_id>/<logger_name>/dialogue/<dialogue_id>.json
 
@@ -184,9 +192,9 @@ class FileDialogueBus(DialogueBus):
         #file lock
         file_lock = Lock()
 
-        def __init__(self, logger_name: str, app_dir: str = None, dialogue_id: str = DEFAULT_GUID):
-            self.caller_id = DEFAULT_GUID
+        def __init__(self, logger_name: str, app_dir: Optional[str] = None, dialogue_id: Optional[str]=DEFAULT_GUID):
             self.dialogue_id = dialogue_id
+            self.caller_id = DEFAULT_GUID
             self.logger_name = logger_name
             self.app_dir = app_dir or get_app_path()
             if self.logger_name == "User":
@@ -203,7 +211,7 @@ class FileDialogueBus(DialogueBus):
         def get_dialogue_path(self) -> str:
             return os.path.join(self.dialogue_dir, f"{self.dialogue_id}.json")
         
-        def get_message(self, id: str) -> Optional[MessagePydantic]:
+        def get_message(self, message_id: str) -> Optional[MessagePydantic]:
             """Get a message from the dialogue file by its ID."""
             with FileDialogueBus.DialogueFileStorage.file_lock:
                 dialogue_path = self.get_dialogue_path()
@@ -219,7 +227,7 @@ class FileDialogueBus(DialogueBus):
                         internal_structure = FileDialogueBus.DialogueFileStorage.InternalStructure()
                     
                 for message in internal_structure.messages:
-                    if message.id == id:
+                    if message.id == message_id:
                         return MessagePydantic(**message.model_dump())
                 return None
         
@@ -320,12 +328,12 @@ class FileDialogueBus(DialogueBus):
     def __init__(
         self,
         logger_name: str,
-        app_dir: str = None,
+        app_dir: Optional[str] = None,
         dialogue_id: str = DEFAULT_GUID,
         reset: bool = False,
         max_recap_size = 4096,         
     ):
-        super().__init__(max_recap_size=max_recap_size)
+        super().__init__(max_recap_size=max_recap_size,dialogue_id=dialogue_id)
         self.logger_name = logger_name
         self.storage = FileDialogueBus.DialogueFileStorage(
             logger_name=logger_name, 

@@ -35,9 +35,6 @@ class ChatState(StateBase):
     async def run_async(self):
         # Get User Message
 
-        # If user_message is missing, the machine should transition into AnthropicToolUseState
-        # directly instead of here.
-
         if not self.input.get("user_message", None):
             raise Exception("ChatState: user_message is missing.")
 
@@ -47,14 +44,6 @@ class ChatState(StateBase):
 
         # Get model
         llm_model = llm_config["model"]
-
-        last_tool_calls = []
-        if self.machine.monologue.list_messages():
-            last_tool_calls = self.machine.monologue.get_last_toolcalls()
-
-        async def stream_nothing():
-            # This will yield nothing, effectively ending the state
-            yield
 
         assistant_message = ""
 
