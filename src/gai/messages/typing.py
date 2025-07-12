@@ -1,7 +1,7 @@
 import time
 import uuid
-from pydantic import BaseModel, model_validator, Field
-from typing import Annotated, Any, Literal, Optional, Union, final, TypeAlias
+from pydantic import BaseModel, model_validator, Field, create_model
+from typing import Type,Annotated, Any, Literal, Optional, Union, final, TypeAlias
 from gai.lib.constants import DEFAULT_GUID
 from .message_counter import MessageCounter
 from gai.lib.logging import getLogger
@@ -9,7 +9,6 @@ from gai.lib.logging import getLogger
 logger = getLogger(__name__)
 
 # Header Class -----------------------------------------------------------------------------------
-
 
 @final
 class MessageHeaderPydantic(BaseModel):
@@ -30,7 +29,6 @@ class MessageHeaderPydantic(BaseModel):
 
 # Mixin ------------------------------------------------------------------------------------
 
-
 class MessageBodyMixin:
     @model_validator(mode="before")
     @classmethod
@@ -47,10 +45,20 @@ class MessageBodyMixin:
             values["message_id"] = f"{dialogue_id}.{message_no}"
         return values
 
+# ─── Registry ────────────────────────────────────────────────────────────────
+
+_BODY_CLASSES: list[Type[BaseModel]] = []
+
+def register_body(cls: Type[BaseModel]) -> Type[BaseModel]:
+    _BODY_CLASSES.append(cls)
+    return cls
+
+# ─── Built-in Message Bodies ─────────────────────────────────────────────────────────
+
 
 # Default Class -----------------------------------------------------------------------------------
 
-
+@register_body
 class DefaultBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["default"] = "default"
     content: Optional[Any]
@@ -58,7 +66,7 @@ class DefaultBodyPydantic(BaseModel, MessageBodyMixin):
 
 # State Class -----------------------------------------------------------------------------------
 
-
+@register_body
 class StateBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["state"] = "state"
     state_name: str
@@ -70,7 +78,7 @@ class StateBodyPydantic(BaseModel, MessageBodyMixin):
 
 # Send Class -----------------------------------------------------------------------------------
 
-
+@register_body
 class SendBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["send"] = "send"
     dialogue_id: Optional[str] = DEFAULT_GUID
@@ -82,7 +90,7 @@ class SendBodyPydantic(BaseModel, MessageBodyMixin):
 
 # Reply Class -----------------------------------------------------------------------------------
 
-
+@register_body
 class ReplyBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["reply"] = "reply"
     dialogue_id: Optional[str] = DEFAULT_GUID
@@ -93,76 +101,49 @@ class ReplyBodyPydantic(BaseModel, MessageBodyMixin):
     content_type: Literal["text", "image", "video", "audio"] = "text"
     content: Optional[Any] = None
 
-# Rollcall -----------------------------------------------------------------------------------
+# # Message Placeholder Model -----------------------------------------------------------------------------------
 
-class ProfileBodyPydantic(BaseModel,MessageBodyMixin):
-    type: Literal["system.profile"] = "system.profile"
-    name: str
-    desc: Optional[str]
-    skills: Optional[str] = None
-    agent_class: str
-    image_64x64: Optional[str] = None
-    image_128x128: Optional[str] = None
+# class MessagePydantic(BaseModel):
+#     """
+#     Default message class for all GAI messages.
+#     The only specific part of the message is the body(payload) which is a discriminated union of different message types by "message_type".
+#     The body type is a dynamic discriminated union that is determined after running register_message_types()
+#     """
 
-class RollcallBodyPydantic(BaseModel,MessageBodyMixin):
-    type: Literal["system.rollcall"] = "system.rollcall"
+#     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+#     header: MessageHeaderPydantic = Field(default_factory=MessageHeaderPydantic)
+#     body: Any  # will be updated dynamically
 
-# Handshake -----------------------------------------------------------------------------------
+# ─── Registry hookup ─────────────────────────────────────────────────────────
 
-class HandshakeBodyPydantic(BaseModel,MessageBodyMixin):
-    type: Literal["system.handshake"] = "system.handshake"
-    body: dict # Orchestration Plan
+def get_message_cls():
+    """
+    Call *after* you've defined (and decorated) all your bodies.
+    This rebuilds MessagePydantic.body to be a discriminated union
+    of every registered body class.
+    """
+    # 1) Dedupe (if you called register_body twice on the same class)
+    unique = list(dict.fromkeys(_BODY_CLASSES))
+    # 2) Build the union of all body classes
+    union = unique[0]
+    for cls in unique[1:]:
+        union |= cls  # Python 3.10+ union operator
+    # 3) Annotate with discriminator
+    BodyType = Annotated[union, Field(discriminator="type")]
+
+    # 4) Create the final MessagePydantic *model* all at once
+    model = create_model(
+        "MessagePydantic",
+        id=(str, Field(default_factory=lambda: str(uuid.uuid4()))),
+        header=(MessageHeaderPydantic, Field(default_factory=MessageHeaderPydantic)),
+        body=(BodyType, ...),
+        __base__=BaseModel,
+    )
+
+    # 5) Export it
+    #globals()["MessagePydantic"] = model
+    return model
     
-class HandshakeAckBodyPydantic(BaseModel,MessageBodyMixin):
-    type: Literal["system.handshake_ack"] = "system.handshake_ack"
-    body: dict # Orchestration Plan
+# Run this to register the built-in types
 
-# Chat -----------------------------------------------------------------------------------
-
-class ChatSendBodyPydantic(BaseModel):
-    type: Literal["chat.send"] = "chat.send"
-    dialogue_id: Optional[str]
-    round_no: Optional[int]
-    turn_no: Optional[int]
-    step_no: Optional[int]
-    message_id: Optional[str]
-    content_type: Literal["text", "image", "video", "audio"]="text"
-    content: Optional[str]
-
-class ChatReplyBodyPydantic(BaseModel):
-    type: Literal["chat.reply"] = "chat.reply"
-    dialogue_id: Optional[str]
-    round_no: Optional[int]
-    turn_no: Optional[int]
-    step_no: Optional[int]
-    message_id: Optional[str]
-    chunk_no: Optional[int]
-    chunk: Optional[str]
-    content: Optional[str]
-
-# Message Class -----------------------------------------------------------------------------------
-UnionBodyType: TypeAlias = Annotated[
-    Union[
-        DefaultBodyPydantic, 
-        StateBodyPydantic, 
-        SendBodyPydantic, 
-        ReplyBodyPydantic,
-        RollcallBodyPydantic,
-        ProfileBodyPydantic,
-        HandshakeBodyPydantic,        
-        HandshakeAckBodyPydantic,
-        ChatSendBodyPydantic,
-        ChatReplyBodyPydantic
-        ],
-    Field(discriminator="type"),
-]
-
-class MessagePydantic(BaseModel):
-    """
-    Default message class for all GAI messages.
-    The only specific part of the message is the body(payload) which is a discriminated union of different message types by "message_type".
-    """
-
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    header: MessageHeaderPydantic = Field(default_factory=MessageHeaderPydantic)
-    body: UnionBodyType
+MessagePydantic = get_message_cls()

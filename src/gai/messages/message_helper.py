@@ -4,11 +4,10 @@ from gai.lib.constants import DEFAULT_GUID
 from .typing import (
     DefaultBodyPydantic,
     MessageHeaderPydantic,
-    MessagePydantic,
     ReplyBodyPydantic,
     SendBodyPydantic,
+    MessagePydantic
 )
-
 
 def create_message(
     role: Literal["user", "assistant", "system"], content: str

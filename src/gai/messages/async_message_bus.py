@@ -2,10 +2,10 @@ import inspect
 import asyncio
 from collections import defaultdict
 from typing import Callable, Dict, Optional, TypeAlias, Union, Protocol
-from .typing import MessagePydantic
+from gai.messages.typing import MessagePydantic
 from gai.lib.logging import getLogger
-
 logger = getLogger(__name__)
+
 MessageInput: TypeAlias = Union[dict, MessagePydantic]
 
 class MessageBusProtocol(Protocol):

@@ -6,6 +6,7 @@ from .typing import (
     SendBodyPydantic,
     ReplyBodyPydantic,
     MessagePydantic,
+    get_message_cls        
 )
 from .message_counter import MessageCounter
 from .message_helper import (
@@ -27,6 +28,7 @@ __all__ = [
     "SendBodyPydantic",
     "ReplyBodyPydantic",
     "MessagePydantic",
+    "get_message_cls",
     "MessageCounter",
     "create_message",
     "convert_to_chat_messages",

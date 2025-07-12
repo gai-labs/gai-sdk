@@ -44,7 +44,7 @@ class ChatAgent:
         project_name: str,
         llm_config: GaiClientConfig,
         path: Optional[str] = None,
-        mcp_client: Optional[McpAggregatedClient]=None,
+        aggregated_client: Optional[McpAggregatedClient]=None,
     ):
         log_file_path = path
         if not path:

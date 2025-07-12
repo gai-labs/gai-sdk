@@ -43,7 +43,7 @@ class ToolUseAgent:
         agent_name: str,
         project_name: str,
         llm_config: GaiClientConfig,
-        mcp_client: McpAggregatedClient,
+        aggregated_client: McpAggregatedClient,
         path: Optional[str] = None,
     ):
         log_file_path = path
@@ -135,7 +135,7 @@ class ToolUseAgent:
                     },
                 },
                 get_llm_config=lambda state: llm_config.model_dump(),
-                get_mcp_client=lambda state: mcp_client,
+                get_mcp_client=lambda state: aggregated_client,
                 monologue=monologue,
                 has_message=self.has_message,
                 is_tool_call=self.is_tool_call,
