@@ -308,8 +308,12 @@ class FileMonologue(Monologue):
         self._load()
         return message_helper.convert_to_chat_messages(self._messages)
 
-    def reset(self, path: Optional[str] = None):
-        self.message_store.reset()
+    def reset(self):
+        message_store = MessageStore(
+            file_path=self.file_path,
+            MessagePydantic_cls=MessagePydantic,
+        )
+        message_store.reset()
         self._messages.clear()
 
     def add_user_message(self, content: Any, state=None):
