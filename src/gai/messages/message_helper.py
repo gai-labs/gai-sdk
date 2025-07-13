@@ -1,11 +1,13 @@
-from typing import Any, Literal
+import re
+from typing import Any, Literal, Type, TypeVar
 
 from gai.lib.constants import DEFAULT_GUID
+from pydantic import BaseModel
 from .typing import (
     DefaultBodyPydantic,
     MessageHeaderPydantic,
-    ReplyBodyPydantic,
-    SendBodyPydantic,
+    # ReplyBodyPydantic,
+    # SendBodyPydantic,
     MessagePydantic
 )
 
@@ -44,93 +46,102 @@ def convert_to_chat_messages(messages: list[MessagePydantic]) -> list[dict[str, 
     Returns:
         list[MessagePydantic]: A list of chat messages.
     """
-    chat_messages = []
-    for message in messages:
-        if message.body.type in [ "chat.reply","chat.send","reply","send" ]:
-            if message.header.sender == "User":
-                role = "user"
-            elif message.header.sender == "System":
-                role = "system"
-            else:
-                role = "assistant"
-            chat_messages.append({"role": role, "content": message.body.content})
+    chat_messages=[]
+    for m in messages:
+        if hasattr(m.body,"content"):
+            # Only if message has content
+            if m.body.role == "system":
+                # clean up whitespace from system messages
+                m.body.content = re.sub(r"\s+", " ", m.body.content)
+            chat_messages.append({"role": m.body.role, "content": m.body.content})
+    
+    # chat_messages = [
+    #     {"role": m.body.role, "content": m.body.content} for m in messages
+    # ]
+
+    # # clean up whitespace from system messages
+    # for message in chat_messages:
+    #     if message["role"] == "system":
+    #         message["content"] = re.sub(r"\s+", " ", message["content"])
+
     return chat_messages
 
 
-def create_user_send_message(
-    content: Any, recipient: str = "Assistant", dialogue_id: str = DEFAULT_GUID
-) -> MessagePydantic:
-    """
-    Create a user send message.
+# def create_user_send_message(
+#     content: Any, recipient: str = "Assistant", dialogue_id: str = DEFAULT_GUID
+# ) -> MessagePydantic:
+#     """
+#     Create a user send message.
 
-    Args:
-        content (Any): The content of the message.
-        recipient (str): The recipient of the message, defaults to empty string.
-        dialogue_id (str): The dialogue ID, defaults to "default-guid".
+#     Args:
+#         content (Any): The content of the message.
+#         recipient (str): The recipient of the message, defaults to empty string.
+#         dialogue_id (str): The dialogue ID, defaults to "default-guid".
 
-    Returns:
-        MessagePydantic: A message object with type "send".
-    """
-    return MessagePydantic(
-        header=MessageHeaderPydantic(sender="User", recipient=recipient),
-        body=SendBodyPydantic(content=content),
-    )
-
-
-def create_assistant_reply_content(
-    sender: str, content: Any, recipient: str = "User", dialogue_id: str = DEFAULT_GUID
-) -> MessagePydantic:
-    """
-    Create an assistant reply chunk message.
-
-    Args:
-        sender (str): The sender of the message.
-        chunk_no (int): The chunk number.
-        chunk (str): The content of the chunk.
-        content (Any): The content of the message need not be string.
-        recipient (str): The recipient of the message, defaults to "User".
-        dialogue_id (str): The dialogue ID, defaults to "default-guid".
-
-    Returns:
-        MessagePydantic: A message object with type "reply".
-    """
-    return MessagePydantic(
-        header=MessageHeaderPydantic(sender=sender, recipient=recipient),
-        body=ReplyBodyPydantic(content=content, dialogue_id=dialogue_id),
-    )
+#     Returns:
+#         MessagePydantic: A message object with type "send".
+#     """
+#     return MessagePydantic(
+#         header=MessageHeaderPydantic(sender="User", recipient=recipient),
+#         body=SendBodyPydantic(content=content),
+#     )
 
 
-def create_assistant_reply_chunk(
-    sender: str,
-    chunk_no: int,
-    chunk: str,
-    content: str,
-    recipient: str = "User",
-    dialogue_id: str = DEFAULT_GUID,
-) -> MessagePydantic:
-    """
-    Create an assistant reply chunk message.
+# def create_assistant_reply_content(
+#     sender: str, content: Any, recipient: str = "User", dialogue_id: str = DEFAULT_GUID
+# ) -> MessagePydantic:
+#     """
+#     Create an assistant reply chunk message.
 
-    Args:
-        sender (str): The sender of the message.
-        chunk_no (int): The chunk number.
-        chunk (str): The content of the chunk.
-        content (str): The content of the message.
-        recipient (str): The recipient of the message, defaults to "User".
-        dialogue_id (str): The dialogue ID, defaults to "default-guid".
+#     Args:
+#         sender (str): The sender of the message.
+#         chunk_no (int): The chunk number.
+#         chunk (str): The content of the chunk.
+#         content (Any): The content of the message need not be string.
+#         recipient (str): The recipient of the message, defaults to "User".
+#         dialogue_id (str): The dialogue ID, defaults to "default-guid".
 
-    Returns:
-        MessagePydantic: A message object with type "reply".
-    """
-    return MessagePydantic(
-        header=MessageHeaderPydantic(sender=sender, recipient=recipient),
-        body=ReplyBodyPydantic(
-            content=content, dialogue_id=dialogue_id, chunk_no=chunk_no, chunk=chunk
-        ),
-    )
+#     Returns:
+#         MessagePydantic: A message object with type "reply".
+#     """
+#     return MessagePydantic(
+#         header=MessageHeaderPydantic(sender=sender, recipient=recipient),
+#         body=ReplyBodyPydantic(content=content, dialogue_id=dialogue_id),
+#     )
 
 
-def json(list: list[MessagePydantic]) -> str:
+# def create_assistant_reply_chunk(
+#     sender: str,
+#     chunk_no: int,
+#     chunk: str,
+#     content: str,
+#     recipient: str = "User",
+#     dialogue_id: str = DEFAULT_GUID,
+# ) -> MessagePydantic:
+#     """
+#     Create an assistant reply chunk message.
+
+#     Args:
+#         sender (str): The sender of the message.
+#         chunk_no (int): The chunk number.
+#         chunk (str): The content of the chunk.
+#         content (str): The content of the message.
+#         recipient (str): The recipient of the message, defaults to "User".
+#         dialogue_id (str): The dialogue ID, defaults to "default-guid".
+
+#     Returns:
+#         MessagePydantic: A message object with type "reply".
+#     """
+#     return MessagePydantic(
+#         header=MessageHeaderPydantic(sender=sender, recipient=recipient),
+#         body=ReplyBodyPydantic(
+#             content=content, dialogue_id=dialogue_id, chunk_no=chunk_no, chunk=chunk
+#         ),
+#     )
+
+MessagePydanticT = TypeVar("MessagePydanticT", bound=BaseModel)
+
+def json(list: list[MessagePydanticT]) -> str:
     """
     Convert a list of messages to JSON format.
 
@@ -144,21 +155,20 @@ def json(list: list[MessagePydantic]) -> str:
 
     return json.dumps([message.model_dump() for message in list], indent=4)
 
-
-def unjson(json_str: str) -> list[MessagePydantic]:
+def unjson(json_str: str, MessagePydantic_cls: Type[MessagePydanticT]) -> list[MessagePydanticT]:
     """
     Convert a JSON string to a list of messages.
 
     Args:
         json_str (str): A JSON string representation of messages.
-
+        MessagePydantic_cls (Type[MessagePydanticT]): The dynamic MessagePydantic class to validate against.
     Returns:
-        list[MessagePydantic]: A list of messages.
+        list[MessagePydanticT]: A list of messages of dynamic MessagePydantic class type.
     """
     import json as json_lib
 
     return [
-        MessagePydantic.model_validate(message) for message in json_lib.loads(json_str)
+        MessagePydantic_cls.model_validate(message) for message in json_lib.loads(json_str)
     ]
 
 
@@ -186,10 +196,11 @@ def extract_recap(
     recap_lines = []
     total_len = 0
     for msg in simple_messages:
-        line = f"{msg['role'].capitalize()}: {msg['content'].strip()}"
-        if total_len + len(line) > max_recap_size:
-            break
-        recap_lines.append(line)
-        total_len += len(line)
+        if msg.get("content") and isinstance(msg["content"], str):
+            line = f"{msg['role'].capitalize()}: {msg['content'].strip()}"
+            if total_len + len(line) > max_recap_size:
+                break
+            recap_lines.append(line)
+            total_len += len(line)
 
     return "\n".join(recap_lines)

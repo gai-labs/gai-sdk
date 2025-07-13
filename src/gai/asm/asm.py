@@ -3,7 +3,7 @@ import asyncio
 from transitions.extensions.asyncio import AsyncMachine
 from typing import Optional, Union
 from gai.lib.logging import getLogger
-from gai.asm.monologue import Monologue
+from gai.messages import Monologue
 from datetime import datetime
 
 logger = getLogger(__name__)

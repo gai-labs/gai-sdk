@@ -9,9 +9,10 @@ from gai.lib.constants import DEFAULT_GUID
 from gai.lib.logging import getLogger
 from gai.messages.typing import (
     MessagePydantic,
-    StateBodyPydantic,
+    MonologueBodyPydantic,
     MessageHeaderPydantic,
 )
+from gai.messages import MessageStore
 
 logger = getLogger(__file__)
 
@@ -62,7 +63,7 @@ class Monologue:
 
         message = MessagePydantic(
             header=MessageHeaderPydantic(sender="User", recipient=self.agent_name),
-            body=StateBodyPydantic(
+            body=MonologueBodyPydantic(
                 state_name=state_name,
                 step_no=step_no,
                 role="user",
@@ -98,7 +99,7 @@ class Monologue:
 
         message = MessagePydantic(
             header=MessageHeaderPydantic(sender=self.agent_name, recipient="User"),
-            body=StateBodyPydantic(
+            body=MonologueBodyPydantic(
                 state_name=state_name,
                 step_no=step_no,
                 role="assistant",

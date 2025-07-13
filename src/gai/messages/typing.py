@@ -41,8 +41,9 @@ class MessageBodyMixin:
             dialogue_id = values.get("dialogue_id", DEFAULT_GUID)
             mc = MessageCounter()
             message_no = mc.get()
-            values["message_no"] = message_no
-            values["message_id"] = f"{dialogue_id}.{message_no}"
+            if "message_no" not in values:
+                values["message_no"] = message_no
+                values["message_id"] = f"{dialogue_id}.{message_no}"
         return values
 
 # ─── Registry ────────────────────────────────────────────────────────────────
@@ -50,13 +51,16 @@ class MessageBodyMixin:
 _BODY_CLASSES: list[Type[BaseModel]] = []
 
 def register_body(cls: Type[BaseModel]) -> Type[BaseModel]:
+    # drop any earlier class with this __name__
+    _BODY_CLASSES[:] = [c for c in _BODY_CLASSES if c.__name__ != cls.__name__]
     _BODY_CLASSES.append(cls)
     return cls
+
 
 # ─── Built-in Message Bodies ─────────────────────────────────────────────────────────
 
 
-# Default Class -----------------------------------------------------------------------------------
+# Default Body -----------------------------------------------------------------------------------
 
 @register_body
 class DefaultBodyPydantic(BaseModel, MessageBodyMixin):
@@ -64,11 +68,11 @@ class DefaultBodyPydantic(BaseModel, MessageBodyMixin):
     content: Optional[Any]
 
 
-# State Class -----------------------------------------------------------------------------------
+# Monologue Body -----------------------------------------------------------------------------------
 
 @register_body
-class StateBodyPydantic(BaseModel, MessageBodyMixin):
-    type: Literal["state"] = "state"
+class MonologueBodyPydantic(BaseModel, MessageBodyMixin):
+    type: Literal["monologue"] = "monologue"
     state_name: str
     step_no: int
     content_type: Literal["text", "image", "video", "audio"] = "text"
@@ -76,43 +80,30 @@ class StateBodyPydantic(BaseModel, MessageBodyMixin):
     content: Any
 
 
-# Send Class -----------------------------------------------------------------------------------
+# # Send Class -----------------------------------------------------------------------------------
 
-@register_body
-class SendBodyPydantic(BaseModel, MessageBodyMixin):
-    type: Literal["send"] = "send"
-    dialogue_id: Optional[str] = DEFAULT_GUID
-    message_no: Optional[int] = None  # Will be set by validator
-    message_id: Optional[str] = None  # Will be set by validator
-    content_type: Literal["text", "image", "video", "audio"] = "text"
-    content: Any
+# @register_body
+# class SendBodyPydantic(BaseModel, MessageBodyMixin):
+#     type: Literal["send"] = "send"
+#     dialogue_id: Optional[str] = DEFAULT_GUID
+#     message_no: Optional[int] = None  # Will be set by MessageBodyMixin
+#     message_id: Optional[str] = None  # Will be set by MessageBodyMixin
+#     content_type: Literal["text", "image", "video", "audio"] = "text"
+#     content: Any
 
 
-# Reply Class -----------------------------------------------------------------------------------
+# # Reply Class -----------------------------------------------------------------------------------
 
-@register_body
-class ReplyBodyPydantic(BaseModel, MessageBodyMixin):
-    type: Literal["reply"] = "reply"
-    dialogue_id: Optional[str] = DEFAULT_GUID
-    message_no: Optional[int] = None  # Will be set by validator
-    message_id: Optional[str] = None  # Will be set by validator
-    chunk_no: Optional[int] = 0
-    chunk: Optional[str] = "<eom>"
-    content_type: Literal["text", "image", "video", "audio"] = "text"
-    content: Optional[Any] = None
-
-# # Message Placeholder Model -----------------------------------------------------------------------------------
-
-# class MessagePydantic(BaseModel):
-#     """
-#     Default message class for all GAI messages.
-#     The only specific part of the message is the body(payload) which is a discriminated union of different message types by "message_type".
-#     The body type is a dynamic discriminated union that is determined after running register_message_types()
-#     """
-
-#     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-#     header: MessageHeaderPydantic = Field(default_factory=MessageHeaderPydantic)
-#     body: Any  # will be updated dynamically
+# @register_body
+# class ReplyBodyPydantic(BaseModel, MessageBodyMixin):
+#     type: Literal["reply"] = "reply"
+#     dialogue_id: Optional[str] = DEFAULT_GUID
+#     message_no: Optional[int] = None  # Will be set by MessageBodyMixin
+#     message_id: Optional[str] = None  # Will be set by MessageBodyMixin
+#     chunk_no: Optional[int] = 0
+#     chunk: Optional[str] = "<eom>"
+#     content_type: Literal["text", "image", "video", "audio"] = "text"
+#     content: Optional[Any] = None
 
 # ─── Registry hookup ─────────────────────────────────────────────────────────
 
