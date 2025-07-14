@@ -11,50 +11,15 @@ logger = getLogger(__name__)
 
 
 class ToolUseAgent:
-    # @classmethod
-    # @overload
-    # def reset(cls, project_name: str, agent_name: str) -> None: ...
-
-    # @classmethod
-    # @overload
-    # def reset(cls, path: str) -> None: ...
-
-    # @classmethod
-    # def reset(
-    #     cls,
-    #     project_name: Optional[str] = None,
-    #     agent_name: Optional[str] = None,
-    #     *,
-    #     path: Optional[str] = None,
-    # ) -> None:
-    #     if path:
-    #         pass
-    #     elif project_name and agent_name:
-    #         path = os.path.expanduser(f"~/.gai/logs/{project_name}_{agent_name}.log")
-    #     else:
-    #         raise TypeError(
-    #             "reset() takes either (project_name, agent_name) or (path,)"
-    #         )
-
-    #     monologue = FileMonologue(file_path=path) if path else FileMonologue()
-    #     monologue.reset()
 
     def __init__(
         self,
         agent_name: str,
         llm_config: GaiClientConfig,
         aggregated_client: McpAggregatedClient,
-        #path: Optional[str] = None,
-        monologue: Optional[Monologue]=None
+        monologue: Optional[Monologue]=None,
+        recap: Optional[str] = "",
     ):
-        # log_file_path = path
-        # if not path:
-        #     log_file_path = os.path.expanduser(
-        #         f"~/.gai/logs/{project_name}_{agent_name}.log"
-        #     )
-        # monologue = (
-        #     FileMonologue(file_path=log_file_path) if log_file_path else FileMonologue()
-        # )
         
         # Initialize monologue
         self.monologue = monologue
@@ -87,6 +52,10 @@ class ToolUseAgent:
                                 "type": "getter",
                                 "dependency": "get_mcp_client",
                             },
+                            "recap": {
+                                "type": "getter",
+                                "dependency": "get_recap",
+                            },                            
                         }
                     },
                     "HAS_MESSAGE": {
@@ -110,6 +79,10 @@ class ToolUseAgent:
                                 "type": "state_bag",
                                 "dependency": "mcp_client",
                             },
+                            "recap": {
+                                "type": "state_bag",
+                                "dependency": "recap",
+                            },                            
                         },
                         "output_data": ["streamer", "get_assistant_message"],
                     },
@@ -127,7 +100,7 @@ class ToolUseAgent:
                                 "dependency": "mcp_client",
                             },
                         },
-                        "output_data": ["tool_result"],
+                        "output_data": ["tool_result","get_assistant_message"],
                     },
                     "IS_TOOL_CALL": {
                         "module_path": "gai.asm.states",
@@ -138,7 +111,7 @@ class ToolUseAgent:
                         "conditions": ["condition_true", "condition_false"],
                     },
                     "FINAL": {
-                        "output_data": ["monologue"],
+                        "output_data": ["monologue","get_assistant_message"],
                     },
                 },
                 get_llm_config=lambda state: llm_config.model_dump(),
@@ -146,6 +119,7 @@ class ToolUseAgent:
                 monologue=self.monologue,
                 has_message=self.has_message,
                 is_tool_call=self.is_tool_call,
+                get_recap=lambda state: recap,
             )
 
     def has_message(self, state):
@@ -260,3 +234,7 @@ class ToolUseAgent:
                     yield None
 
         return streamer
+
+    def final_output(self):
+        get_assistant_message = self.fsm.state_history[-1]["output"]["get_assistant_message"]
+        return get_assistant_message()

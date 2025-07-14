@@ -186,7 +186,7 @@ class Monologue:
                     continue
                 if not isinstance(item, dict):
                     item = item.model_dump()
-                if item["type"] == "tool_use":
+                if "type" in item and item["type"] == "tool_use":
                     tool_calls.append(
                         {
                             "tool_use_id": item["id"],
@@ -204,16 +204,22 @@ class Monologue:
         User Terminated: If the last message is a user message,
         check if it contains "TERMINATE".
         """
+        
+        # If there are no tool calls, then it is considered terminated or interrupted.
         last_tool_calls = self.get_last_toolcalls()
         if not last_tool_calls:
             return True
 
-        # Note: Use of "task_completed" is obsoleted.
+        # obsolete: If last message contains "task_completed" tool call, then it is considered terminated.
+        # This is not fool proof since LLM might missed the tool call.
+        # The worst case is that we can't tell if it is terminated or interrupted.
+        # Which is not a big deal since we can always retry.
         if last_tool_calls and any(
             result["tool_name"] == "task_completed" for result in last_tool_calls
         ):
             return True
 
+        # If user send "TERMINATE", then it is considered terminated.
         last_message = self._messages[-1] if self._messages else None
         last_content = last_message.body.content
         if (
@@ -227,17 +233,31 @@ class Monologue:
 
     def is_interrupted(self, user_message: str):
         """
-        LLM Interrupted:
+        If the last message is not a tool call, then it is not interrupted.
+        
+        LLM Interrupted(Deprecated):
+        
         If the last message is an assistant message containing "user_input"
         and no user_message, that means LLM is still pending for user_message
-        and should terminate the flow.
+        and should terminate the flow. 
+        
+        [updated] There is no need to check for "user_input" since if LLM 
+        doesn't have any tool calls, then it is considered either interrupted
+        or terminated.
+        
         If user_message is present, that means it is no longer pending for user_message
         and so the flow will continue.
         """
+        
+        # If there are no tool calls, then it is considered terminated or interrupted.
         last_tool_calls = self.get_last_toolcalls()
         if not last_tool_calls:
             return True
 
+        # obsolete: If last message contains "user_input" tool call, then it is considered interrupted.
+        # This is not fool proof since LLM might missed the tool call.
+        # The worst case is that we can't tell if it is terminated or interrupted.
+        # Which is not a big deal since we can always retry.
         if (
             last_tool_calls
             and any(result["tool_name"] == "user_input" for result in last_tool_calls)
@@ -248,12 +268,37 @@ class Monologue:
         return False
 
 # -----
-    
+
+from functools import wraps
+
+def transactional(method):
+    """load before, save after."""
+    @wraps(method)
+    def _wrapped(self, *args, **kwargs):
+        self._load()
+        result = method(self, *args, **kwargs)
+        self._save()
+        return result
+    return _wrapped
+
+def load_only(method):
+    """load before, no save."""
+    @wraps(method)
+    def _wrapped(self, *args, **kwargs):
+        self._load()
+        return method(self, *args, **kwargs)
+    return _wrapped
+
 class FileMonologue(Monologue):
     def __init__(
         self,
         agent_name: str = "Assistant",
-        messages: Optional[Union["Monologue", "FileMonologue", list[MessagePydantic]]] = None,
+        messages: Optional[ 
+            Union[
+                "Monologue",
+                "FileMonologue",
+                list[MessagePydantic]]
+            ] = None,
         limit: int = 600000,
         file_path: Optional[str] = None,
     ):
@@ -263,29 +308,41 @@ class FileMonologue(Monologue):
             limit=limit
             )
 
+        # Initialize MessageStore
+        
         self.file_path = file_path
         if not self.file_path:
             self.file_path = f"/tmp/{self.agent_name}.json"
-
-        if messages:
-            if isinstance(self._messages, FileMonologue):
-                self._messages = self._messages.list_messages()
-            self._save()
-
-    def _save(self):
-        message_store = MessageStore(
+        self.message_store = MessageStore(
             file_path=self.file_path,
             MessagePydantic_cls=MessagePydantic,
         )
-        message_store.reset()
-        message_store.bulk_insert_messages(self._messages)
+
+        # Initialize messages
+        
+        if messages:
+            if isinstance(self._messages, FileMonologue) or isinstance(self._messages, Monologue):
+                self._messages = self._messages.list_messages()
+            elif isinstance(self._messages, list):
+                self._messages = messages.copy()
+            else:
+                raise ValueError(
+                    "FileMonologue: messages should be a list of MessagePydantic or a Monologue/FileMonologue instance."
+                )
+            self._save()
+        else:
+            self._load()            
+
+    def _save(self):
+        self.message_store.reset()
+        self.message_store.bulk_insert_messages(self._messages)
 
     def _load(self, path: Optional[str] = None):
-        message_store = MessageStore(
-            file_path=path or self.file_path,
-            MessagePydantic_cls=MessagePydantic,
-        )
-        self._messages = message_store.list_messages()
+        self._messages = self.message_store.list_messages()
+
+    def reset(self):
+        self.message_store.reset()
+        return super().reset()
 
     def copy(self):
         """Returns a copy of the file monologue."""
@@ -294,75 +351,38 @@ class FileMonologue(Monologue):
             messages=self._messages.copy()
         )
 
+    @load_only
     def list_messages(self) -> list[MessagePydantic]:
-        """
-        Returns the list of messages in the monologue.
-        """
-        self._load()
-        return self._messages
+        return super().list_messages()
 
+    @load_only
     def list_chat_messages(self) -> list[dict[str, Any]]:
-        """
-        Returns the list of chat messages in the monologue.
-        """
-        self._load()
-        return message_helper.convert_to_chat_messages(self._messages)
+        return super().list_chat_messages()
 
-    def reset(self):
-        message_store = MessageStore(
-            file_path=self.file_path,
-            MessagePydantic_cls=MessagePydantic,
-        )
-        message_store.reset()
-        self._messages.clear()
-
+    @transactional    
     def add_user_message(self, content: Any, state=None):
-        self._load()
-        result = super().add_user_message(content, state)
-        self._save()
-        return result
+        return super().add_user_message(content, state)
 
+    @transactional    
     def add_assistant_message(self, content: Any, state=None):
-        self._load()
-        result = super().add_assistant_message(content, state)
-        self._save()
-        return result
+        return super().add_assistant_message(content, state)
 
+    @transactional    
     def pop(self):
-        """
-        pop the last message
-        """
-        self._load()
-        popped = super().pop()
-        self._save()
-        return popped
+        return super().pop()
 
+    @transactional
     def update(self, messages: list[MessagePydantic]):
-        """
-        Update the internal list
-        """
-        self._load()
-        result = super().update(messages)
-        self._save()
-        return result
+        return super().update(messages)
 
+    @load_only
     def get_last_toolcalls(self):
-        """
-        From the last message in the monologue, extract all tool_call content.
-        """
-        self._load()
         return super().get_last_toolcalls()
 
+    @load_only
     def is_terminated(self):
-        """
-        From the last message in the monologue, check if last message contains tool_use
-        """
-        self._load()
         return super().is_terminated()
 
+    @load_only
     def is_interrupted(self, user_message):
-        """
-        From the last message in the monologue, check if it contains "user_input" tool_use.
-        """
-        self._load()
         return super().is_interrupted(user_message=user_message)

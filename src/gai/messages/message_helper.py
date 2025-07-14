@@ -54,90 +54,8 @@ def convert_to_chat_messages(messages: list[MessagePydantic]) -> list[dict[str, 
                 # clean up whitespace from system messages
                 m.body.content = re.sub(r"\s+", " ", m.body.content)
             chat_messages.append({"role": m.body.role, "content": m.body.content})
-    
-    # chat_messages = [
-    #     {"role": m.body.role, "content": m.body.content} for m in messages
-    # ]
-
-    # # clean up whitespace from system messages
-    # for message in chat_messages:
-    #     if message["role"] == "system":
-    #         message["content"] = re.sub(r"\s+", " ", message["content"])
 
     return chat_messages
-
-
-# def create_user_send_message(
-#     content: Any, recipient: str = "Assistant", dialogue_id: str = DEFAULT_GUID
-# ) -> MessagePydantic:
-#     """
-#     Create a user send message.
-
-#     Args:
-#         content (Any): The content of the message.
-#         recipient (str): The recipient of the message, defaults to empty string.
-#         dialogue_id (str): The dialogue ID, defaults to "default-guid".
-
-#     Returns:
-#         MessagePydantic: A message object with type "send".
-#     """
-#     return MessagePydantic(
-#         header=MessageHeaderPydantic(sender="User", recipient=recipient),
-#         body=SendBodyPydantic(content=content),
-#     )
-
-
-# def create_assistant_reply_content(
-#     sender: str, content: Any, recipient: str = "User", dialogue_id: str = DEFAULT_GUID
-# ) -> MessagePydantic:
-#     """
-#     Create an assistant reply chunk message.
-
-#     Args:
-#         sender (str): The sender of the message.
-#         chunk_no (int): The chunk number.
-#         chunk (str): The content of the chunk.
-#         content (Any): The content of the message need not be string.
-#         recipient (str): The recipient of the message, defaults to "User".
-#         dialogue_id (str): The dialogue ID, defaults to "default-guid".
-
-#     Returns:
-#         MessagePydantic: A message object with type "reply".
-#     """
-#     return MessagePydantic(
-#         header=MessageHeaderPydantic(sender=sender, recipient=recipient),
-#         body=ReplyBodyPydantic(content=content, dialogue_id=dialogue_id),
-#     )
-
-
-# def create_assistant_reply_chunk(
-#     sender: str,
-#     chunk_no: int,
-#     chunk: str,
-#     content: str,
-#     recipient: str = "User",
-#     dialogue_id: str = DEFAULT_GUID,
-# ) -> MessagePydantic:
-#     """
-#     Create an assistant reply chunk message.
-
-#     Args:
-#         sender (str): The sender of the message.
-#         chunk_no (int): The chunk number.
-#         chunk (str): The content of the chunk.
-#         content (str): The content of the message.
-#         recipient (str): The recipient of the message, defaults to "User".
-#         dialogue_id (str): The dialogue ID, defaults to "default-guid".
-
-#     Returns:
-#         MessagePydantic: A message object with type "reply".
-#     """
-#     return MessagePydantic(
-#         header=MessageHeaderPydantic(sender=sender, recipient=recipient),
-#         body=ReplyBodyPydantic(
-#             content=content, dialogue_id=dialogue_id, chunk_no=chunk_no, chunk=chunk
-#         ),
-#     )
 
 MessagePydanticT = TypeVar("MessagePydanticT", bound=BaseModel)
 
@@ -177,6 +95,19 @@ def extract_recap(
 ) -> str:
     """
     Extract a recap of the last N messages, constrained by max_recap_size.
+    Instead of showing the sender role, it uses sender name.
+    This is to facilitate multi-agent dialogues so that agent can tell apart who said what.
+    For example, 
+    
+    User: <content>
+    Sara: <content>
+    
+    Instead of
+    
+    [
+    {"role": "user", "content": "<content>"},
+    {"role": "assistant", "content": "<content>"}
+    ]
 
     Args:
         messages (list[MessagePydantic]): The full message history.
@@ -189,18 +120,16 @@ def extract_recap(
     # Step 1: Get the last N messages
     recent_messages = messages[-last_n:]
 
-    # Step 2: Convert messages to simple role-content format
-    simple_messages = convert_to_chat_messages(recent_messages)
-
-    # Step 3: Accumulate until reaching max_recap_size
+    # Step 2: Convert messages to dialogue format
     recap_lines = []
-    total_len = 0
-    for msg in simple_messages:
-        if msg.get("content") and isinstance(msg["content"], str):
-            line = f"{msg['role'].capitalize()}: {msg['content'].strip()}"
+    total_len = 0    
+    for m in recent_messages:
+        if hasattr(m.body,"content") and isinstance(m.body.content, str):
+            line = f"{m.header.sender}: {m.body.content.strip()}"
             if total_len + len(line) > max_recap_size:
                 break
             recap_lines.append(line)
             total_len += len(line)
 
+    # Step 3: Join the lines into a single string
     return "\n".join(recap_lines)

@@ -11,8 +11,9 @@ clean:
 	find . -type d -name '*.egg-info' -exec rm -rf {} +
 	find . -type d -name 'tmp' -exec rm -rf {} +
 	find . -type d -name '.pytest_cache' -exec rm -rf {} +
-	find . -type d -name '.venv' -exec rm -rf {} +
 	find . -type d -name 'node_modules' -exec rm -rf {} +
+	find . -type d -name '__pycache__' -exec rm -rf {} +
+
 
 # ── 2. editable dev env  (one-off per workstation) ────────────────────────
 install: 

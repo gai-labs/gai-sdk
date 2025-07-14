@@ -23,6 +23,7 @@ class ChatState(StateBase):
             "title": "CHAT",
             "input_data": {
                 "llm_config": {"type": "state_bag", "dependency": "llm_config"},
+                "recap": {"type": "state_bag", "dependency": "recap"},
             },
             "output_data": ["streamer", "get_assistant_message"],
         }
@@ -38,6 +39,9 @@ class ChatState(StateBase):
         if not self.input.get("user_message", None):
             raise Exception("ChatState: user_message is missing.")
 
+        # Get recap
+        recap = self.input.get("recap", "")
+
         # Get llm client
         llm_config = self.input["llm_config"]
         llm_client = AsyncOpenAI(llm_config)
@@ -45,15 +49,25 @@ class ChatState(StateBase):
         # Get model
         llm_model = llm_config["model"]
 
+        # Combine user_message with recap if recap is provided
+        recapped_user_message = self.input["user_message"]
+        if recap:
+            recapped_user_message = f"""
+            Here is a recap of the conversation:
+            {recap}
+            
+            You may respond to my following message using the context you have learnt.
+            {self.input['user_message']}
+            """
+
         assistant_message = ""
 
         async def streamer():
             nonlocal assistant_message
 
             async def stream_with_retry():
-                user_message = self.machine.user_message
                 self.machine.monologue.add_user_message(
-                    state=self, content=user_message
+                    state=self, content=recapped_user_message
                 )
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
@@ -87,9 +101,15 @@ class ChatState(StateBase):
                     self.machine.state_history[-1]["output"]["monologue"] = (
                         self.machine.monologue.copy()
                     )
-                    self.machine.state_bag["get_assistant_message"] = (
-                        lambda: chunk.copy()
-                    )
+                    if isinstance(chunk, list) and chunk:
+                        if isinstance(chunk[0], dict) and "text" in chunk[0]:
+                            self.machine.state_bag["get_assistant_message"] = (
+                                lambda: chunk[0]["text"]
+                            )
+                    else:
+                        self.machine.state_bag["get_assistant_message"] = (
+                            lambda: chunk.copy()
+                        )                    
                     yield chunk
 
                     # Exit

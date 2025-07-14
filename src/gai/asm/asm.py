@@ -151,9 +151,9 @@ class AsyncStateMachine:
                                 f"Dependency {dependency} not found in state bag: {state.machine.state_bag}"
                             )
 
-                    if not resolved:
+                    if resolved is None:
                         raise ValueError(
-                            f"There are unresolved items from the manifest {v}. Please check the input_data section again."
+                            f"There are unresolved dependency {k} from the manifest {v}. Please check the input_data section again."
                         )
 
                 resolved_input_data[k] = resolved

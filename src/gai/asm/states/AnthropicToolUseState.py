@@ -41,53 +41,6 @@ class AnthropicToolUseState(StateBase):
     def __init__(self, machine):
         super().__init__(machine)
 
-    # async def _get_last_toolcalls(self, monologue_messages):
-    #     # Get last assistant message
-
-    #     # messages = self.machine.monologue.list_messages()
-    #     last_message = monologue_messages[-1] if monologue_messages else None
-    #     if not last_message:
-    #         raise ValueError("AthropicToolUseState: No messages found.")
-    #     if last_message.body.role != "assistant":
-    #         raise ValueError(
-    #             "AthropicToolUseState: Last message is not from assistant or no messages found."
-    #         )
-    #     tool_calls = []
-    #     if isinstance(last_message.body.content, list):
-    #         for item in last_message.body.content:
-    #             if isinstance(item, str):
-    #                 continue
-    #             if not isinstance(item, dict):
-    #                 item = item.model_dump()
-    #             if item["type"] == "tool_use":
-    #                 tool_calls.append(
-    #                     {
-    #                         "tool_use_id": item["id"],
-    #                         "tool_name": item["name"],
-    #                         "arguments": item["input"],
-    #                     }
-    #                 )
-
-    #             # if not isinstance(item, dict):
-    #             #     if item.type == "tool_use":
-    #             #         tool_calls.append(
-    #             #             {
-    #             #                 "tool_use_id": item.id,
-    #             #                 "tool_name": item.name,
-    #             #                 "arguments": item.input,
-    #             #             }
-    #             #         )
-    #             # else:
-    #             #     if item["type"] == "tool_use":
-    #             #         tool_calls.append(
-    #             #             {
-    #             #                 "tool_use_id": item["id"],
-    #             #                 "tool_name": item["name"],
-    #             #                 "arguments": item["input"],
-    #             #             }
-    #             #         )
-    #     return tool_calls
-
     async def _use_tool(self, last_tool_calls):
         """
         This function is used to make a tool call to the MCP client and return the result.
@@ -177,13 +130,6 @@ class AnthropicToolUseState(StateBase):
             # This will yield nothing, effectively ending the state
             yield
 
-        # if not last_tool_calls:
-        #     logger.info(
-        #         "AnthropicToolUseState: No tool calls found in the last message, nothing to continue."
-        #     )
-        #     self.machine.state_bag["streamer"] = stream_nothing()
-        #     return  # Exit the state early
-
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
         if (
@@ -258,9 +204,16 @@ class AnthropicToolUseState(StateBase):
                     self.machine.state_history[-1]["output"]["monologue"] = (
                         self.machine.monologue.copy()
                     )
-                    self.machine.state_bag["get_assistant_message"] = (
-                        lambda: chunk.copy()
-                    )
+
+                    if isinstance(chunk, list) and chunk:
+                        if isinstance(chunk[0], dict) and "text" in chunk[0]:
+                            self.machine.state_bag["get_assistant_message"] = (
+                                lambda: chunk[0]["text"]
+                            )
+                    else:
+                        self.machine.state_bag["get_assistant_message"] = (
+                            lambda: chunk.copy()
+                        )
                     yield chunk
                     # Exit after receiving first non-str token
                     return  # This will now work correctly

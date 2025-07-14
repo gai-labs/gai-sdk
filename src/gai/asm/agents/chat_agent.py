@@ -6,6 +6,7 @@ from gai.mcp.client import McpAggregatedClient
 from gai.lib.logging import getLogger
 from gai.lib.config import GaiClientConfig
 from gai.messages.monologue import Monologue
+from gai.messages.dialogue import Dialogue
 
 logger = getLogger(__name__)
 
@@ -46,20 +47,19 @@ class ChatAgent:
         monologue: Optional[Monologue]=None,
         #path: Optional[str] = None,
         aggregated_client: Optional[McpAggregatedClient]=None,
+        recap: Optional[str] = "",
     ):
         # Initialize monologue
         self.monologue = monologue
         if not self.monologue:
             self.monologue = Monologue(agent_name=agent_name)
-            
-        # log_file_path = path
-        # if not path:
-        #     log_file_path = os.path.expanduser(
-        #         f"~/.gai/logs/{project_name}_{agent_name}.log"
-        #     )
-        # monologue = (
-        #     FileMonologue(file_path=log_file_path) if log_file_path else FileMonologue()
-        # )
+
+        # # Initialize dialogue
+        # self.dialogue = dialogue
+        # recap = ""
+        # if self.dialogue:
+        #     recap = self.dialogue.extract_recap()
+                
         with AsyncStateMachine.StateMachineBuilder(
             """
             INIT --> CHAT
@@ -73,27 +73,36 @@ class ChatAgent:
                             "llm_config": {
                                 "type": "getter",
                                 "dependency": "get_llm_config",
-                            }
+                            },
+                            "recap": {
+                                "type": "getter",
+                                "dependency": "get_recap",
+                            },
                         }
                     },
                     "CHAT": {
                         "module_path": "gai.asm.states",
-                        "class_name": "AnthropicChatState",
+                        "class_name": "ChatState",
                         "title": "CHAT",
                         "input_data": {
                             "llm_config": {
                                 "type": "state_bag",
                                 "dependency": "llm_config",
                             },
+                            "recap": {
+                                "type": "state_bag",
+                                "dependency": "recap",
+                            },
                         },
                         "output_data": ["streamer", "get_assistant_message"],
-                    },
+                    },                    
                     "FINAL": {
-                        "output_data": ["monologue"],
+                        "output_data": ["monologue","get_assistant_message"],
                     },
                 },
                 get_llm_config=lambda state: llm_config.model_dump(),
-                monologue=self.monologue,
+                get_recap=lambda state: recap,
+                monologue=self.monologue
             )
 
     async def run_async(self, user_message: str):
@@ -115,3 +124,7 @@ class ChatAgent:
                     yield None
 
         return streamer
+
+    def final_output(self):
+        get_assistant_message = self.fsm.state_history[-1]["output"]["get_assistant_message"]
+        return get_assistant_message()

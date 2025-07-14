@@ -29,10 +29,14 @@ class MessageStore(Generic[MessagePydanticT]):
         # Ensure the directory exists
         file_dir = os.path.dirname(file_path)
         os.makedirs(file_dir, exist_ok=True)
+        logger.info(f"MessageStore: Created new message directory {file_dir}")
 
         # Ensure file is created with valid structure
         if not os.path.exists(self.file_path):
             self.reset()
+            logger.info(f"MessageStore: Created new message store {file_dir}")
+        else:
+            logger.info(f"MessageStore: Use existing message store {file_dir}")
     
     def get_message(self, message_id: str) -> Optional[MessagePydanticT]:
         """Get a message from the dialogue file by its ID."""

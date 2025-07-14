@@ -80,30 +80,33 @@ class MonologueBodyPydantic(BaseModel, MessageBodyMixin):
     content: Any
 
 
-# # Send Class -----------------------------------------------------------------------------------
+# Chat Send Body -----------------------------------------------------------------------------------
 
-# @register_body
-# class SendBodyPydantic(BaseModel, MessageBodyMixin):
-#     type: Literal["send"] = "send"
-#     dialogue_id: Optional[str] = DEFAULT_GUID
-#     message_no: Optional[int] = None  # Will be set by MessageBodyMixin
-#     message_id: Optional[str] = None  # Will be set by MessageBodyMixin
-#     content_type: Literal["text", "image", "video", "audio"] = "text"
-#     content: Any
+@register_body
+class ChatSendBodyPydantic(BaseModel,MessageBodyMixin):
+    type: Literal["chat.send"] = "chat.send"
+    dialogue_id: Optional[str]
+    round_no: Optional[int]
+    step_no: Optional[int]
+    message_id: Optional[str]
+    content_type: Literal["text", "image", "video", "audio"]="text"
+    role: Literal["user", "assistant"] = "user"
+    content: Optional[str]
 
+# Chat Reply Body -----------------------------------------------------------------------------------
 
-# # Reply Class -----------------------------------------------------------------------------------
-
-# @register_body
-# class ReplyBodyPydantic(BaseModel, MessageBodyMixin):
-#     type: Literal["reply"] = "reply"
-#     dialogue_id: Optional[str] = DEFAULT_GUID
-#     message_no: Optional[int] = None  # Will be set by MessageBodyMixin
-#     message_id: Optional[str] = None  # Will be set by MessageBodyMixin
-#     chunk_no: Optional[int] = 0
-#     chunk: Optional[str] = "<eom>"
-#     content_type: Literal["text", "image", "video", "audio"] = "text"
-#     content: Optional[Any] = None
+@register_body
+class ChatReplyBodyPydantic(BaseModel,MessageBodyMixin):
+    type: Literal["chat.reply"] = "chat.reply"
+    dialogue_id: Optional[str]
+    round_no: Optional[int]
+    step_no: Optional[int]
+    message_id: Optional[str]
+    chunk_no: Optional[int]
+    chunk: Optional[str]
+    content_type: Literal["text", "image", "video", "audio"]="text"
+    role: Literal["user", "assistant"] = "assistant"
+    content: Optional[str]
 
 # ─── Registry hookup ─────────────────────────────────────────────────────────
 

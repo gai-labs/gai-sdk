@@ -1,4 +1,3 @@
-from .async_message_bus import AsyncMessageBus,MessageBusProtocol
 from .typing import (
     MessageHeaderPydantic,
     DefaultBodyPydantic,
@@ -20,9 +19,8 @@ from .message_helper import (
 )
 from .message_store import MessageStore
 from .monologue import Monologue, FileMonologue
+from .dialogue import Dialogue, FileDialogue
 __all__ = [
-    "AsyncMessageBus",
-    "MessageBusProtocol",
     "MessageHeaderPydantic",
     "DefaultBodyPydantic",
     "MonologueBodyPydantic",
@@ -40,5 +38,7 @@ __all__ = [
     "json",
     "unjson",
     "Monologue",
-    "FileMonologue"
+    "FileMonologue",
+    "Dialogue",
+    "FileDialogue"
 ]
