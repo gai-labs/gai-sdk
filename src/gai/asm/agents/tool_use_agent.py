@@ -1,16 +1,15 @@
-import os
-from typing import overload, Union
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from gai.asm import AsyncStateMachine 
 from gai.messages import Monologue
 from gai.mcp.client import McpAggregatedClient
 from gai.lib.logging import getLogger
 from gai.lib.config import GaiClientConfig
+from gai.asm.agents.base import AgentBase
 
 logger = getLogger(__name__)
 
 
-class ToolUseAgent:
+class ToolUseAgent(AgentBase):
 
     def __init__(
         self,
@@ -153,14 +152,14 @@ class ToolUseAgent:
         except Exception as e:
             logger.error(f"[red]Error processing last message content: {e}[/red]")
             raise e
-
-    async def start_async(self, user_message: str):
+    
+    def start(self, user_message: str) -> AsyncGenerator[str, None]:
         """
         The user_message in this case contains the "goal" message.
         """
-        return await self.run_async(user_message=user_message)
+        return self.run(user_message=user_message)
 
-    async def continue_async(self, user_message: Optional[str] = None):
+    def resume(self, user_message: Optional[str] = None) -> AsyncGenerator[str, None]:
         """
         If there is no user_message, then this is a regular call
         to continue with tool_use.
@@ -168,29 +167,32 @@ class ToolUseAgent:
         If there is a user_message, then this user_message is
         a response to the llm interrupted flow by the tool 'user_input'.
         """
-        return await self.run_async(user_message=user_message)
+        return self.run(user_message=user_message)
+    
+    def _make_streamer(self) -> AsyncGenerator[str, None]:
+        """Core loop: step the FSM until FINAL, streaming whatever it produced."""
+        async def streamer():
+            while self.fsm.state != "FINAL":
+                prev = self.fsm.state
+                await self.fsm.run_async()
+                logger.info(f"Final state: {prev} → {self.fsm.state}")
 
-    async def run_async(self, user_message: Optional[str] = None):
+                gen = self.fsm.state_bag.get("streamer")
+                if gen:
+                    async for chunk in gen:
+                        if chunk and isinstance(chunk, str):
+                            yield chunk
+                else:
+                    # no stream produced this turn
+                    yield None
+        return streamer()    
+    
+    def run(self, user_message: Optional[str]=None) -> AsyncGenerator[str, None]:
         self.fsm.state = "INIT"
         self.fsm.user_message = user_message
+        return self._make_streamer()
 
-        async def streamer():
-            # LOOP UNTIL FINAL STATE
-            while self.fsm.state != "FINAL":
-                current_state = self.fsm.state
-                await self.fsm.run_async()
-                logger.info(f"Final state: {current_state} --> {self.fsm.state}")
-                if self.fsm.state_bag.get("streamer"):
-                    async for chunk in self.fsm.state_bag["streamer"]:
-                        if chunk:
-                            if isinstance(chunk, str):
-                                yield (chunk)
-                else:
-                    yield None
-
-        return streamer
-
-    async def interrupt_async(self, user_message):
+    def interrupt(self, user_message) -> AsyncGenerator[str, None]:
         """ """
 
         self.fsm.state = "INIT"
@@ -219,21 +221,7 @@ class ToolUseAgent:
                 # If the content is empty, remove the message
                 self.fsm.monologue.pop()
 
-        async def streamer():
-            # LOOP UNTIL FINAL STATE
-            while self.fsm.state != "FINAL":
-                current_state = self.fsm.state
-                await self.fsm.run_async()
-                logger.info(f"Final state: {current_state} --> {self.fsm.state}")
-                if self.fsm.state_bag.get("streamer"):
-                    async for chunk in self.fsm.state_bag["streamer"]:
-                        if chunk:
-                            if isinstance(chunk, str):
-                                yield (chunk)
-                else:
-                    yield None
-
-        return streamer
+        return self._make_streamer()
 
     def final_output(self):
         get_assistant_message = self.fsm.state_history[-1]["output"]["get_assistant_message"]

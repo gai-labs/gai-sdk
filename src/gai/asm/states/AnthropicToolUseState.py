@@ -124,40 +124,40 @@ class AnthropicToolUseState(StateBase):
         # Get model
         llm_model = llm_config["model"]
 
-        last_tool_calls = self.machine.monologue.get_last_toolcalls()
-
         async def stream_nothing():
             # This will yield nothing, effectively ending the state
             yield
 
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
-        if (
-            self.machine.monologue.is_terminated()
-            or self.machine.monologue.is_interrupted(self.machine.user_message)
-        ):
+        if self.machine.monologue.is_terminated():
             logger.info(
-                "AnthropicToolUseState: Task completed or interrupted, nothing to continue."
+                "AnthropicToolUseState: Task completed, nothing to continue."
             )
             self.machine.state_bag["streamer"] = stream_nothing()
             return  # Exit the state early
 
-        # Case 3a: LLM interrupt flow. LLM request input from user by responding with a tool call of "user_input" but user_message is None. Stream nothing.
-
-        if (
-            any(result["tool_name"] == "user_input" for result in last_tool_calls)
-            and not self.machine.user_message
-        ):
-            logger.info(
-                "AnthropicToolUseState: Pending user input, nothing to continue."
-            )
-            self.machine.state_bag["streamer"] = stream_nothing()
-            return  # Exit the state early
+        # If it is not terminated, then
+        # last_tool_calls should exist.        
+        last_tool_calls = self.machine.monologue.get_last_toolcalls()
 
         if any(result["tool_name"] == "user_input" for result in last_tool_calls):
-            # Case 3b: LLM interrupt flow. LLM request input from user by responding with a tool call of "user_input" and user_message is provided. Stream LLM response.
-            # tool_result is created from user_input instead of using any tools. That is why "user_input" is a pseudo tool.
-
+            
+            if self.machine.state_bag.get("user_message", None) is None:
+                # Case 2a: LLM interrupt flow. 
+                # LLM request input from user by responding with a tool call of "user_input" 
+                # but user_message is None. Stream nothing.
+                logger.info(
+                    "AnthropicToolUseState: Pending user input, nothing to continue."
+                )
+                self.machine.state_bag["streamer"] = stream_nothing()
+                return
+            
+            # Case 2b: LLM interrupt flow. 
+            # LLM request input from user by responding with a tool call of "user_input" 
+            # and user_message is provided. Stream LLM response.
+            # tool_result is created from user_input instead of using any tools. 
+            # That is why "user_input" is a pseudo tool.
             tool_result = self._make_user_input_tool_result(
                 last_tool_calls=last_tool_calls
             )
@@ -165,7 +165,6 @@ class AnthropicToolUseState(StateBase):
 
         else:
             # Case 3: Normal flow. Proceed to use MCP tools and stream LLM response.
-
             tool_results = await self._use_tool(last_tool_calls=last_tool_calls)
 
         # At this point, tool_results should either be a list of real tool results or psuedo tool result.

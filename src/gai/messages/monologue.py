@@ -157,7 +157,9 @@ class Monologue:
 
     def get_last_toolcalls(self):
         """
-        From the last message in the monologue, extract all tool_call content.
+        This is used for creating tool results. 
+        The purpose is to extract the tool_use_id from the last
+        valid tool call, if any.
         """
 
         # messages = self.machine.monologue.list_messages()
@@ -167,17 +169,30 @@ class Monologue:
                 "AthropicToolUseState: No messages found. Check if 'start' was called."
             )
         if last_message.body.role != "assistant":
-            # If last message is not an assistant's message, then something might have gone wrong previously preventing the successful completion of the state.
+            # If last message is not an assistant's message, 
+            # then something might have gone wrong previously
+            # preventing the successful completion of the state.
             logger.warning(
                 "AthropicToolUseState: Last message is not from assistant. Removing last message to try again."
             )
-            # Remove the last message try again.
+            # Remove the last message and assume the next 
+            # message will be from the assistant.
             self._messages.pop()
             last_message = self._messages[-1] if self._messages else None
             if not last_message:
                 raise ValueError(
                     "AthropicToolUseState: No messages found in ToolUseState. Check the output from ChatState."
                 )
+            if last_message.body.role != "assistant":
+                # If the last message is still not from assistant, 
+                # then it is an error.
+                raise ValueError(
+                    "AthropicToolUseState: Last message is not from assistant. Check the output from ChatState."
+                )
+
+        # If a tool call is present in the last message,
+        # it will be found in a list of content
+        # where type is "tool_use".
 
         tool_calls = []
         if isinstance(last_message.body.content, list):
@@ -226,42 +241,6 @@ class Monologue:
             last_message.body.role == "user"
             and isinstance(last_content, str)
             and last_content.upper() == "TERMINATE"
-        ):
-            return True
-
-        return False
-
-    def is_interrupted(self, user_message: str):
-        """
-        If the last message is not a tool call, then it is not interrupted.
-        
-        LLM Interrupted(Deprecated):
-        
-        If the last message is an assistant message containing "user_input"
-        and no user_message, that means LLM is still pending for user_message
-        and should terminate the flow. 
-        
-        [updated] There is no need to check for "user_input" since if LLM 
-        doesn't have any tool calls, then it is considered either interrupted
-        or terminated.
-        
-        If user_message is present, that means it is no longer pending for user_message
-        and so the flow will continue.
-        """
-        
-        # If there are no tool calls, then it is considered terminated or interrupted.
-        last_tool_calls = self.get_last_toolcalls()
-        if not last_tool_calls:
-            return True
-
-        # obsolete: If last message contains "user_input" tool call, then it is considered interrupted.
-        # This is not fool proof since LLM might missed the tool call.
-        # The worst case is that we can't tell if it is terminated or interrupted.
-        # Which is not a big deal since we can always retry.
-        if (
-            last_tool_calls
-            and any(result["tool_name"] == "user_input" for result in last_tool_calls)
-            and not user_message
         ):
             return True
 
@@ -383,6 +362,3 @@ class FileMonologue(Monologue):
     def is_terminated(self):
         return super().is_terminated()
 
-    @load_only
-    def is_interrupted(self, user_message):
-        return super().is_interrupted(user_message=user_message)

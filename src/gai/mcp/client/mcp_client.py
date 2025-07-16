@@ -53,6 +53,8 @@ class McpClient:
     def __init__(self, client_config: GaiClientConfig):
         self.client_config = client_config
 
+        self.name = client_config.name
+
         # Get command from client_config
 
         self.command = client_config.extra["command"]
@@ -162,9 +164,14 @@ class McpClient:
 
 class McpAggregatedClient:
     def __init__(self, mcp_clients: Union[list[McpClient], list[str]]):
+        """
+        Accepts either a list of McpClient instances, eg. [McpClient(...), McpClient(...)] or a list of MCP server names, eg. ["mcp_server1", "mcp_server2"].
+        """
+        
         from gai.lib.utils import run_async_function
 
-        # If a list of mcp server names are passed in instead of mcp clients, load the clients.
+        # Convert to list of McpClient instances
+        
         if mcp_clients and not isinstance(mcp_clients, list):
             raise ValueError("mcp_clients must be a list")
 
@@ -176,8 +183,8 @@ class McpAggregatedClient:
                 for name in mcp_clients
             ]
 
-        # List tools from all MCP clients right upfront and cache them
-
+        # List tools from all MCP clients right upfront, de-duplicate and cache them
+        self.mcp_names = [client.name for client in mcp_clients]
         self.mcp_clients = mcp_clients
         self.tool_to_server_params = {}
         self.tools = {}

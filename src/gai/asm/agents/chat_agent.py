@@ -1,44 +1,15 @@
-import os
-from typing import overload, Union
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from gai.asm import AsyncStateMachine
 from gai.mcp.client import McpAggregatedClient
 from gai.lib.logging import getLogger
 from gai.lib.config import GaiClientConfig
 from gai.messages.monologue import Monologue
-from gai.messages.dialogue import Dialogue
+from gai.asm.agents.base import AgentBase
 
 logger = getLogger(__name__)
 
 
-class ChatAgent:
-    # @classmethod
-    # @overload
-    # def reset(cls, project_name: str, agent_name: str) -> None: ...
-
-    # @classmethod
-    # @overload
-    # def reset(cls, path: str) -> None: ...
-
-    # @classmethod
-    # def reset(
-    #     cls,
-    #     project_name: Optional[str] = None,
-    #     agent_name: Optional[str] = None,
-    #     *,
-    #     path: Optional[str] = None,
-    # ) -> None:
-    #     if path:
-    #         pass
-    #     elif project_name and agent_name:
-    #         path = os.path.expanduser(f"~/.gai/logs/{project_name}_{agent_name}.log")
-    #     else:
-    #         raise TypeError(
-    #             "reset() takes either (project_name, agent_name) or (path,)"
-    #         )
-
-    #     monologue = FileMonologue(file_path=path) if path else FileMonologue()
-    #     monologue.reset()
+class ChatAgent(AgentBase):
 
     def __init__(
         self,
@@ -53,12 +24,6 @@ class ChatAgent:
         self.monologue = monologue
         if not self.monologue:
             self.monologue = Monologue(agent_name=agent_name)
-
-        # # Initialize dialogue
-        # self.dialogue = dialogue
-        # recap = ""
-        # if self.dialogue:
-        #     recap = self.dialogue.extract_recap()
                 
         with AsyncStateMachine.StateMachineBuilder(
             """
@@ -104,10 +69,10 @@ class ChatAgent:
                 get_recap=lambda state: recap,
                 monologue=self.monologue
             )
-
-    async def run_async(self, user_message: str):
+    
+    def run(self, user_message: Optional[str]=None)-> AsyncGenerator[str, None]:
         self.fsm.state = "INIT"
-        self.fsm.user_message = user_message
+        self.fsm.user_message = user_message or "Please continue the conversation."
 
         async def streamer():
             # LOOP UNTIL FINAL STATE
@@ -123,7 +88,7 @@ class ChatAgent:
                 else:
                     yield None
 
-        return streamer
+        return streamer()
 
     def final_output(self):
         get_assistant_message = self.fsm.state_history[-1]["output"]["get_assistant_message"]
