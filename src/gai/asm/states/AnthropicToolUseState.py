@@ -124,39 +124,32 @@ class AnthropicToolUseState(StateBase):
         # Get model
         llm_model = llm_config["model"]
 
-        async def stream_nothing():
-            # This will yield nothing, effectively ending the state
-            yield
-
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
         if self.machine.monologue.is_terminated():
-            logger.info(
-                "AnthropicToolUseState: Task completed, nothing to continue."
-            )
-            self.machine.state_bag["streamer"] = stream_nothing()
+            logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
+            self.machine.state_bag["streamer"] = None
             return  # Exit the state early
 
         # If it is not terminated, then
-        # last_tool_calls should exist.        
+        # last_tool_calls should exist.
         last_tool_calls = self.machine.monologue.get_last_toolcalls()
 
         if any(result["tool_name"] == "user_input" for result in last_tool_calls):
-            
             if self.machine.state_bag.get("user_message", None) is None:
-                # Case 2a: LLM interrupt flow. 
-                # LLM request input from user by responding with a tool call of "user_input" 
+                # Case 2a: LLM interrupt flow.
+                # LLM request input from user by responding with a tool call of "user_input"
                 # but user_message is None. Stream nothing.
                 logger.info(
                     "AnthropicToolUseState: Pending user input, nothing to continue."
                 )
-                self.machine.state_bag["streamer"] = stream_nothing()
+                self.machine.state_bag["streamer"] = None
                 return
-            
-            # Case 2b: LLM interrupt flow. 
-            # LLM request input from user by responding with a tool call of "user_input" 
+
+            # Case 2b: LLM interrupt flow.
+            # LLM request input from user by responding with a tool call of "user_input"
             # and user_message is provided. Stream LLM response.
-            # tool_result is created from user_input instead of using any tools. 
+            # tool_result is created from user_input instead of using any tools.
             # That is why "user_input" is a pseudo tool.
             tool_result = self._make_user_input_tool_result(
                 last_tool_calls=last_tool_calls
@@ -171,10 +164,10 @@ class AnthropicToolUseState(StateBase):
 
         assistant_message = ""
 
+        self.machine.monologue.add_user_message(state=self, content=tool_results)
+
         async def streamer():
             nonlocal assistant_message
-
-            self.machine.monologue.add_user_message(state=self, content=tool_results)
 
             async def stream_with_retry():
                 response = await llm_client.chat.completions.create(
@@ -186,35 +179,64 @@ class AnthropicToolUseState(StateBase):
 
                 async for chunk in response:
                     if chunk:
-                        chunk = chunk.extract()
+                        try:
+                            chunk = chunk.extract()
+                        except Exception as e:
+                            logger.warning(
+                                f"AnthropicToolUseState.streamer: chunk extract error={str(e)}"
+                            )
                         yield chunk  # Just yield everything, control flow handled outside
 
             # Retry the entire streaming operation
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
-
+            has_text = False
             async for chunk in retry_policy.run(stream_with_retry):
-                if isinstance(chunk, str):
-                    yield chunk
-                else:
-                    self.machine.monologue.add_assistant_message(
-                        state=self, content=chunk
-                    )
-                    # Need to update the stale history due to delayed output
-                    self.machine.state_history[-1]["output"]["monologue"] = (
-                        self.machine.monologue.copy()
-                    )
+                # The LLM client will return either of the following results:
 
-                    if isinstance(chunk, list) and chunk:
-                        if isinstance(chunk[0], dict) and "text" in chunk[0]:
-                            self.machine.state_bag["get_assistant_message"] = (
-                                lambda: chunk[0]["text"]
-                            )
+                ##  * a stream of strings followed by a tool call. This means the response will be
+                ##    streamed to the user and AthropicToolUseState will use a tool.
+                ##    The session will continue.
+
+                ##  - a tool call only. This means there is nothing to stream to the user, and
+                ##    AnthropicToolUseState will silently use a tool.
+                ##    The session will continue.
+
+                ##  - a stream of strings only. This means the response will be streamed to the user
+                ##    and AnthropicToolUseState will not use a tool.
+                ##    This signifies the session has ended.
+
+                if chunk:
+                    if isinstance(chunk, str):
+                        has_text = True
+                        yield chunk
                     else:
-                        self.machine.state_bag["get_assistant_message"] = (
-                            lambda: chunk.copy()
+                        if not has_text:
+                            # That means the LLM has no text to stream but has content returned.
+                            # So we stream "thinking..." instead to show its still working.
+                            yield "Thinking...\n"
+                        else:
+                            yield "\n"
+
+                        self.machine.monologue.add_assistant_message(
+                            state=self, content=chunk
                         )
-                    yield chunk
-                    # Exit after receiving first non-str token
-                    return  # This will now work correctly
+                        # Need to update the stale history due to delayed output
+                        self.machine.state_history[-1]["output"]["monologue"] = (
+                            self.machine.monologue.copy()
+                        )
+
+                        if isinstance(chunk, list) and chunk:
+                            if isinstance(chunk[0], dict) and "text" in chunk[0]:
+                                self.machine.state_bag["get_assistant_message"] = (
+                                    lambda: chunk[0]["text"]
+                                )
+                        else:
+                            self.machine.state_bag["get_assistant_message"] = (
+                                lambda: chunk.copy()
+                            )
+                        yield chunk
+
+                        # Exit after receiving first non-str token
+                        return  # This will now work correctly
 
         self.machine.state_bag["streamer"] = streamer()

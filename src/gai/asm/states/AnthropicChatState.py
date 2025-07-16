@@ -45,12 +45,12 @@ class AnthropicChatState(StateBase):
         # Get llm client
         llm_config = self.input["llm_config"]
         llm_client = AsyncOpenAI(llm_config)
-        
+
         # If user_message is missing, the machine should transition into AnthropicToolUseState
         # directly instead of here.
-        if not self.input.get("user_message",None):
+        if not self.input.get("user_message", None):
             raise Exception("AnthropicToolCallState: user_message is missing.")
-        
+
         # Combine user_message with recap if recap is provided
         recapped_user_message = self.input["user_message"]
         if recap:
@@ -59,7 +59,7 @@ class AnthropicChatState(StateBase):
             {recap}
             
             You may respond to my following message using the context you have learnt.
-            {self.input['user_message']}
+            {self.input["user_message"]}
             """
 
         # Get mcp client
@@ -87,18 +87,19 @@ class AnthropicChatState(StateBase):
             # Case 1: LLM interrupt flow.
             # LLM request input from user using "user_input" and user_message is provided.
             # Stream nothing and forward to the "tool_use" state for processing.
-            self.machine.state_bag["streamer"] = stream_nothing()
+            self.machine.state_bag["streamer"] = None
             return  # Exit the state early
 
         assistant_message = ""
+
+        self.machine.monologue.add_user_message(
+            state=self, content=recapped_user_message
+        )
 
         async def streamer():
             nonlocal assistant_message
 
             async def stream_with_retry():
-                self.machine.monologue.add_user_message(
-                    state=self, content=recapped_user_message
-                )
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
                     messages=self.machine.monologue.list_chat_messages(),
@@ -108,36 +109,45 @@ class AnthropicChatState(StateBase):
 
                 async for chunk in response:
                     if chunk:
-                        chunk = chunk.extract()
+                        try:
+                            chunk = chunk.extract()
+                        except Exception as e:
+                            logger.warning(
+                                f"AnthropicChatState.streamer: chunk extract error={str(e)}"
+                            )
                         yield chunk  # Just yield everything, control flow handled outside
 
             # Retry the entire streaming operation
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
-
+            has_text = False
             async for chunk in retry_policy.run(stream_with_retry):
-                #
-                # The LLM will always return:
+                # The LLM client will return either of the following results:
 
                 ##  * a stream of strings followed by a tool call. This means the response will be
                 ##    streamed to the user and AthropicToolUseState will use a tool.
                 ##    The session will continue.
-                ##    ContinueToolUseState will return True
 
                 ##  - a tool call only. This means there is nothing to stream to the user, and
                 ##    AnthropicToolUseState will silently use a tool.
                 ##    The session will continue.
-                ##    ContinueToolUseState will return True
 
                 ##  - a stream of strings only. This means the response will be streamed to the user
                 ##    and AnthropicToolUseState will not use a tool.
                 ##    This signifies the session has ended.
-                ##    ContinueToolUseState will return False
 
                 if isinstance(chunk, str):
                     # streaming continues
+                    has_text = True
                     yield chunk
 
                 else:
+                    if not has_text:
+                        # That means the LLM has no text to stream but has content returned.
+                        # So we stream "thinking..." instead to show its still working.
+                        yield "Thinking...\n"
+                    else:
+                        yield "\n"
+
                     # streaming ended when a non-str chunk is received.
                     # The non-str chunk may contain a tool_call
                     # Note: This doesn't mean the LLM task is completed. It just means there is nothing else to stream.
@@ -150,6 +160,7 @@ class AnthropicChatState(StateBase):
                     self.machine.state_history[-1]["output"]["monologue"] = (
                         self.machine.monologue.copy()
                     )
+
                     if isinstance(chunk, list) and chunk:
                         if isinstance(chunk[0], dict) and "text" in chunk[0]:
                             self.machine.state_bag["get_assistant_message"] = (
@@ -161,7 +172,7 @@ class AnthropicChatState(StateBase):
                         )
                     yield chunk
 
-                    # Exit
+                    # Exit after receiving first non-str token
                     return
 
         self.machine.state_bag["streamer"] = streamer()

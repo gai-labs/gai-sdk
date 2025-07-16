@@ -17,12 +17,13 @@ from gai.messages import MessageStore
 
 logger = getLogger(__file__)
 
+
 class Monologue:
     def __init__(
         self,
         agent_name: str = "Assistant",
         messages: Optional[Union["Monologue", list[MessagePydantic]]] = None,
-        limit: int = 600000,        
+        limit: int = 600000,
     ):
         self.agent_name = agent_name
         self.limit = limit  # Character limit for messages
@@ -32,14 +33,14 @@ class Monologue:
                 self._messages = self._messages.list_messages().copy()
         else:
             self._messages = []
-    
+
     def get_total_size(self, new_message: Optional[dict] = None):
         chat_messages = self.list_chat_messages()
         total_size = len(json.dumps(chat_messages))
         if new_message:
             total_size += len(json.dumps(new_message))
         return total_size
-    
+
     def list_chat_messages(self) -> list[dict[str, Any]]:
         """
         Returns the list of chat messages in the monologue.
@@ -131,10 +132,7 @@ class Monologue:
 
     def copy(self):
         """Returns a copy of the monologue."""
-        return Monologue(
-            agent_name=self.agent_name,
-            messages=self._messages.copy()
-        )
+        return Monologue(agent_name=self.agent_name, messages=self._messages.copy())
 
     def list_messages(self) -> list[MessagePydantic]:
         return self._messages.copy()
@@ -157,7 +155,7 @@ class Monologue:
 
     def get_last_toolcalls(self):
         """
-        This is used for creating tool results. 
+        This is used for creating tool results.
         The purpose is to extract the tool_use_id from the last
         valid tool call, if any.
         """
@@ -169,13 +167,13 @@ class Monologue:
                 "AthropicToolUseState: No messages found. Check if 'start' was called."
             )
         if last_message.body.role != "assistant":
-            # If last message is not an assistant's message, 
+            # If last message is not an assistant's message,
             # then something might have gone wrong previously
             # preventing the successful completion of the state.
             logger.warning(
                 "AthropicToolUseState: Last message is not from assistant. Removing last message to try again."
             )
-            # Remove the last message and assume the next 
+            # Remove the last message and assume the next
             # message will be from the assistant.
             self._messages.pop()
             last_message = self._messages[-1] if self._messages else None
@@ -184,7 +182,7 @@ class Monologue:
                     "AthropicToolUseState: No messages found in ToolUseState. Check the output from ChatState."
                 )
             if last_message.body.role != "assistant":
-                # If the last message is still not from assistant, 
+                # If the last message is still not from assistant,
                 # then it is an error.
                 raise ValueError(
                     "AthropicToolUseState: Last message is not from assistant. Check the output from ChatState."
@@ -219,7 +217,7 @@ class Monologue:
         User Terminated: If the last message is a user message,
         check if it contains "TERMINATE".
         """
-        
+
         # If there are no tool calls, then it is considered terminated or interrupted.
         last_tool_calls = self.get_last_toolcalls()
         if not last_tool_calls:
@@ -246,71 +244,95 @@ class Monologue:
 
         return False
 
+
 # -----
 
 from functools import wraps
 
+
 def transactional(method):
     """load before, save after."""
+
     @wraps(method)
     def _wrapped(self, *args, **kwargs):
         self._load()
         result = method(self, *args, **kwargs)
         self._save()
         return result
+
     return _wrapped
+
 
 def load_only(method):
     """load before, no save."""
+
     @wraps(method)
     def _wrapped(self, *args, **kwargs):
         self._load()
         return method(self, *args, **kwargs)
+
     return _wrapped
+
 
 class FileMonologue(Monologue):
     def __init__(
         self,
+        file_path: str,
         agent_name: str = "Assistant",
-        messages: Optional[ 
-            Union[
-                "Monologue",
-                "FileMonologue",
-                list[MessagePydantic]]
-            ] = None,
+        messages: Optional[
+            Union["Monologue", "FileMonologue", list[MessagePydantic]]
+        ] = None,
         limit: int = 600000,
-        file_path: Optional[str] = None,
+        force: bool = False,
     ):
-        super().__init__(
-            agent_name=agent_name, 
-            messages=messages, 
-            limit=limit
-            )
+        super().__init__(agent_name=agent_name, messages=messages, limit=limit)
+
+        # Use `force` when loading from an incorrect format file
+
+        self.force = force
 
         # Initialize MessageStore
-        
+
         self.file_path = file_path
-        if not self.file_path:
-            self.file_path = f"/tmp/{self.agent_name}.json"
         self.message_store = MessageStore(
             file_path=self.file_path,
             MessagePydantic_cls=MessagePydantic,
         )
 
         # Initialize messages
-        
+
         if messages:
-            if isinstance(self._messages, FileMonologue) or isinstance(self._messages, Monologue):
+            if isinstance(self._messages, FileMonologue) or isinstance(
+                self._messages, Monologue
+            ):
                 self._messages = self._messages.list_messages()
             elif isinstance(self._messages, list):
-                self._messages = messages.copy()
+                self._messages = []
+                for m in messages:
+                    if isinstance(m, MessagePydantic):
+                        self._messages.append(m.copy())
+                    elif isinstance(m, dict):
+                        self._messages.append(MessagePydantic(**m))
+                    else:
+                        raise ValueError(
+                            "FileMonologue: messages should be a list of MessagePydantic or a Monologue/FileMonologue instance."
+                        )
             else:
                 raise ValueError(
                     "FileMonologue: messages should be a list of MessagePydantic or a Monologue/FileMonologue instance."
                 )
+
             self._save()
         else:
-            self._load()            
+            # Force load from an incompatible file
+
+            try:
+                self._load()
+            except Exception as e:
+                if not self.force:
+                    logger.error(
+                        f"FileMonologue.__init__: Failed to load. Error={str(e)}. Use force=True to overwrite an empty file."
+                    )
 
     def _save(self):
         self.message_store.reset()
@@ -327,7 +349,8 @@ class FileMonologue(Monologue):
         """Returns a copy of the file monologue."""
         return FileMonologue(
             agent_name=self.agent_name,
-            messages=self._messages.copy()
+            messages=self._messages.copy(),
+            file_path=self.file_path,
         )
 
     @load_only
@@ -338,15 +361,15 @@ class FileMonologue(Monologue):
     def list_chat_messages(self) -> list[dict[str, Any]]:
         return super().list_chat_messages()
 
-    @transactional    
+    @transactional
     def add_user_message(self, content: Any, state=None):
         return super().add_user_message(content, state)
 
-    @transactional    
+    @transactional
     def add_assistant_message(self, content: Any, state=None):
         return super().add_assistant_message(content, state)
 
-    @transactional    
+    @transactional
     def pop(self):
         return super().pop()
 
@@ -361,4 +384,3 @@ class FileMonologue(Monologue):
     @load_only
     def is_terminated(self):
         return super().is_terminated()
-
