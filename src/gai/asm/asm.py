@@ -34,6 +34,7 @@ class AsyncStateMachine:
 
         async def resolve_input(self, state):
             input_data = state.manifest.get("input_data", {})
+            logger.debug(f"AsyncStateMachine.resolve_input: input_data={input_data}")
             resolved_input_data = {}
             last_output = (
                 state.machine.state_history[-1].get("output", None)
@@ -83,6 +84,8 @@ class AsyncStateMachine:
             resolved_input_data["time"] = datetime.now()
             resolved_input_data["name"] = self.agent_name
 
+            logger.debug(f"AsyncStateMachine.resolve_input: Resolved Pass 1. resolved_input_data={resolved_input_data}")
+
             # Merge Pass 1 results into a working copy for Pass 2
 
             import copy
@@ -117,9 +120,15 @@ class AsyncStateMachine:
                             )
 
                         if asyncio.iscoroutinefunction(callable_):
-                            resolved = await callable_(state)
+                            try:
+                                resolved = await callable_(state)
+                            except Exception as e:
+                                logger.error(f"AsyncStateMachine.resolve_input: error calling coroutine {dependency}. error={e}")
                         else:
-                            resolved = callable_(state)
+                            try:
+                                resolved = callable_(state)
+                            except Exception as e:
+                                logger.error(f"AsyncStateMachine.resolve_input: error calling callable {dependency}. error={e}")
 
                     elif v.get("type", None) == "prev_state":
                         # dependency refers to the name of a previous state output
@@ -164,6 +173,8 @@ class AsyncStateMachine:
             # Update the state bag with latest snapshot of input data.
             for k, v in resolved_input_data.items():
                 state.machine.state_bag[k] = v
+
+            logger.debug(f"AsyncStateMachine.resolve_input: Resolved Pass 2. resolved_input_data={resolved_input_data}")
 
             return resolved_input_data
 
@@ -227,6 +238,8 @@ class AsyncStateMachine:
             # Built-In State: timestamp
             output["time"] = datetime.now()
 
+            logger.debug(f"AsyncStateMachine.final_output: output={output}")
+
             return output
 
         def resolve_action(self, state):
@@ -259,20 +272,23 @@ class AsyncStateMachine:
 
             if self.state == "INIT":
                 """Optional: Loads initializer by reflecting on the manifest."""
+                try:
 
-                from gai.asm.states import InitializeState
+                    from gai.asm.states import InitializeState
 
-                state = InitializeState(self)
-                state.manifest = self.state_manifest.get("INIT", {})
-                # 'INIT' can be omitted from manifest, then create an empty one.
+                    state = InitializeState(self)
+                    state.manifest = self.state_manifest.get("INIT", {})
+                    # 'INIT' can be omitted from manifest, then create an empty one.
 
-                state.input = await self.resolve_input(state)
-                state.output = self.finalize_output(state)
+                    state.input = await self.resolve_input(state)
+                    state.output = self.finalize_output(state)
 
-                # Update history
-                self.state_history.append(
-                    {"state": "INIT", "input": state.input, "output": state.output}
-                )
+                    # Update history
+                    self.state_history.append(
+                        {"state": "INIT", "input": state.input, "output": state.output}
+                    )
+                except Exception as e:
+                    logger.error(f"AsyncStateMachine.before_action_async: error={e}")
 
         async def action_async(self):
             # This function is only used for configuring any states other than "INIT" state

@@ -20,10 +20,11 @@ class ChatAgent(AgentBase):
         aggregated_client: Optional[McpAggregatedClient]=None,
         recap: Optional[str] = "",
     ):
-        # Initialize monologue
-        self.monologue = monologue
-        if not self.monologue:
-            self.monologue = Monologue(agent_name=agent_name)
+        super().__init__(
+            agent_name=agent_name, 
+            monologue=monologue,
+            llm_config=llm_config
+            )
                 
         with AsyncStateMachine.StateMachineBuilder(
             """
@@ -65,6 +66,7 @@ class ChatAgent(AgentBase):
                         "output_data": ["monologue","get_assistant_message"],
                     },
                 },
+                agent_name=agent_name,
                 get_llm_config=lambda state: llm_config.model_dump(),
                 get_recap=lambda state: recap,
                 monologue=self.monologue
@@ -75,6 +77,8 @@ class ChatAgent(AgentBase):
         self.fsm.user_message = user_message or "Please continue the conversation."
 
         async def streamer():
+            logger.info(f"ChatAgent({self.fsm.monologue.agent_name}).run: inside streamer()")
+            
             # LOOP UNTIL FINAL STATE
             while self.fsm.state != "FINAL":
                 current_state = self.fsm.state

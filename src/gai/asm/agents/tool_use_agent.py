@@ -18,10 +18,11 @@ class ToolUseAgent(AgentBase):
         monologue: Optional[Monologue] = None,
         recap: Optional[str] = "",
     ):
-        # Initialize monologue
-        self.monologue = monologue
-        if not self.monologue:
-            self.monologue = Monologue(agent_name=agent_name)
+        super().__init__(
+            agent_name=agent_name, 
+            monologue=monologue,
+            llm_config=llm_config
+            )
 
         with AsyncStateMachine.StateMachineBuilder(
             """
@@ -111,6 +112,7 @@ class ToolUseAgent(AgentBase):
                         "output_data": ["monologue", "get_assistant_message"],
                     },
                 },
+                agent_name=agent_name,
                 get_llm_config=lambda state: llm_config.model_dump(),
                 get_mcp_client=lambda state: aggregated_client,
                 monologue=self.monologue,
