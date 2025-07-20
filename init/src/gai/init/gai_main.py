@@ -7,10 +7,13 @@ import re
 here = os.path.abspath(os.path.dirname(__file__))
 
 GENERAL_USAGE_HINT = """
-[yellow]Usage: gai-init {options}
+[yellow]Usage: gai-init <init|pull> {options}
 options:
-  --version        Get the version of gai-init
-  --force          Force initialization, deleting existing directories if they exist (default: False)
+  --version      Get the version of gai-init
+init:
+    [-f|--force]   Force initialization, deleting existing directories if they exist (default: False)
+pull:
+    <model_name>   Pull a model (refer to gai.yml) from its respective remote repository. Example: gai-init pull llama-3.1-exl2
 [/]
 """
 
@@ -38,18 +41,29 @@ def main():
 
     parser = argparse.ArgumentParser(description="Gai Init Tool")
 
+    # Global arguments
     # --version
     parser.add_argument(
         "-v", "--version", help="Get the version of gai-init", action="store_true"
     )
 
-    # --force
-    parser.add_argument(
+    # Create subparsers
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # "init" command (Default)
+    init_parser = subparsers.add_parser("init", help="Initialize the project")
+    init_parser.add_argument(
         "-f",
         "--force",
         help="Force initialization, deleting existing directories if they exist (default: False)",
         action="store_true",
     )
+
+    # "pull" command
+    pull_parser = subparsers.add_parser(
+        "pull", help="Pull a model from its respective remote repository"
+    )
+    pull_parser.add_argument("model_name", help="Name of the model to pull")
 
     try:
         args = parser.parse_args()
@@ -62,7 +76,13 @@ def main():
         print(GENERAL_USAGE_HINT)
         raise
 
+    # Handle global commands
+
     if args.version:
+        """
+        --version or -v
+        """
+
         # locate pyproject.toml three levels up
         file_dir = os.path.dirname(__file__)
         print(f"File directory: {file_dir}")
@@ -75,11 +95,26 @@ def main():
         print(f"gai-init version: {version}")
         sys.exit(0)
 
-    print("Initializing...by force" if args.force else "Initializing...")
-    # import init function lazily to allow smoke testing without importing the entire package
-    from gai.init.gai_init import init
+    if args.command == "pull":
+        print(f"Pulling model: {args.model_name}")
+        from gai.init.gai_pull import pull
 
-    init(force=args.force)
+        pull(model_name=args.model_name)
+
+    elif args.command == "init":
+        """
+        --init or -i
+        """
+        if args.force:
+            print("Force initialization enabled.")
+        else:
+            print("Normal initialization.")
+
+        # import init function lazily to allow smoke testing without importing the entire package
+        from gai.init.gai_init import init
+
+        force = hasattr(args, "force") and args.force
+        init(force=force)
 
 
 if __name__ == "__main__":

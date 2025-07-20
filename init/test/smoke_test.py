@@ -46,6 +46,9 @@ def smoke_test(use_editable: bool = False):
         else:
             dist_dir = "dist"
             subprocess.check_call(["rm", "-rf", dist_dir])
+            subprocess.check_call(
+                [py, "-m", "pip", "install", "--upgrade", "build"], env=env
+            )
             subprocess.check_call([py, "-m", "build"], env=env)
 
             # find all .whl files in dist/

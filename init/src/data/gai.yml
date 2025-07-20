@@ -81,14 +81,40 @@ clients:
                 }
 
     anthropic:
-        ref: claude-opus-4-20250514
-    claude-opus-4-20250514:
+        ref: claude-sonnet-4-0
+    sonnet-4:
+        ref: claude-sonnet-4-0
+    opus-4:
+        ref: claude-opus-4-0
+    claude-opus-4-0:
         type: ttt
-        model: claude-opus-4-20250514
-        name: claude-opus-4-20250514
+        model: claude-opus-4-0
+        name: claude-opus-4-0
         client_type: anthropic
         extra:
             ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+            pricing:
+                {
+                    "context_size": 200000,
+                    "max_output_tokens": 32000,
+                    "input": 0.000015,
+                    "output": 0.000075,
+                }
+            max_tokens: 64000
+    claude-sonnet-4-0:
+        type: ttt
+        model: claude-sonnet-4-0
+        name: claude-sonnet-4-0
+        client_type: anthropic
+        extra:
+            ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+            pricing:
+                {
+                    "context_size": 200000,
+                    "max_output_tokens": 64000,
+                    "input": 0.000003,
+                    "output": 0.000015,
+                }
             max_tokens: 64000
     tool-web:
         type: tool
@@ -220,3 +246,34 @@ clients:
         url: file://../servers/mcp_pseudo.py
         extra:
             command: "python"
+pull:
+    instructor:
+        type: "huggingface"
+        repo_id: hkunlp/instructor-large
+        local_dir: instructor-large
+        revision: 54e5ffb8d484de506e59443b07dc819fb15c7233
+    llama3.1-exl2:
+        type: "huggingface"
+        repo_id: bartowski/Dolphin3.0-Llama3.1-8B-exl2
+        local_dir: Dolphin3.0-Llama3.1-8B-4_25bpw-exl2
+        revision: 896301e945342d032ef0b3a81b57f0d5a8bac6fe
+    runwayml:
+        type: "huggingface"
+        repo_id: runwayml/stable-diffusion-v1-5
+        local_dir: Stable-diffusion/runwayml
+        revision: 1d0c4ebf6ff58a5caecab40fa1406526bca4b5b9
+    dreamshaper_1.5:
+        type: "civitai"
+        url: https://civitai.com/models/4384/dreamshaper
+        download: https://civitai.com/api/download/models/128713?type=Model&format=SafeTensor&size=pruned&fp=fp16
+        local_dir: Stable-diffusion/dreamshaper_1.5
+    kokoro:
+        type: "huggingface"
+        repo_id: hexgrad/Kokoro-82M
+        local_dir: kokoro
+        revision: e78b910980f63ec856f07ba02a24752a5ab7af5b
+    whisperv3:
+        type: "huggingface"
+        repo_id: openai/whisper-large-v3
+        local_dir: whisperv3
+        revision: 06f233fe06e710322aca913c1bc4249a0d71fce1

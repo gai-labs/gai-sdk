@@ -24,17 +24,30 @@ def init_gairc(force):
         f.write(json.dumps({"app_dir": "~/.gai"}))
 
 
-def init_gai_dir(force):
-    if Path("~/.gai").expanduser().exists():
+def init_gai_dir(force: bool):
+    gai_dir = Path("~/.gai").expanduser()
+    backup_file = gai_dir / "gai.backup"
+    source_file = gai_dir / "gai.yml"
+
+    if gai_dir.exists():
         if not force:
             print("~/.gai exists.")
             return
         else:
-            print("Deleting existing ~/.gai")
-            shutil.rmtree(Path("~/.gai").expanduser())
-    # Create .gai if not already exists OR force=True
-    print("Creating ~/.gai")
-    Path("~/.gai").expanduser().mkdir()
+            print("Backing up gai.yml (if exists) and cleaning ~/.gai...")
+            if source_file.exists():
+                shutil.copy2(source_file, backup_file)
+
+            # Delete everything in ~/.gai except gai.backup
+            for item in gai_dir.iterdir():
+                if item != backup_file:
+                    if item.is_dir():
+                        shutil.rmtree(item)
+                    else:
+                        item.unlink()
+    else:
+        print("Creating ~/.gai")
+        gai_dir.mkdir(parents=True)
 
 
 def init_gai_models_dir(force):
