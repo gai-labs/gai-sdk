@@ -18,7 +18,6 @@ class ChatAgent(AgentBase):
         monologue: Optional[Monologue]=None,
         #path: Optional[str] = None,
         aggregated_client: Optional[McpAggregatedClient]=None,
-        recap: Optional[str] = "",
     ):
         super().__init__(
             agent_name=agent_name, 
@@ -39,11 +38,7 @@ class ChatAgent(AgentBase):
                             "llm_config": {
                                 "type": "getter",
                                 "dependency": "get_llm_config",
-                            },
-                            "recap": {
-                                "type": "getter",
-                                "dependency": "get_recap",
-                            },
+                            }
                         }
                     },
                     "CHAT": {
@@ -55,10 +50,6 @@ class ChatAgent(AgentBase):
                                 "type": "state_bag",
                                 "dependency": "llm_config",
                             },
-                            "recap": {
-                                "type": "state_bag",
-                                "dependency": "recap",
-                            },
                         },
                         "output_data": ["streamer", "get_assistant_message"],
                     },                    
@@ -68,13 +59,12 @@ class ChatAgent(AgentBase):
                 },
                 agent_name=agent_name,
                 get_llm_config=lambda state: llm_config.model_dump(),
-                get_recap=lambda state: recap,
                 monologue=self.monologue
             )
     
     def run(self, user_message: Optional[str]=None)-> AsyncGenerator[str, None]:
         self.fsm.state = "INIT"
-        self.fsm.user_message = user_message or "Please continue the conversation."
+        self.fsm.user_message = user_message
 
         async def streamer():
             logger.info(f"ChatAgent({self.fsm.monologue.agent_name}).run: inside streamer()")

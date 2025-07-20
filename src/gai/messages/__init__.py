@@ -5,6 +5,7 @@ from .typing import (
     # SendBodyPydantic,
     # ReplyBodyPydantic,
     MessagePydantic,    
+    register_body,
     get_message_cls        
 )
 from .message_counter import MessageCounter
@@ -27,6 +28,7 @@ __all__ = [
     # "SendBodyPydantic",
     # "ReplyBodyPydantic",
     "MessagePydantic",
+    "register_body",
     "get_message_cls",
     "MessageCounter",
     "create_message",

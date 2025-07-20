@@ -50,15 +50,10 @@ class ChatState(StateBase):
         llm_model = llm_config["model"]
 
         # Combine user_message with recap if recap is provided
-        recapped_user_message = self.input["user_message"]
-        if recap:
-            recapped_user_message = f"""
+        user_message = f"""
             Your name is {self.machine.agent_name} within the context of this conversation and you will always respond as such.
             Do not refer to yourself as an AI or a bot or confuse your name with other agents.
-            
-            Here is a recap of the conversation:
-            {recap}
-            
+           
             You may respond to my following message using the context you have learnt.
             {self.input['user_message']}
             """
@@ -71,7 +66,7 @@ class ChatState(StateBase):
 
             async def stream_with_retry():
                 self.machine.monologue.add_user_message(
-                    state=self, content=recapped_user_message
+                    state=self, content=user_message
                 )
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
