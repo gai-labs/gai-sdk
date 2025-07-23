@@ -8,6 +8,7 @@ from gai.messages import message_helper
 from .typing import MessagePydantic
 
 logger = getLogger(__name__)
+USER_DIALOGUE_DIR = "~/.gai/data/{caller_id}/User/dialogue/{dialogue_id}"
 
 
 class Dialogue:
@@ -214,14 +215,16 @@ class FileDialogue(Dialogue):
         )
 
         # Initialize MessageStore
-
         self.caller_id = DEFAULT_GUID
         self.dialogue_id = dialogue_id or DEFAULT_GUID
-        file_path = (
-            file_path
-            or f"~/.gai/data/{self.caller_id}/User/dialogues/{self.dialogue_id}.json"
+        user_dialogue_dir = os.path.expanduser(
+            USER_DIALOGUE_DIR.format(
+                caller_id=self.caller_id, dialogue_id=self.dialogue_id
+            )
         )
-        self.file_path = os.path.expanduser(file_path)
+        os.makedirs(user_dialogue_dir, exist_ok=True)
+
+        self.file_path = file_path or os.path.join(user_dialogue_dir, "dialogue.json")
         self.message_store = MessageStore[MessagePydantic](
             file_path=self.file_path, MessagePydantic_cls=MessagePydantic
         )
