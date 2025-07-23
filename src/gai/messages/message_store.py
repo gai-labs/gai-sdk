@@ -18,17 +18,11 @@ class MessageStore(Generic[MessagePydanticT]):
         messages: list[dict[str, Any]] = Field(default_factory=list)
 
     # file lock
-        messages: list[dict[str, Any]] = Field(default_factory=list)
-
-    # file lock
     file_lock = Lock()
 
     def __init__(self, file_path: str, MessagePydantic_cls: Type[MessagePydanticT]):
-    def __init__(self, file_path: str, MessagePydantic_cls: Type[MessagePydanticT]):
         self.MessagePydantic_cls = MessagePydantic_cls
-
         self.file_path = file_path
-
 
         # Ensure the directory exists
         file_dir = os.path.dirname(file_path)
@@ -102,7 +96,7 @@ class MessageStore(Generic[MessagePydanticT]):
                         )
                     except json.JSONDecodeError:
                         logger.warning(
-                            f"DialogueFileStorage: Failed to load internal structure from {self.file_path}. Creating new one."
+                            f"MessageStore: Failed to load internal structure from {self.file_path}. Creating new one."
                         )
                         internal_structure = MessageStore.InternalStructure()
             else:
@@ -110,11 +104,9 @@ class MessageStore(Generic[MessagePydanticT]):
 
             # Update internal structure
 
-
             message.header.order = internal_structure.next_message_order
             internal_structure.messages.append(message.model_dump())
             internal_structure.next_message_order += 1
-
 
             # Save internal structure back to file
             with open(self.file_path, "w") as f:
@@ -134,9 +126,7 @@ class MessageStore(Generic[MessagePydanticT]):
                 )
                 return
 
-
             # Read existing data from file
-
 
             with open(self.file_path, "r") as f:
                 try:
@@ -186,9 +176,6 @@ class MessageStore(Generic[MessagePydanticT]):
             internal_structure.messages = [
                 msg for msg in internal_structure.messages if msg["id"] != id
             ]
-            internal_structure.messages = [
-                msg for msg in internal_structure.messages if msg["id"] != id
-            ]
             if len(internal_structure.messages) == previous_length:
                 logger.warning(
                     f"MessageStore: Message with id={id} not found in file. No deletion performed. path={self.file_path}"
@@ -220,9 +207,6 @@ class MessageStore(Generic[MessagePydanticT]):
             updated = False
             for i, msg in enumerate(internal_structure.messages):
                 if msg["id"] == message.id:
-                    internal_structure.messages[i] = (
-                        message.model_dump()
-                    )  # ✅ REPLACE instead of mutating
                     internal_structure.messages[i] = (
                         message.model_dump()
                     )  # ✅ REPLACE instead of mutating
