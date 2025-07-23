@@ -10,21 +10,18 @@ logger = getLogger(__name__)
 
 
 class ChatAgent(AgentBase):
-
     def __init__(
         self,
         agent_name: str,
         llm_config: GaiClientConfig,
-        monologue: Optional[Monologue]=None,
-        #path: Optional[str] = None,
-        aggregated_client: Optional[McpAggregatedClient]=None,
+        monologue: Optional[Monologue] = None,
+        # path: Optional[str] = None,
+        aggregated_client: Optional[McpAggregatedClient] = None,
     ):
         super().__init__(
-            agent_name=agent_name, 
-            monologue=monologue,
-            llm_config=llm_config
-            )
-                
+            agent_name=agent_name, monologue=monologue, llm_config=llm_config
+        )
+
         with AsyncStateMachine.StateMachineBuilder(
             """
             INIT --> CHAT
@@ -52,23 +49,35 @@ class ChatAgent(AgentBase):
                             },
                         },
                         "output_data": ["streamer", "get_assistant_message"],
-                    },                    
+                    },
                     "FINAL": {
-                        "output_data": ["monologue","get_assistant_message"],
+                        "output_data": ["monologue", "get_assistant_message"],
                     },
                 },
                 agent_name=agent_name,
                 get_llm_config=lambda state: llm_config.model_dump(),
-                monologue=self.monologue
+                monologue=self.monologue,
             )
-    
-    def run(self, user_message: Optional[str]=None)-> AsyncGenerator[str, None]:
+
+    def run(
+        self, user_message: str, recap: Optional[str] = None
+    ) -> AsyncGenerator[str, None]:
         self.fsm.state = "INIT"
         self.fsm.user_message = user_message
 
+        if recap:
+            self.fsm.user_message = f"""
+            {user_message}
+
+            Here is a recap of the conversation:
+            {recap}
+            """
+
         async def streamer():
-            logger.info(f"ChatAgent({self.fsm.monologue.agent_name}).run: inside streamer()")
-            
+            logger.info(
+                f"ChatAgent({self.fsm.monologue.agent_name}).run: inside streamer()"
+            )
+
             # LOOP UNTIL FINAL STATE
             while self.fsm.state != "FINAL":
                 current_state = self.fsm.state
@@ -85,5 +94,7 @@ class ChatAgent(AgentBase):
         return streamer()
 
     def final_output(self):
-        get_assistant_message = self.fsm.state_history[-1]["output"]["get_assistant_message"]
+        get_assistant_message = self.fsm.state_history[-1]["output"][
+            "get_assistant_message"
+        ]
         return get_assistant_message()

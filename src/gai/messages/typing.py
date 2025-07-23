@@ -1,7 +1,8 @@
 import time
 import uuid
+import threading
 from pydantic import BaseModel, model_validator, Field, create_model
-from typing import Type,Annotated, Any, Literal, Optional, Union, final, TypeAlias
+from typing import Type, Annotated, Any, Literal, Optional, final
 from gai.lib.constants import DEFAULT_GUID
 from .message_counter import MessageCounter
 from gai.lib.logging import getLogger
@@ -9,6 +10,7 @@ from gai.lib.logging import getLogger
 logger = getLogger(__name__)
 
 # Header Class -----------------------------------------------------------------------------------
+
 
 @final
 class MessageHeaderPydantic(BaseModel):
@@ -29,6 +31,7 @@ class MessageHeaderPydantic(BaseModel):
 
 # Mixin ------------------------------------------------------------------------------------
 
+
 class MessageBodyMixin:
     @model_validator(mode="before")
     @classmethod
@@ -46,14 +49,21 @@ class MessageBodyMixin:
                 values["message_id"] = f"{dialogue_id}.{message_no}"
         return values
 
+
 # ─── Registry ────────────────────────────────────────────────────────────────
 
 _BODY_CLASSES: list[Type[BaseModel]] = []
 
+# Prevent race conditions when registering bodies
+# This is a simple lock to ensure that only one thread can modify the _BODY_CLASSES list
+_registry_lock = threading.Lock()
+
+
 def register_body(cls: Type[BaseModel]) -> Type[BaseModel]:
-    # drop any earlier class with this __name__
-    _BODY_CLASSES[:] = [c for c in _BODY_CLASSES if c.__name__ != cls.__name__]
-    _BODY_CLASSES.append(cls)
+    with _registry_lock:
+        # drop any earlier class with this __name__
+        _BODY_CLASSES[:] = [c for c in _BODY_CLASSES if c.__name__ != cls.__name__]
+        _BODY_CLASSES.append(cls)
     return cls
 
 
@@ -62,6 +72,7 @@ def register_body(cls: Type[BaseModel]) -> Type[BaseModel]:
 
 # Default Body -----------------------------------------------------------------------------------
 
+
 @register_body
 class DefaultBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["default"] = "default"
@@ -69,6 +80,7 @@ class DefaultBodyPydantic(BaseModel, MessageBodyMixin):
 
 
 # Monologue Body -----------------------------------------------------------------------------------
+
 
 @register_body
 class MonologueBodyPydantic(BaseModel, MessageBodyMixin):
@@ -82,21 +94,24 @@ class MonologueBodyPydantic(BaseModel, MessageBodyMixin):
 
 # Chat Send Body -----------------------------------------------------------------------------------
 
+
 @register_body
-class ChatSendBodyPydantic(BaseModel,MessageBodyMixin):
+class ChatSendBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["chat.send"] = "chat.send"
     dialogue_id: Optional[str]
     round_no: Optional[int]
     step_no: Optional[int]
     message_id: Optional[str]
-    content_type: Literal["text", "image", "video", "audio"]="text"
+    content_type: Literal["text", "image", "video", "audio"] = "text"
     role: Literal["user", "assistant"] = "user"
     content: Optional[str]
 
+
 # Chat Reply Body -----------------------------------------------------------------------------------
 
+
 @register_body
-class ChatReplyBodyPydantic(BaseModel,MessageBodyMixin):
+class ChatReplyBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["chat.reply"] = "chat.reply"
     dialogue_id: Optional[str]
     round_no: Optional[int]
@@ -104,11 +119,13 @@ class ChatReplyBodyPydantic(BaseModel,MessageBodyMixin):
     message_id: Optional[str]
     chunk_no: Optional[int]
     chunk: Optional[str]
-    content_type: Literal["text", "image", "video", "audio"]="text"
+    content_type: Literal["text", "image", "video", "audio"] = "text"
     role: Literal["user", "assistant"] = "assistant"
     content: Optional[str]
 
+
 # ─── Registry hookup ─────────────────────────────────────────────────────────
+
 
 def get_message_cls():
     """
@@ -135,9 +152,9 @@ def get_message_cls():
     )
 
     # 5) Export it
-    #globals()["MessagePydantic"] = model
+    # globals()["MessagePydantic"] = model
     return model
-    
-# Run this to register the built-in types
 
+
+# Run this to register the built-in types
 MessagePydantic = get_message_cls()

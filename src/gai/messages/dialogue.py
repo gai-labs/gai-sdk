@@ -1,23 +1,26 @@
 import os
-import uuid
-from typing import Any, Optional, Union
+from functools import wraps
+from typing import Any, Iterable, Optional, Union
 from gai.lib.logging import getLogger
-
-logger = getLogger(__name__)
 from gai.lib.constants import DEFAULT_GUID
 from .message_store import MessageStore
 from gai.messages import message_helper
 from .typing import MessagePydantic
 
+logger = getLogger(__name__)
+
 
 class Dialogue:
     def __init__(
-        self, agent_name: Optional[str] = None, max_recap_size: int = 60000, messages=[]
+        self,
+        agent_name: Optional[str] = None,
+        max_recap_size: int = 60000,
+        messages: Optional[Iterable[MessagePydantic]] = None,
     ):
         self.dialogue_id = DEFAULT_GUID
         self.agent_name = agent_name or "User"
         self.max_recap_size = max_recap_size
-        self._messages = messages
+        self._messages = list(messages) if messages else []
 
     def list_messages(self) -> list[MessagePydantic]:
         return self._messages.copy()
@@ -149,8 +152,6 @@ class Dialogue:
 
 # -----
 
-from functools import wraps
-
 
 def transactional(method):
     """load before, save after."""
@@ -224,6 +225,9 @@ class FileDialogue(Dialogue):
         self.message_store = MessageStore[MessagePydantic](
             file_path=self.file_path, MessagePydantic_cls=MessagePydantic
         )
+        if self._messages:
+            self.message_store.reset()
+            self.message_store.bulk_insert_messages(self._messages)
 
         # if self._messages:
         #     self._save()

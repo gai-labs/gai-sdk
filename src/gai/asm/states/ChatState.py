@@ -35,12 +35,8 @@ class ChatState(StateBase):
 
     async def run_async(self):
         # Get User Message
-
-        if not self.input.get("user_message", None):
+        if not self.machine.user_message:
             raise Exception("ChatState: user_message is missing.")
-
-        # Get recap
-        recap = self.input.get("recap", "")
 
         # Get llm client
         llm_config = self.input["llm_config"]
@@ -49,25 +45,24 @@ class ChatState(StateBase):
         # Get model
         llm_model = llm_config["model"]
 
-        # Combine user_message with recap if recap is provided
-        user_message = f"""
+        # Create system message from user message
+        system_message = f"""
             Your name is {self.machine.agent_name} within the context of this conversation and you will always respond as such.
             Do not refer to yourself as an AI or a bot or confuse your name with other agents.
            
             You may respond to my following message using the context you have learnt.
-            {self.input['user_message']}
+            {self.machine.user_message}
             """
 
         assistant_message = ""
+
+        self.machine.monologue.add_user_message(state=self, content=system_message)
 
         async def streamer():
             nonlocal assistant_message
             logger.info(f"ChatState.run_async: inside streamer()")
 
             async def stream_with_retry():
-                self.machine.monologue.add_user_message(
-                    state=self, content=user_message
-                )
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
                     messages=self.machine.monologue.list_chat_messages(),
@@ -108,7 +103,7 @@ class ChatState(StateBase):
                     else:
                         self.machine.state_bag["get_assistant_message"] = (
                             lambda: chunk.copy()
-                        )                    
+                        )
                     yield chunk
 
                     # Exit

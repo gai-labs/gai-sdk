@@ -14,6 +14,7 @@
             "extensions": [
                 "ms-python.python",
                 "ms-python.debugpy",
+                "charliermarsh.ruff",
                 "ms-vscode.js-debug",
                 "ms-toolsai.jupyter",
                 "KevinRose.vsc-python-indent",

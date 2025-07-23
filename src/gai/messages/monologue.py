@@ -27,7 +27,7 @@ class Monologue:
     ):
         self.agent_name = agent_name
         self.limit = limit  # Character limit for messages
-        self._messages = messages
+        self._messages: list[MessagePydantic] = messages
         if self._messages:
             if isinstance(self._messages, Monologue):
                 self._messages = self._messages.list_messages().copy()
@@ -300,13 +300,13 @@ class FileMonologue(Monologue):
         )
 
         # Initialize messages
-
-        if messages:
+        self._messages: list[MessagePydantic] = messages
+        if self._messages:
             if isinstance(self._messages, FileMonologue) or isinstance(
                 self._messages, Monologue
             ):
                 self._messages = self._messages.list_messages()
-            elif isinstance(self._messages, list):
+            elif isinstance(messages, list):
                 self._messages = []
                 for m in messages:
                     if isinstance(m, MessagePydantic):

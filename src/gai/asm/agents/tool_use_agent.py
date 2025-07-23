@@ -16,13 +16,10 @@ class ToolUseAgent(AgentBase):
         llm_config: GaiClientConfig,
         aggregated_client: McpAggregatedClient,
         monologue: Optional[Monologue] = None,
-        recap: Optional[str] = "",
     ):
         super().__init__(
-            agent_name=agent_name, 
-            monologue=monologue,
-            llm_config=llm_config
-            )
+            agent_name=agent_name, monologue=monologue, llm_config=llm_config
+        )
 
         with AsyncStateMachine.StateMachineBuilder(
             """
@@ -50,10 +47,6 @@ class ToolUseAgent(AgentBase):
                                 "type": "getter",
                                 "dependency": "get_mcp_client",
                             },
-                            "recap": {
-                                "type": "getter",
-                                "dependency": "get_recap",
-                            },
                         }
                     },
                     "HAS_MESSAGE": {
@@ -76,10 +69,6 @@ class ToolUseAgent(AgentBase):
                             "mcp_client": {
                                 "type": "state_bag",
                                 "dependency": "mcp_client",
-                            },
-                            "recap": {
-                                "type": "state_bag",
-                                "dependency": "recap",
                             },
                         },
                         "output_data": ["streamer", "get_assistant_message"],
@@ -118,7 +107,6 @@ class ToolUseAgent(AgentBase):
                 monologue=self.monologue,
                 has_message=self.has_message,
                 is_tool_call=self.is_tool_call,
-                get_recap=lambda state: recap,
             )
 
     def has_message(self, state):
@@ -154,10 +142,19 @@ class ToolUseAgent(AgentBase):
             logger.error(f"[red]Error processing last message content: {e}[/red]")
             raise e
 
-    def start(self, user_message: str) -> AsyncGenerator[str, None]:
+    def start(
+        self, user_message: str, recap: Optional[str] = None
+    ) -> AsyncGenerator[str, None]:
         """
         The user_message in this case contains the "goal" message.
         """
+        if recap:
+            user_message = f"""
+            {user_message}
+
+            Here is a recap of the conversation:
+            {recap}
+            """
         return self.run(user_message=user_message)
 
     def resume(self, user_message: Optional[str] = None) -> AsyncGenerator[str, None]:

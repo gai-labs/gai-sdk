@@ -16,4 +16,14 @@
     "python.analysis.extraPaths": [
         "./lib/src"
     ],
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.linting.pylintEnabled": false, // Optional: disable Pylint
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportInvalidTypeForm": "none",
+        "reportAttributeAccessIssue": "none",
+        "reportOptionalMemberAccess": "none"
+    },
+    "python.analysis.typeCheckingMode": "basic", // or "strict"
+    "python.analysis.diagnosticMode": "workspace"
 }

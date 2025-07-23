@@ -38,63 +38,48 @@ class AnthropicChatState(StateBase):
 
     async def run_async(self):
         # Get User Message
-
-        # Get recap
-        recap = self.input.get("recap", "")
+        if not self.machine.user_message:
+            raise Exception("AnthropicToolCallState: user_message is missing.")
 
         # Get llm client
         llm_config = self.input["llm_config"]
         llm_client = AsyncOpenAI(llm_config)
 
-        # If user_message is missing, the machine should transition into AnthropicToolUseState
-        # directly instead of here.
-        if not self.input.get("user_message", None):
-            raise Exception("AnthropicToolCallState: user_message is missing.")
+        # Get model
+        llm_model = llm_config["model"]
 
-        # Combine user_message with recap if recap is provided
-        recapped_user_message = self.input["user_message"]
-        if recap:
-            recapped_user_message = f"""
-            Here is a recap of the conversation:
-            {recap}
-            
+        # Create system message from user message
+        system_message = f"""
+            Your name is {self.machine.agent_name} within the context of this conversation and you will always respond as such.
+            Do not refer to yourself as an AI or a bot or confuse your name with other agents.
+           
             You may respond to my following message using the context you have learnt.
-            {self.input["user_message"]}
+            {self.machine.user_message}
             """
 
-        # Get mcp client
+        # Case 1: LLM interrupt flow.
+        # If previous message contains "user_input" tool use,
+        # and user_message exists, this is to resume with user input.
+        # Exit and forward to the "tool_use" state for processing.
         mcp_client = self.input.get("mcp_client")
         tools = []
         if mcp_client:
             tools = await mcp_client.list_tools()
-
-        # Get model
-        llm_model = llm_config["model"]
-
         last_tool_calls = []
         if self.machine.monologue.list_messages():
             last_tool_calls = self.machine.monologue.get_last_toolcalls()
-
-        async def stream_nothing():
-            # This will yield nothing, effectively ending the state
-            yield
-
         if (
             last_tool_calls
             and any(result["tool_name"] == "user_input" for result in last_tool_calls)
             and self.machine.user_message
         ):
-            # Case 1: LLM interrupt flow.
-            # LLM request input from user using "user_input" and user_message is provided.
-            # Stream nothing and forward to the "tool_use" state for processing.
             self.machine.state_bag["streamer"] = None
             return  # Exit the state early
+        # End of Case 1
 
         assistant_message = ""
 
-        self.machine.monologue.add_user_message(
-            state=self, content=recapped_user_message
-        )
+        self.machine.monologue.add_user_message(state=self, content=system_message)
 
         async def streamer():
             nonlocal assistant_message

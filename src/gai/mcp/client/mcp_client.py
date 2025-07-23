@@ -56,8 +56,12 @@ class McpClient:
         self.name = client_config.name
 
         # Get command from client_config
-
-        self.command = client_config.extra["command"]
+        if not client_config.extra:
+            raise ValueError(
+                "MCP client configuration must have an 'extra' field with a 'command' key."
+            )
+        if client_config.extra:
+            self.command = client_config.extra["command"]
 
         # Get blacklisted tools from client_config
 
@@ -66,6 +70,11 @@ class McpClient:
         args = []
         if self.command == "node" or self.command == "python":
             # Derive absolute server path from config
+
+            if not client_config.url:
+                raise ValueError(
+                    "MCP client configuration must have a 'url' field for the server path."
+                )
 
             server_path = self.get_filepath(client_config.url)
             if not os.path.isabs(server_path):
@@ -167,11 +176,11 @@ class McpAggregatedClient:
         """
         Accepts either a list of McpClient instances, eg. [McpClient(...), McpClient(...)] or a list of MCP server names, eg. ["mcp_server1", "mcp_server2"].
         """
-        
+
         from gai.lib.utils import run_async_function
 
         # Convert to list of McpClient instances
-        
+
         if mcp_clients and not isinstance(mcp_clients, list):
             raise ValueError("mcp_clients must be a list")
 

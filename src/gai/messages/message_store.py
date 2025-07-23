@@ -5,11 +5,13 @@ import time
 from typing import Generic, Optional, TypeVar, Type, Any
 from gai.messages.typing import MessagePydantic
 from gai.lib.logging import getLogger
+
 logger = getLogger(__name__)
 from pydantic import BaseModel, Field
 from threading import Lock
 
 MessagePydanticT = TypeVar("MessagePydanticT", bound=BaseModel)
+
 
 class MessageStore(Generic[MessagePydanticT]):
     class InternalStructure(BaseModel):
@@ -58,7 +60,6 @@ class MessageStore(Generic[MessagePydanticT]):
                 if message["id"] == message_id:
                     return self.MessagePydantic_cls(**message)
             return None
-
 
     def list_messages(self) -> list[MessagePydanticT]:
         """List all messages in the messages store file."""
@@ -137,15 +138,12 @@ class MessageStore(Generic[MessagePydanticT]):
                     )
                     internal_structure = MessageStore.InternalStructure()
 
-
             # Update internal structure
-
 
             for message in messages:
                 message.header.order = internal_structure.next_message_order
                 internal_structure.messages.append(message.model_dump())
                 internal_structure.next_message_order += 1
-
 
             # Save updated internal structure back to file
             with open(self.file_path, "w") as f:
@@ -169,7 +167,6 @@ class MessageStore(Generic[MessagePydanticT]):
                         f"MessageStore: Failed to load internal structure from {self.file_path}. Creating new one."
                     )
                     internal_structure = MessageStore.InternalStructure()
-
 
             # Filter out the message with the given id
             previous_length = len(internal_structure.messages)
@@ -230,5 +227,5 @@ class MessageStore(Generic[MessagePydanticT]):
                 f.write(json.dumps(initial, indent=4))
                 time.sleep(1)  # Ensure file system is updated
             logger.debug(
-                "MessageStore: File reset. all messages cleared. path={self.file_path}"
+                f"MessageStore: File reset. all messages cleared. path={self.file_path}"
             )
