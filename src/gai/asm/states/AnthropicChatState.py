@@ -57,14 +57,16 @@ class AnthropicChatState(StateBase):
             {self.machine.user_message}
             """
 
-        # Case 1: LLM interrupt flow.
-        # If previous message contains "user_input" tool use,
-        # and user_message exists, this is to resume with user input.
-        # Exit and forward to the "tool_use" state for processing.
         mcp_client = self.input.get("mcp_client")
         tools = []
         if mcp_client:
             tools = await mcp_client.list_tools()
+
+        # Case 1: LLM interrupt flow.
+        # If previous message contains "user_input" tool use,
+        # and user_message exists, this is to resume with user input.
+        # Exit and forward to the "tool_use" state for processing.
+
         last_tool_calls = []
         if self.machine.monologue.list_messages():
             last_tool_calls = self.machine.monologue.get_last_toolcalls()
@@ -79,12 +81,14 @@ class AnthropicChatState(StateBase):
 
         assistant_message = ""
 
-        self.machine.monologue.add_user_message(state=self, content=system_message)
+        self.machine.monologue.add_user_message(
+            state=self, content=system_message)
 
         async def streamer():
             nonlocal assistant_message
 
             async def stream_with_retry():
+
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
                     messages=self.machine.monologue.list_chat_messages(),
@@ -105,20 +109,25 @@ class AnthropicChatState(StateBase):
             # Retry the entire streaming operation
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
             has_text = False
+            messages = self.machine.monologue.list_messages()
+            if not messages:
+                raise ValueError(
+                    "AnthropicChatState: Cannot pass empty messages to LLM. Find out why messages are empty."
+                )
             async for chunk in retry_policy.run(stream_with_retry):
                 # The LLM client will return either of the following results:
 
-                ##  * a stream of strings followed by a tool call. This means the response will be
-                ##    streamed to the user and AthropicToolUseState will use a tool.
-                ##    The session will continue.
+                # * a stream of strings followed by a tool call. This means the response will be
+                # streamed to the user and AthropicToolUseState will use a tool.
+                # The session will continue.
 
-                ##  - a tool call only. This means there is nothing to stream to the user, and
-                ##    AnthropicToolUseState will silently use a tool.
-                ##    The session will continue.
+                # - a tool call only. This means there is nothing to stream to the user, and
+                # AnthropicToolUseState will silently use a tool.
+                # The session will continue.
 
-                ##  - a stream of strings only. This means the response will be streamed to the user
-                ##    and AnthropicToolUseState will not use a tool.
-                ##    This signifies the session has ended.
+                # - a stream of strings only. This means the response will be streamed to the user
+                # and AnthropicToolUseState will not use a tool.
+                # This signifies the session has ended.
 
                 if isinstance(chunk, str):
                     # streaming continues

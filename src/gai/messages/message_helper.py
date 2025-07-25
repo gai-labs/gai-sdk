@@ -11,6 +11,7 @@ from .typing import (
     MessagePydantic
 )
 
+
 def create_message(
     role: Literal["user", "assistant", "system"], content: str
 ) -> MessagePydantic:
@@ -46,18 +47,23 @@ def convert_to_chat_messages(messages: list[MessagePydantic]) -> list[dict[str, 
     Returns:
         list[MessagePydantic]: A list of chat messages.
     """
-    chat_messages=[]
+    if not messages:
+        return []
+    chat_messages = []
     for m in messages:
-        if hasattr(m.body,"content"):
+        if hasattr(m.body, "content"):
             # Only if message has content
             if m.body.role == "system":
                 # clean up whitespace from system messages
                 m.body.content = re.sub(r"\s+", " ", m.body.content)
-            chat_messages.append({"role": m.body.role, "content": m.body.content})
+            chat_messages.append(
+                {"role": m.body.role, "content": m.body.content})
 
     return chat_messages
 
+
 MessagePydanticT = TypeVar("MessagePydanticT", bound=BaseModel)
+
 
 def json(list: list[MessagePydanticT]) -> str:
     """
@@ -72,6 +78,7 @@ def json(list: list[MessagePydanticT]) -> str:
     import json
 
     return json.dumps([message.model_dump() for message in list], indent=4)
+
 
 def unjson(json_str: str, MessagePydantic_cls: Type[MessagePydanticT]) -> list[MessagePydanticT]:
     """
@@ -98,12 +105,12 @@ def extract_recap(
     Instead of showing the sender role, it uses sender name.
     This is to facilitate multi-agent dialogues so that agent can tell apart who said what.
     For example, 
-    
+
     User: <content>
     Sara: <content>
-    
+
     Instead of
-    
+
     [
     {"role": "user", "content": "<content>"},
     {"role": "assistant", "content": "<content>"}
@@ -122,9 +129,9 @@ def extract_recap(
 
     # Step 2: Convert messages to dialogue format
     recap_lines = []
-    total_len = 0    
+    total_len = 0
     for m in recent_messages:
-        if hasattr(m.body,"content") and isinstance(m.body.content, str):
+        if hasattr(m.body, "content") and isinstance(m.body.content, str):
             line = f"{m.header.sender}: {m.body.content.strip()}"
             if total_len + len(line) > max_recap_size:
                 break
