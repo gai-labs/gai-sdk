@@ -1,3 +1,5 @@
+from threading import Lock
+from pydantic import BaseModel, Field
 import os
 import json
 import time
@@ -7,8 +9,6 @@ from gai.messages.typing import MessagePydantic
 from gai.lib.logging import getLogger
 
 logger = getLogger(__name__)
-from pydantic import BaseModel, Field
-from threading import Lock
 
 MessagePydanticT = TypeVar("MessagePydanticT", bound=BaseModel)
 
@@ -28,8 +28,10 @@ class MessageStore(Generic[MessagePydanticT]):
 
         # Ensure the directory exists
         file_dir = os.path.dirname(file_path)
-        os.makedirs(file_dir, exist_ok=True)
-        logger.info(f"MessageStore: Created new message directory {file_dir}")
+        if file_dir:
+            os.makedirs(file_dir, exist_ok=True)
+            logger.info(
+                f"MessageStore: Created new message directory {file_dir}")
 
         # Ensure file is created with valid structure
         if not os.path.exists(self.file_path):
@@ -42,14 +44,16 @@ class MessageStore(Generic[MessagePydanticT]):
         """Get a message from the dialogue file by its ID."""
         with MessageStore.file_lock:
             if not os.path.exists(self.file_path):
-                logger.error(f"MessageStore: file not found. path={self.file_path}")
+                logger.error(
+                    f"MessageStore: file not found. path={self.file_path}")
                 raise FileNotFoundError(
                     f"MessageStore: file not found. path={self.file_path}"
                 )
 
             with open(self.file_path, "r") as f:
                 try:
-                    internal_structure = MessageStore.InternalStructure(**json.load(f))
+                    internal_structure = MessageStore.InternalStructure(
+                        **json.load(f))
                 except json.JSONDecodeError:
                     logger.warning(
                         f"MessageStore: Failed to load internal structure from {self.file_path}. Creating new one."
@@ -65,14 +69,16 @@ class MessageStore(Generic[MessagePydanticT]):
         """List all messages in the messages store file."""
         with MessageStore.file_lock:
             if not os.path.exists(self.file_path):
-                logger.warning(f"MessageStore: File not found. path={self.file_path}")
+                logger.warning(
+                    f"MessageStore: File not found. path={self.file_path}")
                 raise FileNotFoundError(
                     f"MessageStore: File not found path={self.file_path}"
                 )
 
             with open(self.file_path, "r") as f:
                 try:
-                    internal_structure = MessageStore.InternalStructure(**json.load(f))
+                    internal_structure = MessageStore.InternalStructure(
+                        **json.load(f))
                 except json.JSONDecodeError:
                     logger.error(
                         f"MessageStore: Failed to load internal structure from {self.file_path}. Creating new one."
@@ -131,7 +137,8 @@ class MessageStore(Generic[MessagePydanticT]):
 
             with open(self.file_path, "r") as f:
                 try:
-                    internal_structure = MessageStore.InternalStructure(**json.load(f))
+                    internal_structure = MessageStore.InternalStructure(
+                        **json.load(f))
                 except json.JSONDecodeError:
                     logger.warning(
                         f"MessageStore: Failed to load internal structure from {self.file_path}. Creating new one."
@@ -161,7 +168,8 @@ class MessageStore(Generic[MessagePydanticT]):
 
             with open(self.file_path, "r") as f:
                 try:
-                    internal_structure = MessageStore.InternalStructure(**json.load(f))
+                    internal_structure = MessageStore.InternalStructure(
+                        **json.load(f))
                 except json.JSONDecodeError:
                     logger.warning(
                         f"MessageStore: Failed to load internal structure from {self.file_path}. Creating new one."
@@ -194,7 +202,8 @@ class MessageStore(Generic[MessagePydanticT]):
 
             with open(self.file_path, "r") as f:
                 try:
-                    internal_structure = MessageStore.InternalStructure(**json.load(f))
+                    internal_structure = MessageStore.InternalStructure(
+                        **json.load(f))
                 except json.JSONDecodeError:
                     logger.warning(
                         f"MessageStore: Failed to load internal structure from {self.file_path}. Creating new one."

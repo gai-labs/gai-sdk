@@ -2,7 +2,7 @@ from ..base import StateBase
 from gai.lib.logging import getLogger
 from gai.llm.lib import LLMGeneratorRetryPolicy
 from gai.llm.openai import AsyncOpenAI
-from gai.mcp.client import McpAggregatedClient
+from gai.messages import message_helper
 from rich.console import Console
 
 console = Console()
@@ -127,7 +127,8 @@ class AnthropicToolUseState(StateBase):
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
         if self.machine.monologue.is_terminated():
-            logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
+            logger.info(
+                "AnthropicToolUseState: Task completed, nothing to continue.")
             self.machine.state_bag["streamer"] = None
             return  # Exit the state early
 
@@ -164,7 +165,9 @@ class AnthropicToolUseState(StateBase):
 
         assistant_message = ""
 
-        self.machine.monologue.add_user_message(state=self, content=tool_results)
+        self.machine.monologue.add_user_message(
+            state=self, content=tool_results)
+        messages = self.machine.monologue.list_chat_messages()
 
         async def streamer():
             nonlocal assistant_message
@@ -172,7 +175,7 @@ class AnthropicToolUseState(StateBase):
             async def stream_with_retry():
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
-                    messages=self.machine.monologue.list_chat_messages(),
+                    messages=messages,
                     tools=tools,
                     stream=True,
                 )
@@ -190,20 +193,24 @@ class AnthropicToolUseState(StateBase):
             # Retry the entire streaming operation
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
             has_text = False
+            if not messages:
+                raise ValueError(
+                    "AnthropicToolUseState: Cannot pass empty messages to LLM. Find out why messages are empty."
+                )
             async for chunk in retry_policy.run(stream_with_retry):
                 # The LLM client will return either of the following results:
 
-                ##  * a stream of strings followed by a tool call. This means the response will be
-                ##    streamed to the user and AthropicToolUseState will use a tool.
-                ##    The session will continue.
+                # * a stream of strings followed by a tool call. This means the response will be
+                # streamed to the user and AthropicToolUseState will use a tool.
+                # The session will continue.
 
-                ##  - a tool call only. This means there is nothing to stream to the user, and
-                ##    AnthropicToolUseState will silently use a tool.
-                ##    The session will continue.
+                # - a tool call only. This means there is nothing to stream to the user, and
+                # AnthropicToolUseState will silently use a tool.
+                # The session will continue.
 
-                ##  - a stream of strings only. This means the response will be streamed to the user
-                ##    and AnthropicToolUseState will not use a tool.
-                ##    This signifies the session has ended.
+                # - a stream of strings only. This means the response will be streamed to the user
+                # and AnthropicToolUseState will not use a tool.
+                # This signifies the session has ended.
 
                 if chunk:
                     if isinstance(chunk, str):

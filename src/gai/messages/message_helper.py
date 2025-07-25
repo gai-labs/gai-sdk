@@ -1,6 +1,6 @@
 import re
 from typing import Any, Literal, Type, TypeVar
-
+from gai.lib.logging import getLogger
 from gai.lib.constants import DEFAULT_GUID
 from pydantic import BaseModel
 from .typing import (
@@ -10,6 +10,7 @@ from .typing import (
     # SendBodyPydantic,
     MessagePydantic
 )
+logger = getLogger(__name__)
 
 
 def create_message(
@@ -51,13 +52,29 @@ def convert_to_chat_messages(messages: list[MessagePydantic]) -> list[dict[str, 
         return []
     chat_messages = []
     for m in messages:
-        if hasattr(m.body, "content"):
-            # Only if message has content
-            if m.body.role == "system":
+        # If message has content and role, convert to chat message format
+        if isinstance(m.body, dict) and m.body.get("content") and m.body.get("role"):
+            role = m.body["role"]
+            content = m.body["content"]
+            if role == "system":
                 # clean up whitespace from system messages
-                m.body.content = re.sub(r"\s+", " ", m.body.content)
+                content = re.sub(r"\s+", " ", content)
             chat_messages.append(
-                {"role": m.body.role, "content": m.body.content})
+                {"role": role, "content": content}
+            )
+
+        elif hasattr(m.body, "content") and hasattr(m.body, "role"):
+            role = m.body.role
+            content = m.body.content
+            if role == "system":
+                # clean up whitespace from system messages
+                content = re.sub(r"\s+", " ", content)
+            chat_messages.append(
+                {"role": role, "content": content}
+            )
+        else:
+            # This could be a control message eg. type="system.rollcall"
+            pass
 
     return chat_messages
 
@@ -140,3 +157,306 @@ def extract_recap(
 
     # Step 3: Join the lines into a single string
     return "\n".join(recap_lines)
+
+
+def get_messages_length(chat_messages: list[dict] = None) -> int:
+    """
+    Returns the length of the messages's content in characters.
+    """
+    import json
+    if not chat_messages:
+        return 0
+    if not chat_messages[0].get("role") or not chat_messages[0].get("content"):
+        raise ValueError(
+            "Invalid chat message format. Each message must have 'role' and 'content'.")
+    return len(json.dumps(chat_messages))
+
+
+def fix_messages(chat_messages: list[dict]) -> list[dict]:
+    """
+    Fix the messages such that out of order tool_use and tool_result messages are removed.    
+    """
+
+    if not chat_messages:
+        return []
+
+    if chat_messages[0].get("role") != "user":
+        raise ValueError(
+            "message_helper.fix_messages: First message is not a user message."
+        )
+
+    # Remove any tool_use messages that are not followed by a tool_result message
+    fixed_messages = []
+    expected_role = "user"  # Start with user role
+    for i, msg in enumerate(chat_messages):
+        if msg.get("role") != expected_role:
+            logger.warning(
+                f"message_helper.fix_messages: Skipping duplicated role {msg.get('role')} message at index {i}"
+            )
+            continue
+
+        if expected_role == "user":
+            expected_role = "assistant"
+        else:
+            expected_role = "user"
+
+        if msg.get("role") == "assistant" and isinstance(msg.get("content"), list):
+            # Check if this is a tool_use message
+            has_tool_use = any(item.get("type") ==
+                               "tool_use" for item in msg["content"])
+            if has_tool_use:
+                # Check if the next message is a user tool_result message
+                if i + 1 < len(chat_messages) and chat_messages[i + 1].get("role") == "user":
+                    next_content = chat_messages[i + 1].get("content")
+                    if isinstance(next_content, list) and any(
+                        item.get("type") == "tool_result" for item in next_content
+                    ):
+                        fixed_messages.append(msg)
+        else:
+            fixed_messages.append(msg)
+
+    return fixed_messages
+
+
+def shrink_messages(
+    chat_messages: list[dict], limit_len: int = 300000
+) -> list[dict]:
+    """
+    Shrink the messages to fit within the character limit but preserve the earliest user message.
+    This is useful for long conversations where we want to keep the context but not exceed limits.
+
+    Args:
+        chat_messages (list[dict]): A list of chat messages.
+        limit_len (int): The maximum length of the messages in characters.
+
+    Returns:
+        list[dict]: A list of shrunk chat messages.
+    """
+
+    # If no messages are provided, return an empty list
+
+    if not chat_messages:
+        return []
+
+    # Step 1: Find the earliest user message
+
+    earliest_user_message = chat_messages[0]
+    if not earliest_user_message.get("role") == "user":
+        raise ValueError(
+            "message_helper.shrink_messages: First message is not a user message."
+        )
+
+    # If contains only one message, return it as is
+    chat_messages_copy = chat_messages.copy()
+    if len(chat_messages_copy) == 1:
+        return chat_messages_copy
+
+    # Step 2: Pop the first user message and shrink the rest starting from the end
+
+    earliest_user_message = chat_messages_copy.pop(
+        0)  # Remove the first user message
+    init_length = get_messages_length([earliest_user_message])
+
+    # Reverse the list to start popping from the end
+
+    chat_messages_copy.reverse()
+    total_len = get_messages_length(chat_messages_copy)
+    while total_len + init_length > limit_len:
+
+        # Remove assistant message
+        if not chat_messages_copy:
+            # Ran out of messages
+            break
+        while chat_messages_copy and chat_messages_copy[-1].get("role") != "assistant":
+            # This is to deal with corrupted messages where user messages are present instead of assistant message.
+            chat_messages_copy.pop()
+        if chat_messages_copy and chat_messages_copy[-1].get("role") == "assistant":
+            chat_messages_copy.pop()
+
+        # Remove user message
+        if not chat_messages_copy:
+            # Ran out of messages
+            break
+        while chat_messages_copy and chat_messages_copy[-1].get("role") != "user":
+            # This is to deal with corrupted messages where assistant messages are present instead of user message.
+            chat_messages_copy.pop()
+        if chat_messages_copy and chat_messages_copy[-1].get("role") == "user":
+            chat_messages_copy.pop()
+
+        # Update the total length after popping messages
+        total_len = get_messages_length(chat_messages_copy)
+
+    # Push the earliest user message back to the front
+    chat_messages_copy.reverse()  # Reverse back to original order
+    chat_messages_copy.insert(0, earliest_user_message)
+
+    if chat_messages_copy and chat_messages_copy[-1].get("role") == "assistant":
+        # If the last message is an assistant message, remove it
+        chat_messages_copy.pop()
+
+    chat_messages_copy = fix_messages(chat_messages_copy)
+
+    # Step 3: Validate the messages after shrinking
+    # This is highly error-prone, so we validate the messages immediately after shrinking.
+    validate_tool_messages(chat_messages_copy)
+
+    return chat_messages_copy
+
+
+def validate_tool_messages(chat_messages: list[dict]) -> bool:
+
+    # a) First message is user message
+    if not chat_messages:
+        raise ValueError(
+            "message_helper.validate_tool_messages: chat_messages should not be empty and should have at least 1 user message."
+        )
+
+    if chat_messages and chat_messages[0].get("role") != "user":
+        raise ValueError(
+            "message_helper.validate_tool_messages: First message is not a user message."
+        )
+
+    expected_role = "user"
+    for i, msg in enumerate(chat_messages):
+
+        # b) Subsequent messages should alternate between user and assistant
+
+        if msg.get("role") != expected_role:
+            raise ValueError(
+                f"message_helper.validate_tool_messages: Expected role '{expected_role}' but found '{msg.get('role')}' at index {msg}."
+            )
+
+        if expected_role == "user":
+            expected_role = "assistant"
+        else:
+            expected_role = "user"
+
+        # c) If current message is an assistant tool_use message then the next message should be a user tool_result message with matching tool_use_id
+
+        if msg.get("role") == "assistant" and isinstance(msg.get("content"), list):
+
+            for assistant_item in msg["content"]:
+                if assistant_item.get("type") == "tool_use":
+
+                    # Unexpected end of messages
+
+                    if len(chat_messages) <= i + 1:
+                        raise ValueError(
+                            "message_helper.validate_tool_messages: Expecting a user tool_result message but messages ended abruptly."
+                        )
+
+                    # Unexpected role after "assistant"
+
+                    if chat_messages[i+1]["role"] != "user":
+                        raise ValueError(
+                            f"message_helper.validate_tool_messages: Expecting a user tool_result message but found a {chat_messages[i+1]['role']} message at index {i+1}."
+                        )
+
+                    next_content = chat_messages[i+1].get("content")
+
+                    # Next message content should be a list
+
+                    if not isinstance(next_content, list):
+                        raise ValueError(
+                            f"message_helper.validate_tool_messages: Expecting a list of content in user message at index {i+1} but found {next_content}."
+                        )
+
+                    # Next message should contain tool_result with matching tool_use_id
+
+                    for next_item in next_content:
+                        if next_item.get("type") == "tool_result":
+                            if next_item.get("tool_use_id") != assistant_item.get("id"):
+                                raise ValueError(
+                                    f"message_helper.validate_tool_messages: Expecting user `tool_result` message to contain tool_use_id=`{next_item.get('tool_use_id')}` does not match tool_use.id {assistant_item.get('id')} at index {i+1}."
+                                )
+                        else:
+                            raise ValueError(
+                                f"message_helper.validate_tool_messages: Expecting user message `tool_result` type after assistant `tool_use` message but found user message `{next_item.get('type')}` type at index {i+1}."
+                            )
+
+        # d) If current message is a user tool_result message then the previous message should be an assistant tool_use message with matching id
+
+        if msg.get("role") == "user" and isinstance(msg.get("content"), list):
+
+            for user_item in msg["content"]:
+                if user_item.get("type") == "tool_result":
+
+                    # Unexpected start of messages
+
+                    if i == 0:
+                        raise ValueError(
+                            "message_helper.validate_tool_messages: Expecting an assistant tool_use message before user tool_result message but messages started with a user message."
+                        )
+
+                    # Previous message should be an assistant tool_use message
+
+                    previous_message = chat_messages[i-1]
+                    if previous_message.get("role") != "assistant":
+                        raise ValueError(
+                            f"message_helper.validate_tool_messages: Expecting an assistant tool_use message before user tool_result message but found a {previous_message['role']} message at index {i-1}."
+                        )
+
+                    previous_content = previous_message.get("content")
+
+                    # Previous message content should be a list
+
+                    if not isinstance(previous_content, list):
+                        raise ValueError(
+                            f"message_helper.validate_tool_messages: Expecting a list of content in assistant message at index {i-1} but found {previous_content}."
+                        )
+
+                    # Previous message should contain tool_use with matching id
+                    found_tool_use = False
+                    for previous_item in previous_content:
+                        if previous_item.get("type") == "tool_use":
+                            found_tool_use = True
+                            if previous_item.get("id") != user_item.get("tool_use_id"):
+                                raise ValueError(
+                                    f"message_helper.validate_tool_messages: Expecting assistant `tool_use` id=`{previous_item.get('id')}` to match user `tool_result` tool_use_id={user_item.get('tool_use_id')} at index {i-1}."
+                                )
+                    if not found_tool_use:
+                        raise ValueError(
+                            f"message_helper.validate_tool_messages: Expecting assistant message `tool_use` type before user `tool_result` message but not found at index {i-1}."
+                        )
+
+    # Finally, last message should be a user message
+    if chat_messages and chat_messages[-1].get("role") != "user":
+        raise ValueError(
+            f"message_helper.validate_tool_messages: Last message is not a user message but a {chat_messages[-1].get('role')} message."
+        )
+
+    # # Find all tool_use message ids
+    # tool_use_messages = [msg for msg in chat_messages if msg["role"]
+    #                      == "assistant" and isinstance(msg["content"], list)]
+    # tool_use_message_ids = []
+    # for msg in tool_use_messages:
+    #     for item in msg["content"]:
+    #         if item["type"] == "tool_use":
+    #             tool_use_message_ids.append(item["id"])
+
+    # # Find all tool_result message ids
+    # tool_result_messages = [msg for msg in chat_messages if msg["role"]
+    #                         == "user" and isinstance(msg["content"], list)]
+    # tool_result_message_ids = []
+    # for msg in tool_result_messages:
+    #     for item in msg["content"]:
+    #         if item["type"] == "tool_result":
+    #             tool_result_message_ids.append(item["tool_use_id"])
+
+    # Find all tool_use_message_ids that do not have a corresponding tool_result_message_id and save them in unmatched_tool_use_message_ids
+    # Find all tool_result_message_ids that do not have a corresponding tool_use_message_id and save them in unmatched_tool_result_message_ids
+    # print both
+
+    # unmatched_tool_use_message_ids = [
+    #     msg_id for msg_id in tool_use_message_ids if msg_id not in tool_result_message_ids]
+    # unmatched_tool_result_message_ids = [
+    #     msg_id for msg_id in tool_result_message_ids if msg_id not in tool_use_message_ids]
+    # if len(unmatched_tool_use_message_ids) > 0:
+    #     logger.error(
+    #         f"`tool_use` ids were found without `tool_result` blocks immediately after: {', '.join(unmatched_tool_use_message_ids)}.")
+    #     return False
+    # if len(unmatched_tool_result_message_ids) > 0:
+    #     logger.error(
+    #         f"unexpected `tool_use_id` found in `tool_result` blocks: {', '.join(unmatched_tool_result_message_ids)}. Each `tool_result` block must have a corresponding `tool_use` block in the previous message.")
+    #     return False
+    # return True

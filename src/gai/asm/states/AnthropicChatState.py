@@ -1,7 +1,9 @@
 from ..base import StateBase
 from gai.lib.logging import getLogger
 from gai.llm.lib import LLMGeneratorRetryPolicy
+from gai.messages import message_helper
 from gai.llm.openai import AsyncOpenAI
+
 
 logger = getLogger(__name__)
 
@@ -67,9 +69,7 @@ class AnthropicChatState(StateBase):
         # and user_message exists, this is to resume with user input.
         # Exit and forward to the "tool_use" state for processing.
 
-        last_tool_calls = []
-        if self.machine.monologue.list_messages():
-            last_tool_calls = self.machine.monologue.get_last_toolcalls()
+        last_tool_calls = self.machine.monologue.get_last_toolcalls()
         if (
             last_tool_calls
             and any(result["tool_name"] == "user_input" for result in last_tool_calls)
@@ -80,9 +80,9 @@ class AnthropicChatState(StateBase):
         # End of Case 1
 
         assistant_message = ""
-
         self.machine.monologue.add_user_message(
             state=self, content=system_message)
+        messages = self.machine.monologue.list_chat_messages()
 
         async def streamer():
             nonlocal assistant_message
@@ -91,7 +91,7 @@ class AnthropicChatState(StateBase):
 
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
-                    messages=self.machine.monologue.list_chat_messages(),
+                    messages=messages,
                     tools=tools,
                     stream=True,
                 )
@@ -109,7 +109,6 @@ class AnthropicChatState(StateBase):
             # Retry the entire streaming operation
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
             has_text = False
-            messages = self.machine.monologue.list_messages()
             if not messages:
                 raise ValueError(
                     "AnthropicChatState: Cannot pass empty messages to LLM. Find out why messages are empty."

@@ -1,8 +1,10 @@
+from gai.messages.monologue import Monologue
 import os
 from types import SimpleNamespace
 from gai.lib.tests import make_local_tmp
 from gai.messages.monologue import FileMonologue
 from gai.messages.typing import MessagePydantic
+
 
 def test_file_monologue_creates_and_loads_empty(request):
     # Arrange
@@ -21,6 +23,7 @@ def test_file_monologue_creates_and_loads_empty(request):
     assert isinstance(messages, list)
     assert len(messages) == 0
 
+
 def test_add_user_message(request):
     # Arrange: make a clean temp folder for this test
     tmp_dir = make_local_tmp(request)
@@ -29,7 +32,8 @@ def test_add_user_message(request):
     monologue = FileMonologue(agent_name=agent_name, file_path=file_path)
 
     # Act: add a user message
-    mock_state = SimpleNamespace(state="GENERATE", input={"step": 5}, title="GENERATE")
+    mock_state = SimpleNamespace(state="GENERATE", input={
+                                 "step": 5}, title="GENERATE")
     monologue.add_user_message("Hello, how are you?", mock_state)
     messages = monologue.list_messages()
 
@@ -39,6 +43,7 @@ def test_add_user_message(request):
     assert body.role == "user"
     assert body.content == "Hello, how are you?"
 
+
 def test_add_assistant_message(request):
     # Arrange: fresh monologue with one user message
     tmp_dir = make_local_tmp(request)
@@ -47,19 +52,23 @@ def test_add_assistant_message(request):
     monologue = FileMonologue(agent_name=agent_name, file_path=file_path)
 
     # seed a user message so assistant will be second
-    user_state = SimpleNamespace(state="GENERATE", input={"step":5}, title="GENERATE")
+    user_state = SimpleNamespace(state="GENERATE", input={
+                                 "step": 5}, title="GENERATE")
     monologue.add_user_message("Hello, how are you?", user_state)
 
     # Act: add an assistant reply
-    assistant_state = SimpleNamespace(state="GENERATE", input={"step":6}, title="GENERATE")
-    monologue.add_assistant_message("I'm doing well, thank you!", assistant_state)
+    assistant_state = SimpleNamespace(
+        state="GENERATE", input={"step": 6}, title="GENERATE")
+    monologue.add_assistant_message(
+        "I'm doing well, thank you!", assistant_state)
 
     # Assert: we now have exactly two messages, and the second is the assistant’s
     messages = monologue.list_messages()
     assert len(messages) == 2
     assert messages[1].body.role == "assistant"
     assert messages[1].body.content == "I'm doing well, thank you!"
-    
+
+
 def test_monologue_pop_removes_last_message(request):
     # Arrange: fresh temp dir and monologue
     tmp_dir = make_local_tmp(request)
@@ -68,9 +77,11 @@ def test_monologue_pop_removes_last_message(request):
     monologue = FileMonologue(agent_name=agent_name, file_path=file_path)
 
     # Seed with two messages
-    user_state = SimpleNamespace(state="S1", input={"step":0}, title="UserState")
+    user_state = SimpleNamespace(
+        state="S1", input={"step": 0}, title="UserState")
     monologue.add_user_message("First message", user_state)
-    assistant_state = SimpleNamespace(state="S2", input={"step":1}, title="AssistantState")
+    assistant_state = SimpleNamespace(
+        state="S2", input={"step": 1}, title="AssistantState")
     monologue.add_assistant_message("Second message", assistant_state)
 
     # Confirm both are present
@@ -86,7 +97,8 @@ def test_monologue_pop_removes_last_message(request):
     messages_after = monologue.list_messages()
     assert len(messages_after) == 1
     assert not any(m.id == last_message_id for m in messages_after)
-    
+
+
 def test_create_monologue_from_messages(request):
 
     # Arrange: a clean temp dir for this test
@@ -210,4 +222,4 @@ def test_create_monologue_from_messages(request):
 
     # 4th message
     assert loaded[3].body.role == "assistant"
-    assert loaded[3].body.content == "Once upon a time, in a small village, there lived a kind..."    
+    assert loaded[3].body.content == "Once upon a time, in a small village, there lived a kind..."

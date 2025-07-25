@@ -62,7 +62,8 @@ _registry_lock = threading.Lock()
 def register_body(cls: Type[BaseModel]) -> Type[BaseModel]:
     with _registry_lock:
         # drop any earlier class with this __name__
-        _BODY_CLASSES[:] = [c for c in _BODY_CLASSES if c.__name__ != cls.__name__]
+        _BODY_CLASSES[:] = [
+            c for c in _BODY_CLASSES if c.__name__ != cls.__name__]
         _BODY_CLASSES.append(cls)
     return cls
 
@@ -76,7 +77,7 @@ def register_body(cls: Type[BaseModel]) -> Type[BaseModel]:
 @register_body
 class DefaultBodyPydantic(BaseModel, MessageBodyMixin):
     type: Literal["default"] = "default"
-    content: Optional[Any]
+    content: Optional[Any] = None
 
 
 # Monologue Body -----------------------------------------------------------------------------------
@@ -146,7 +147,8 @@ def get_message_cls():
     model = create_model(
         "MessagePydantic",
         id=(str, Field(default_factory=lambda: str(uuid.uuid4()))),
-        header=(MessageHeaderPydantic, Field(default_factory=MessageHeaderPydantic)),
+        header=(MessageHeaderPydantic, Field(
+            default_factory=MessageHeaderPydantic)),
         body=(BodyType, ...),
         __base__=BaseModel,
     )
