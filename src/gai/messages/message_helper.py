@@ -212,6 +212,9 @@ def fix_messages(chat_messages: list[dict]) -> list[dict]:
                         item.get("type") == "tool_result" for item in next_content
                     ):
                         fixed_messages.append(msg)
+            else:
+                # If it's not a tool_use message, just append it
+                fixed_messages.append(msg)
         else:
             fixed_messages.append(msg)
 
@@ -323,7 +326,7 @@ def validate_tool_messages(chat_messages: list[dict]) -> bool:
 
         if msg.get("role") != expected_role:
             raise ValueError(
-                f"message_helper.validate_tool_messages: Expected role '{expected_role}' but found '{msg.get('role')}' at index {msg}."
+                f"message_helper.validate_tool_messages: Expected role '{expected_role}' but found '{msg.get('role')}' at index {i}."
             )
 
         if expected_role == "user":

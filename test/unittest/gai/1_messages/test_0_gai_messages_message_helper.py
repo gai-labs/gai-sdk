@@ -316,11 +316,37 @@ def test_shrink_messages():
     assert shrunk[2]["content"][0]["tool_use_id"] == "toolu_01EMHCds7Gpxgujwe9nSpYLW"
 
 
-def test_more_shrink_messages(request):
+def test_more_shrink_messages_from_file_monologue_1(request):
+    import os
+    from gai.lib.tests import get_local_datadir
+    from gai.messages import MessagePydantic
+    file_path = os.path.join(get_local_datadir(request), "monologue_1.log")
+    with open(file_path, "r") as f:
+        monologue_file = json.load(f)
+        messages = [MessagePydantic(**msg)
+                    for msg in monologue_file["messages"]]
+    chat_messages = message_helper.convert_to_chat_messages(messages)
+    message_helper.shrink_messages(chat_messages, limit_len=300000)
+
+
+def test_more_shrink_messages_from_file_monologue_2(request):
     import os
     from gai.lib.tests import get_local_datadir
     from gai.messages import MessagePydantic
     file_path = os.path.join(get_local_datadir(request), "monologue_2.log")
+    with open(file_path, "r") as f:
+        monologue_file = json.load(f)
+        messages = [MessagePydantic(**msg)
+                    for msg in monologue_file["messages"]]
+    chat_messages = message_helper.convert_to_chat_messages(messages)
+    message_helper.shrink_messages(chat_messages, limit_len=300000)
+
+
+def test_more_shrink_messages_from_file_monologue_3(request):
+    import os
+    from gai.lib.tests import get_local_datadir
+    from gai.messages import MessagePydantic
+    file_path = os.path.join(get_local_datadir(request), "monologue_3.log")
     with open(file_path, "r") as f:
         monologue_file = json.load(f)
         messages = [MessagePydantic(**msg)
