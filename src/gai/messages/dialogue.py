@@ -193,6 +193,7 @@ class FileDialogue(Dialogue):
         ] = None,
         max_recap_size: int = 60000,
         file_path: Optional[str] = None,
+        caller_id: Optional[str] = None,
     ):
         """
         Create or load a dialogue.
@@ -215,7 +216,7 @@ class FileDialogue(Dialogue):
         )
 
         # Initialize MessageStore
-        self.caller_id = DEFAULT_GUID
+        self.caller_id = caller_id or DEFAULT_GUID
         self.dialogue_id = dialogue_id or DEFAULT_GUID
         user_dialogue_dir = os.path.expanduser(
             USER_DIALOGUE_DIR.format(
@@ -224,7 +225,8 @@ class FileDialogue(Dialogue):
         )
         os.makedirs(user_dialogue_dir, exist_ok=True)
 
-        self.file_path = file_path or os.path.join(user_dialogue_dir, "dialogue.json")
+        self.file_path = file_path or os.path.join(
+            user_dialogue_dir, "dialogue.json")
         self.message_store = MessageStore[MessagePydantic](
             file_path=self.file_path, MessagePydantic_cls=MessagePydantic
         )
