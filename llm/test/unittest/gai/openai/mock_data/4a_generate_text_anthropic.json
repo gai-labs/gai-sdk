@@ -1,0 +1,23 @@
+{
+    "id": "msg_01FSrmUMj11cMWQG23LHPgWg",
+    "content": [
+        {
+            "citations": null,
+            "text": "The last person on Earth sat alone in a room, then heard a knock at the door.",
+            "type": "text"
+        }
+    ],
+    "model": "claude-sonnet-4-20250514",
+    "role": "assistant",
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 13,
+        "output_tokens": 22,
+        "server_tool_use": null,
+        "service_tier": "standard"
+    }
+}

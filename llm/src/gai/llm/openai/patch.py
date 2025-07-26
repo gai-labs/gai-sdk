@@ -36,19 +36,19 @@ def openai_create(patched_client, **kwargs):
 
 def ollama_create(client_config, **kwargs):
     from ollama import chat
-    
+
     mapped_kwargs = map_openai_to_ollama_params(client_config, **kwargs)
     response = chat(**mapped_kwargs)
-    
+
     # Format ollama output to match openai output
     stream = mapped_kwargs["stream"]
     tools = mapped_kwargs["tools"]
-    
+
     from .response.ollama.completions_factory import CompletionsFactory
     factory = CompletionsFactory()
     if stream and not tools:
         response = factory.chunk.build_stream(response)
-        response = attach_extractor(response, stream)  
+        response = attach_extractor(response, stream)
         response = (chunk for chunk in response)
     else:
         if tools:
@@ -63,11 +63,13 @@ def ollama_create(client_config, **kwargs):
 
 def gai_create(client_config, **kwargs):
     from gai.llm.client import ChatClient
-    
+
     mapped_kwargs = map_openai_to_gai_params(**kwargs)
     chat_client = ChatClient(client_config)
     response = chat_client.chat(**mapped_kwargs)
     return response
+
+# anthropic_create(): This function calls the anthropic client.
 
 
 def anthropic_create(client_config, **kwargs):
@@ -75,7 +77,7 @@ def anthropic_create(client_config, **kwargs):
     This function calls the Claude client.
     """
     import anthropic
-    
+
     final_kwargs = map_openai_to_anthropic_params(client_config, **kwargs)
 
     # Call anthropic API
@@ -91,18 +93,20 @@ def anthropic_create(client_config, **kwargs):
     # Format anthropic output to match openai output
     try:
         from .response.anthropic.completions_factory import CompletionsFactory
+        from typing import Generator
         factory = CompletionsFactory()
-        stream = isinstance(response, anthropic.Stream)
+        stream = isinstance(response, anthropic.Stream) or isinstance(
+            response, Generator)
         tools = final_kwargs.get("tools", None)
-        
+
         if stream:
             if not tools:
                 response = factory.chunk.build_stream(response)
                 response = attach_extractor(response, stream)
             else:
                 response = factory.chunk.build_tool_stream(response)
-                response = attach_extractor(response, stream)  
-                response = (chunk for chunk in response)            
+                response = attach_extractor(response, stream)
+                response = (chunk for chunk in response)
         else:
             if not tools:
                 response = factory.message.build_content(response)
@@ -111,7 +115,7 @@ def anthropic_create(client_config, **kwargs):
                 response = factory.message.build_toolcall(response)
                 response = attach_extractor(response, stream)
         return response
-        
+
     except Exception as e:
         error_message = f"patch.anthropic_create: Error while formatting anthropic response: {e}"
         logger.error(error_message)
@@ -121,7 +125,8 @@ def anthropic_create(client_config, **kwargs):
 # openai_parse(): This function calls the original unpatched beta.chat.completions.parse() function.
 
 def openai_parse(patched_client, **kwargs):
-    response = patched_client.beta.chat.completions.original_openai_parse(**kwargs)
+    response = patched_client.beta.chat.completions.original_openai_parse(
+        **kwargs)
     response = attach_extractor(response, is_stream=False)
     return response
 
@@ -130,10 +135,11 @@ def openai_parse(patched_client, **kwargs):
 
 def ollama_parse(client_config, response_format, **kwargs):
     from ollama import chat
-    
-    mapped_kwargs = map_openai_to_ollama_parse_params(client_config, response_format, **kwargs)
+
+    mapped_kwargs = map_openai_to_ollama_parse_params(
+        client_config, response_format, **kwargs)
     response = chat(**mapped_kwargs)
-        
+
     # Format ollama output to match openai output
     stream = mapped_kwargs["stream"]
     from .response.ollama.completions_factory import CompletionsFactory
@@ -142,16 +148,19 @@ def ollama_parse(client_config, response_format, **kwargs):
     response = attach_extractor(response, stream)
     return response
 
+# anthropic_parse(): This function calls the anthropic client.
+
 
 def anthropic_parse(client_config, response_format, **kwargs):
     import anthropic
-    
-    anthropic_tool, final_kwargs, messages = map_openai_to_anthropic_parse_params(response_format, **kwargs)
-    
-    client = anthropic.Anthropic()    
+
+    anthropic_tool, final_kwargs, messages = map_openai_to_anthropic_parse_params(
+        response_format, **kwargs)
+
+    client = anthropic.Anthropic()
     response = client.messages.create(**final_kwargs)
     logger.debug(f"anthropic_parse: raw response: {response}")
-    
+
     # Format anthropic output to match openai output
     from .response.anthropic.completions_factory import CompletionsFactory
     factory = CompletionsFactory()
@@ -164,40 +173,41 @@ def anthropic_parse(client_config, response_format, **kwargs):
 
 def gai_parse(client_config, response_format, **kwargs):
     from gai.llm.client import ChatClient
-    
+
     mapped_kwargs = map_openai_to_gai_parse_params(response_format, **kwargs)
     chat_client = ChatClient(client_config)
     response = chat_client.chat(**mapped_kwargs)
     return response
 
 
-def patch_chatcompletions(openai_client, file_path: str = None, client_config: Optional[Union[GaiClientConfig|dict]] = None):
+def patch_chatcompletions(openai_client, file_path: str = None, client_config: Optional[Union[GaiClientConfig | dict]] = None):
     """
     Patch an OpenAI client to support multiple LLM backends.
-    
+
     Parameters:
         openai_client: The OpenAI client to patch
         file_path: Path to configuration file
         client_config: Direct configuration (dict or GaiClientConfig)
-        
+
     Returns:
         The patched OpenAI client
     """
-    
+
     # Add get_client_config() function to the client
-    openai_client.get_client_config = create_get_client_config_function(client_config, file_path)
-    
+    openai_client.get_client_config = create_get_client_config_function(
+        client_config, file_path)
+
     # Add LLM Client specific functions
     openai_client.openai_create = openai_create
     openai_client.ollama_create = ollama_create
     openai_client.anthropic_create = anthropic_create
     openai_client.gai_create = gai_create
-    
+
     openai_client.openai_parse = openai_parse
     openai_client.ollama_parse = ollama_parse
     openai_client.gai_parse = gai_parse
     openai_client.anthropic_parse = anthropic_parse
-    
+
     # Add routing functions
     def patched_create(**kwargs):
         nonlocal openai_client
@@ -213,7 +223,7 @@ def patch_chatcompletions(openai_client, file_path: str = None, client_config: O
             return openai_client.gai_create(client_config, **kwargs)
         if client_type == "anthropic":
             return openai_client.anthropic_create(client_config, **kwargs)
-        
+
         error_message = f"patched_create: Invalid client type: {client_type}"
         logger.error(error_message)
         raise Exception(error_message)
@@ -232,16 +242,20 @@ def patch_chatcompletions(openai_client, file_path: str = None, client_config: O
             return openai_client.gai_parse(client_config, **kwargs)
         if client_type == "anthropic":
             return openai_client.anthropic_parse(client_config, **kwargs)
-        
+
         error_message = f"patched_parse: Invalid client type: {client_type}"
         logger.error(error_message)
         raise Exception(error_message)
-        
-    # Apply patches with validation
-    validate_patch_state(openai_client, "chat.completions", "is_patched", "patched_create")
-    apply_patch(openai_client, "chat.completions", "create", "original_openai_create", patched_create, "is_patched")
 
-    validate_patch_state(openai_client, "beta.chat.completions", "is_patched", "patched_parse")
-    apply_patch(openai_client, "beta.chat.completions", "parse", "original_openai_parse", patched_parse, "is_patched")
-        
+    # Apply patches with validation
+    validate_patch_state(openai_client, "chat.completions",
+                         "is_patched", "patched_create")
+    apply_patch(openai_client, "chat.completions", "create",
+                "original_openai_create", patched_create, "is_patched")
+
+    validate_patch_state(
+        openai_client, "beta.chat.completions", "is_patched", "patched_parse")
+    apply_patch(openai_client, "beta.chat.completions", "parse",
+                "original_openai_parse", patched_parse, "is_patched")
+
     return openai_client
