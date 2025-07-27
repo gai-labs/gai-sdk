@@ -1,8 +1,14 @@
 import os
 import json
+from pydantic import TypeAdapter
+from typing import List
+# Gai imports
 from gai.llm.openai.types import ChatCompletionChunk, ChatCompletion
-
+# Ollama imports
 from ollama import ChatResponse
+# Anthropic imports
+from anthropic.types import MessageStreamEvent
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -84,9 +90,6 @@ def chat_completions_stream(client_type):
 
         elif client_type == "anthropic":
             filename = "4b_stream_text_anthropic.json"
-            from anthropic.types import MessageStreamEvent
-            from pydantic import TypeAdapter
-            from typing import List
             fullpath = os.path.join(here, filename)
             with open(fullpath, "r") as f:
                 chunks = json.load(f)
@@ -127,6 +130,24 @@ def chat_completions_toolcall(client_type):
         return completion
 
     raise ValueError(f"Unknown client type: {client_type}")
+
+
+def chat_completions_streaming_toolcall(client_type):
+
+    def streamer():
+        if client_type == "anthropic":
+            filename = "4c_stream_tool_anthropic.json"
+            fullpath = os.path.join(here, filename)
+            with open(fullpath, "r") as f:
+                chunks = json.load(f)
+                adapter = TypeAdapter(List[MessageStreamEvent])
+                chunks = adapter.validate_python(chunks)
+                for chunk in chunks:
+                    yield chunk
+        else:
+            raise ValueError(f"Unknown client type: {client_type}")
+
+    return (chunk for chunk in streamer())
 
 
 def chat_completions_jsonschema(client_type):
