@@ -2,10 +2,17 @@ import os
 import sys
 import json
 import pytest
+from anthropic.types import MessageStreamEvent
+from pydantic import TypeAdapter
+from typing import List
 from unittest.mock import MagicMock, patch, PropertyMock, AsyncMock
-from anthropic import Anthropic, AsyncAnthropic
+from gai.lib.tests import get_local_datadir
+from gai.asm.agents.tool_use_agent import ToolUseAgent
+from gai.lib.config import GaiClientConfig
+from gai.mcp.client import McpAggregatedClient
+from gai.messages import Monologue
+from gai.lib.logging import getLogger
 
-from data.mock_openai_patch import chat_completions_streaming_toolcall
 
 # Add the mock data directory to path
 mock_dir = os.path.join(
@@ -24,13 +31,6 @@ mock_dir = os.path.join(
 )
 if mock_dir not in sys.path:
     sys.path.insert(0, mock_dir)
-
-# Import the classes we need to test
-from gai.asm.agents.tool_use_agent import ToolUseAgent
-from gai.lib.config import GaiClientConfig
-from gai.mcp.client import McpAggregatedClient
-from gai.messages import Monologue
-from gai.lib.logging import getLogger
 
 logger = getLogger(__name__)
 
@@ -164,18 +164,52 @@ class TestToolUseAgent:
 
     @pytest.mark.asyncio
     @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
-    async def test_agent_has_history_file(
-        self, mock_messages_prop, tmp_file_monologue, mock_llm_config, mock_mcp_client
+    async def test_normal_flow(
+        self,
+        mock_messages_prop,
+        tmp_file_monologue,
+        mock_llm_config,
+        mock_mcp_client,
+        request,
     ):
-        async def debug_stream(**args):
-            async def streamer():
-                for chunk in chat_completions_streaming_toolcall("anthropic"):
-                    yield chunk
+        count = 0
 
-            return streamer()
+        async def async_generator(**args):
+            nonlocal count
+
+            async def streamer_1():
+                datadir = get_local_datadir(request)
+                filename = "4c_stream_tool_anthropic.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            async def streamer_2():
+                datadir = get_local_datadir(request)
+                filename = "4d_stream_tool_use_2_anthropic.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            if count == 0:
+                count += 1
+                return streamer_1()
+            elif count == 1:
+                count += 1
+                return streamer_2()
+            else:
+                raise StopAsyncIteration
 
         mock_messages = MagicMock()
-        mock_messages.create.side_effect = debug_stream
+        mock_messages.create.side_effect = async_generator
         mock_messages_prop.return_value = mock_messages
 
         # Start testing
@@ -196,15 +230,30 @@ class TestToolUseAgent:
         # Check if the history file exists
         assert os.path.exists(tmp_file_monologue.file_path.replace(".log", ".history"))
 
-        # ACT: Run agent
+        # ACT: INIT -> CHAT -> IS_TOOL_CALL -> TOOL_USE -> FINAL
 
         resp = agent.run(user_message="What is the current time in Singapore?")
         last_chunk = None
         text = ""
         async for chunk in resp:
             if isinstance(chunk, str):
-                text += chunk
+                chunk = chunk.rstrip()
+                if chunk:
+                    if not text:
+                        text = chunk
+                    else:
+                        text += " " + chunk
             else:
                 last_chunk = chunk
-        assert text == "I'll help you find the current time in Singapore."
-        assert last_chunk[1]["input"]["search_query"] == "current time in Singapore"
+        assert (
+            text
+            == "I 'll help you find the current time in Singapore. The current time in Singapore is 3:00 PM.  Singapore follows Singapore Standard Time (SGT), which is UTC +8 and does not observe daylight saving time."
+        )
+        assert len(last_chunk) == 1
+        assert len(agent.fsm.state_history) == 6
+        assert agent.fsm.state_history[0]["state"] == "INIT"
+        assert agent.fsm.state_history[1]["state"] == "HAS_MESSAGE"
+        assert agent.fsm.state_history[2]["state"] == "CHAT"
+        assert agent.fsm.state_history[3]["state"] == "IS_TOOL_CALL"
+        assert agent.fsm.state_history[4]["state"] == "TOOL_USE"
+        assert agent.fsm.state_history[5]["state"] == "FINAL"
