@@ -148,6 +148,7 @@ class ToolUseAgent(AgentBase):
         """
         The user_message in this case contains the "goal" message.
         """
+        self.fsm.restart()
         if recap:
             user_message = f"""
             {user_message}
@@ -168,7 +169,6 @@ class ToolUseAgent(AgentBase):
         return self.run(user_message=user_message)
 
     def run(self, user_message: Optional[str] = None) -> AsyncGenerator[str, None]:
-        self.fsm.state = "INIT"
         self.fsm.user_message = user_message
 
         async def streamer():

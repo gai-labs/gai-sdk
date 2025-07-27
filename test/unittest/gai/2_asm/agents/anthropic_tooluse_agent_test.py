@@ -3,14 +3,27 @@ import sys
 import json
 import pytest
 from unittest.mock import MagicMock, patch, PropertyMock, AsyncMock
-from anthropic import Anthropic
+from anthropic import Anthropic, AsyncAnthropic
+
+from data.mock_openai_patch import chat_completions_streaming_toolcall
 
 # Add the mock data directory to path
-mock_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "projects", "gai-sdk", "llm", "test", "unittest", "gai", "openai", "mock_data")
+mock_dir = os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "..",
+    "..",
+    "projects",
+    "gai-sdk",
+    "llm",
+    "test",
+    "unittest",
+    "gai",
+    "openai",
+    "mock_data",
+)
 if mock_dir not in sys.path:
     sys.path.insert(0, mock_dir)
-
-from mock_openai_patch import chat_completions_generate, chat_completions_stream, chat_completions_streaming_toolcall
 
 # Import the classes we need to test
 from gai.asm.agents.tool_use_agent import ToolUseAgent
@@ -37,26 +50,29 @@ class TestToolUseAgent:
                 "top_p": 0.95,
                 "tools": True,
                 "stream": True,
-            }
+            },
         )
 
     @pytest.fixture
     def mock_mcp_client(self):
         """Create a mock MCP aggregated client."""
         client = MagicMock(spec=McpAggregatedClient)
-        client.list_tools = AsyncMock(return_value=[
-            {
-                "name": "search",
-                "description": "Search for information",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "search_query": {"type": "string"}
+        client.list_tools = AsyncMock(
+            return_value=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "search",
+                        "description": "Search for information",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {"search_query": {"type": "string"}},
+                            "required": ["search_query"],
+                        },
                     },
-                    "required": ["search_query"]
                 }
-            }
-        ])
+            ]
+        )
         return client
 
     @pytest.fixture
@@ -68,60 +84,127 @@ class TestToolUseAgent:
         monologue.pop.return_value = None
         return monologue
 
-    def test_tool_use_agent_initialization(self, mock_llm_config, mock_mcp_client, mock_monologue):
+    @pytest.fixture
+    def tmp_file_monologue(self):
+        """Create a temporary file monologue"""
+        import tempfile
+        from gai.messages import FileMonologue
+
+        temp_file_path = None
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".log") as temp_file:
+            temp_file_path = temp_file.name
+
+        monologue = FileMonologue(file_path=temp_file_path)
+        monologue.reset()
+        return monologue
+
+    def test_tool_use_agent_initialization(
+        self, mock_llm_config, mock_mcp_client, mock_monologue
+    ):
         """Test that ToolUseAgent initializes correctly."""
         agent = ToolUseAgent(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
             aggregated_client=mock_mcp_client,
-            monologue=mock_monologue
+            monologue=mock_monologue,
         )
-        
+
         # Test that the agent was created successfully
         assert isinstance(agent, ToolUseAgent)
         assert agent.monologue == mock_monologue
         assert agent.fsm is not None
         # The FSM starts in INIT state
-        assert hasattr(agent.fsm, 'state')
+        assert hasattr(agent.fsm, "state")
 
-    def test_has_message_predicate_with_no_user_message(self, mock_llm_config, mock_mcp_client, mock_monologue):
+    def test_has_message_predicate_with_no_user_message(
+        self, mock_llm_config, mock_mcp_client, mock_monologue
+    ):
         """Test has_message predicate when no user message is provided."""
         agent = ToolUseAgent(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
             aggregated_client=mock_mcp_client,
-            monologue=mock_monologue
+            monologue=mock_monologue,
         )
-        
+
         # Create a mock state
         mock_state = MagicMock()
         mock_state.machine.state_bag = {}
-        
+
         # Call the predicate
         result = agent.has_message(mock_state)
-        
+
         # Should return False when no user_message
         assert result is False
         assert mock_state.machine.state_bag["predicate_result"] is False
         assert mock_state.machine.state_bag["streamer"] is None
 
-    def test_has_message_predicate_with_user_message(self, mock_llm_config, mock_mcp_client, mock_monologue):
+    def test_has_message_predicate_with_user_message(
+        self, mock_llm_config, mock_mcp_client, mock_monologue
+    ):
         """Test has_message predicate when user message is provided."""
         agent = ToolUseAgent(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
             aggregated_client=mock_mcp_client,
-            monologue=mock_monologue
+            monologue=mock_monologue,
         )
-        
+
         # Create a mock state with user_message
         mock_state = MagicMock()
         mock_state.machine.state_bag = {"user_message": "Hello, world!"}
-        
+
         # Call the predicate
         result = agent.has_message(mock_state)
-        
+
         # Should return True when user_message exists
         assert result is True
         assert mock_state.machine.state_bag["predicate_result"] is True
         assert mock_state.machine.state_bag["streamer"] is None
+
+    @pytest.mark.asyncio
+    @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
+    async def test_agent_has_history_file(
+        self, mock_messages_prop, tmp_file_monologue, mock_llm_config, mock_mcp_client
+    ):
+        async def debug_stream(**args):
+            async def streamer():
+                for chunk in chat_completions_streaming_toolcall("anthropic"):
+                    yield chunk
+
+            return streamer()
+
+        mock_messages = MagicMock()
+        mock_messages.create.side_effect = debug_stream
+        mock_messages_prop.return_value = mock_messages
+
+        # Start testing
+
+        """Test that the agent has a history file."""
+        agent = ToolUseAgent(
+            agent_name="TestAgent",
+            llm_config=mock_llm_config,
+            aggregated_client=mock_mcp_client,
+            monologue=tmp_file_monologue,
+        )
+
+        assert os.path.exists(tmp_file_monologue.file_path)
+
+        # Check if the monologue file exists
+        assert tmp_file_monologue.file_path.endswith(".log")
+
+        # Check if the history file exists
+        assert os.path.exists(tmp_file_monologue.file_path.replace(".log", ".history"))
+
+        # ACT: Run agent
+
+        resp = agent.run(user_message="What is the current time in Singapore?")
+        last_chunk = None
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                text += chunk
+            else:
+                last_chunk = chunk
+        assert text == "I'll help you find the current time in Singapore."
+        assert last_chunk[1]["input"]["search_query"] == "current time in Singapore"

@@ -24,10 +24,13 @@ class AnthropicChatState(StateBase):
             "class_name": "AnthropicChatState",
             "title": "CHAT",
             "input_data": {
-                "llm_config": {"type": "state_bag", "dependency": "llm_config"},
-                "mcp_server_names": {
+                "llm_config": {
                     "type": "state_bag",
-                    "dependency": "mcp_server_names",
+                    "dependency": "llm_config",
+                },
+                "mcp_client": {
+                    "type": "state_bag",
+                    "dependency": "mcp_client",
                 },
             },
             "output_data": ["streamer", "get_assistant_message"],
@@ -80,15 +83,13 @@ class AnthropicChatState(StateBase):
         # End of Case 1
 
         assistant_message = ""
-        self.machine.monologue.add_user_message(
-            state=self, content=system_message)
+        self.machine.monologue.add_user_message(state=self, content=system_message)
         messages = self.machine.monologue.list_chat_messages()
 
         async def streamer():
             nonlocal assistant_message
 
             async def stream_with_retry():
-
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
                     messages=messages,

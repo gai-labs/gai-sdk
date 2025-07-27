@@ -11,7 +11,7 @@ This version addresses ALL errors from dialogue history:
 """
 
 import inspect
-from typing import Union, Optional
+from typing import Union, Optional, AsyncGenerator
 from gai.lib.utils import is_async_generator
 from gai.lib.config import GaiClientConfig
 from gai.lib.logging import getLogger
@@ -207,7 +207,9 @@ async def async_anthropic_create(client_config, **kwargs):
 
         factory = CompletionsFactory()
 
-        is_stream = isinstance(response, anthropic.AsyncStream)
+        is_stream = isinstance(response, anthropic.AsyncStream) or isinstance(
+            response, AsyncGenerator
+        )
         tools = final_kwargs.get("tools", None)
 
         if is_stream:

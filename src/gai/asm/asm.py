@@ -1,3 +1,5 @@
+import os
+import json
 import importlib
 import asyncio
 from transitions.extensions.asyncio import AsyncMachine
@@ -9,7 +11,63 @@ from datetime import datetime
 logger = getLogger(__name__)
 
 
+def strip_unserializable(obj):
+    if isinstance(obj, dict):
+        return {
+            k: strip_unserializable(v)
+            for k, v in obj.items()
+            if is_json_serializable(v)
+        }
+    elif isinstance(obj, list):
+        return [strip_unserializable(v) for v in obj if is_json_serializable(v)]
+    elif is_json_serializable(obj):
+        return obj
+    return None  # or skip entirely if inside dict
+
+
+def is_json_serializable(v):
+    try:
+        json.dumps(v)
+        return True
+    except (TypeError, OverflowError):
+        return False
+
+
 class AsyncStateMachine:
+    class StateHistory:
+        def __init__(self, history_path: Optional[str] = None):
+            self.state = None
+            self.history = []
+            self.history_path = history_path
+            if self.history_path and not os.path.exists(self.history_path):
+                with open(self.history_path, "w") as f:
+                    f.write(json.dumps([]))
+
+        def append(self, state_data: dict):
+            self.history.append(state_data)
+            serializable_history = [
+                {
+                    "state": entry["state"],
+                    "input": strip_unserializable(entry["input"]),
+                    "output": strip_unserializable(entry["output"]),
+                }
+                for entry in self.history
+            ]
+            if self.history_path:
+                with open(self.history_path, "w") as f:
+                    f.write(json.dumps(serializable_history))
+
+        def __getitem__(self, index):
+            if index >= len(self.history):
+                raise IndexError("Index out of range for state history.")
+            if index < 0 and len(self.history) == 0:
+                raise IndexError("Index out of range for state history.")
+
+            return self.history[index]
+
+        def __len__(self):
+            return len(self.history)
+
     class StateModel:
         def __init__(
             self,
@@ -21,7 +79,6 @@ class AsyncStateMachine:
             self.state = None
             self.agent_name = agent_name
             self.state_manifest = state_manifest
-            self.state_history = []
             self.state_data = {}
             self.state_bag = {}
             self.user_message = None
@@ -29,6 +86,16 @@ class AsyncStateMachine:
             if not monologue:
                 monologue = Monologue(agent_name=agent_name)
             self.monologue = monologue
+
+            self.state_history = []
+            if hasattr(self.monologue, "file_path"):
+                history_path = (
+                    ".".join(self.monologue.file_path.split(".")[0:-1]) + ".history"
+                )
+                self.state_history = AsyncStateMachine.StateHistory(
+                    history_path=history_path
+                )
+
             self.step = 0
             self.kwargs = kwargs
 
@@ -84,7 +151,9 @@ class AsyncStateMachine:
             resolved_input_data["time"] = datetime.now()
             resolved_input_data["name"] = self.agent_name
 
-            logger.debug(f"AsyncStateMachine.resolve_input: Resolved Pass 1. resolved_input_data={resolved_input_data}")
+            logger.debug(
+                f"AsyncStateMachine.resolve_input: Resolved Pass 1. resolved_input_data={resolved_input_data}"
+            )
 
             # Merge Pass 1 results into a working copy for Pass 2
 
@@ -123,12 +192,16 @@ class AsyncStateMachine:
                             try:
                                 resolved = await callable_(state)
                             except Exception as e:
-                                logger.error(f"AsyncStateMachine.resolve_input: error calling coroutine {dependency}. error={e}")
+                                logger.error(
+                                    f"AsyncStateMachine.resolve_input: error calling coroutine {dependency}. error={e}"
+                                )
                         else:
                             try:
                                 resolved = callable_(state)
                             except Exception as e:
-                                logger.error(f"AsyncStateMachine.resolve_input: error calling callable {dependency}. error={e}")
+                                logger.error(
+                                    f"AsyncStateMachine.resolve_input: error calling callable {dependency}. error={e}"
+                                )
 
                     elif v.get("type", None) == "prev_state":
                         # dependency refers to the name of a previous state output
@@ -174,7 +247,9 @@ class AsyncStateMachine:
             for k, v in resolved_input_data.items():
                 state.machine.state_bag[k] = v
 
-            logger.debug(f"AsyncStateMachine.resolve_input: Resolved Pass 2. resolved_input_data={resolved_input_data}")
+            logger.debug(
+                f"AsyncStateMachine.resolve_input: Resolved Pass 2. resolved_input_data={resolved_input_data}"
+            )
 
             return resolved_input_data
 
@@ -273,7 +348,6 @@ class AsyncStateMachine:
             if self.state == "INIT":
                 """Optional: Loads initializer by reflecting on the manifest."""
                 try:
-
                     from gai.asm.states import InitializeState
 
                     state = InitializeState(self)
@@ -349,9 +423,19 @@ class AsyncStateMachine:
                 await state.run_async()
                 state.output = self.finalize_output(state)
 
-                self.state_history.append(
-                    {"state": state_id, "input": state.input, "output": state.output}
-                )
+                try:
+                    self.state_history.append(
+                        {
+                            "state": state_id,
+                            "input": state.input,
+                            "output": state.output,
+                        }
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"AsyncStateMachine.action_async: error appending state history. error={e}"
+                    )
+                    raise
             else:
                 raise ValueError(f"State {state_id} not found in state manifest.")
 
@@ -360,6 +444,13 @@ class AsyncStateMachine:
         def restart(self):
             self.state = "INIT"
             self.state_history = []
+            if hasattr(self.monologue, "file_path"):
+                history_path = self.monologue.file_path.split(".")[0:-1] + ".history"
+                if os.path.exists(history_path):
+                    os.path.remove(history_path)
+                self.state_history = AsyncStateMachine.StateHistory(
+                    history_path=history_path
+                )
             self.state_bag = {}
 
     class StateMachineBuilder:

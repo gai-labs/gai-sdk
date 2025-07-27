@@ -21,20 +21,22 @@ class AnthropicToolUseState(StateBase):
     """
     state schema:
     {
-        "TOOL_CALL": {
+        "TOOL_USE": {
             "module_path": "gai.asm.states",
-            "class_name": "AnthropicToolCallState",
-            "title": "TOOL_CALL",
+            "class_name": "AnthropicToolUseState",
+            "title": "TOOL_USE",
             "input_data": {
-                "user_message": {"type": "state_bag", "dependency": "user_message"},
-                "llm_config": {"type": "state_bag", "dependency": "llm_config"},
-                "mcp_server_names": {
+                "llm_config": {
                     "type": "state_bag",
-                    "dependency": "mcp_server_names",
+                    "dependency": "llm_config",
+                },
+                "mcp_client": {
+                    "type": "state_bag",
+                    "dependency": "mcp_client",
                 },
             },
-            "output_data": ["streamer", "get_assistant_message"],
-        }
+            "output_data": ["tool_result", "get_assistant_message"],
+        },
     }
     """
 
@@ -127,8 +129,7 @@ class AnthropicToolUseState(StateBase):
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
         if self.machine.monologue.is_terminated():
-            logger.info(
-                "AnthropicToolUseState: Task completed, nothing to continue.")
+            logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
             self.machine.state_bag["streamer"] = None
             return  # Exit the state early
 
@@ -165,8 +166,7 @@ class AnthropicToolUseState(StateBase):
 
         assistant_message = ""
 
-        self.machine.monologue.add_user_message(
-            state=self, content=tool_results)
+        self.machine.monologue.add_user_message(state=self, content=tool_results)
         messages = self.machine.monologue.list_chat_messages()
 
         async def streamer():

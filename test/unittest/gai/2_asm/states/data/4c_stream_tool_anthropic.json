@@ -1,0 +1,154 @@
+[
+    {
+        "message": {
+            "id": "msg_01RZEcnTiQxs1rRF7JcvPgx3",
+            "content": [],
+            "model": "claude-opus-4-20250514",
+            "role": "assistant",
+            "stop_reason": null,
+            "stop_sequence": null,
+            "type": "message",
+            "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 578,
+                "output_tokens": 1,
+                "server_tool_use": null,
+                "service_tier": "standard"
+            }
+        },
+        "type": "message_start"
+    },
+    {
+        "content_block": {
+            "citations": null,
+            "text": "",
+            "type": "text"
+        },
+        "index": 0,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "text": "I",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": "'ll help you find the current time in Singapore.",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 0,
+        "type": "content_block_stop"
+    },
+    {
+        "content_block": {
+            "id": "toolu_01PsZcVuuQAU62ReyTuKYMyH",
+            "input": {},
+            "name": "google",
+            "type": "tool_use"
+        },
+        "index": 1,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "partial_json": "",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "{\"sea",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "rch_que",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "ry\": \"curr",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "ent time",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": " i",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "n Sing",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "apo",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "re\"}",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 1,
+        "type": "content_block_stop"
+    },
+    {
+        "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null
+        },
+        "type": "message_delta",
+        "usage": {
+            "cache_creation_input_tokens": null,
+            "cache_read_input_tokens": null,
+            "input_tokens": null,
+            "output_tokens": 68,
+            "server_tool_use": null
+        }
+    },
+    {
+        "type": "message_stop"
+    }
+]
