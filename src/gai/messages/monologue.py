@@ -52,8 +52,7 @@ class Monologue:
             step_no = state.input["step"]
 
         message = MessagePydantic(
-            header=MessageHeaderPydantic(
-                sender="User", recipient=self.agent_name),
+            header=MessageHeaderPydantic(sender="User", recipient=self.agent_name),
             body=MonologueBodyPydantic(
                 state_name=state_name,
                 step_no=step_no,
@@ -72,8 +71,7 @@ class Monologue:
             step_no = state.input["step"]
 
         message = MessagePydantic(
-            header=MessageHeaderPydantic(
-                sender=self.agent_name, recipient="User"),
+            header=MessageHeaderPydantic(sender=self.agent_name, recipient="User"),
             body=MonologueBodyPydantic(
                 state_name=state_name,
                 step_no=step_no,
@@ -94,23 +92,29 @@ class Monologue:
         """
         return self._messages.copy()
 
-    def list_chat_messages(self, shrink=True) -> list[dict[str, Any]]:
+    def list_chat_messages(self) -> list[dict[str, Any]]:
         """
         Returns the list of openAI-style chat messages in the monologue.
         """
-        if not shrink:
-            return message_helper.convert_to_chat_messages(self._messages.copy())
+        return message_helper.convert_to_chat_messages(self._messages)
 
-        # Return only the messages that fit within the character limit
-        messages_copy = self._messages.copy()
-        chat_messages_copy = message_helper.convert_to_chat_messages(
-            messages_copy)
-        if not shrink:
-            return chat_messages_copy
+    # def list_chat_messages(self, shrink=True) -> list[dict[str, Any]]:
+    #     """
+    #     Returns the list of openAI-style chat messages in the monologue.
+    #     """
+    #     if not shrink:
+    #         return message_helper.convert_to_chat_messages(self._messages.copy())
 
-        return message_helper.shrink_messages(
-            chat_messages_copy
-        )
+    #     # Return only the messages that fit within the character limit
+    #     messages_copy = self._messages.copy()
+    #     chat_messages_copy = message_helper.convert_to_chat_messages(
+    #         messages_copy)
+    #     if not shrink:
+    #         return chat_messages_copy
+
+    #     return message_helper.shrink_messages(
+    #         chat_messages_copy
+    #     )
 
     def pop(self):
         """
@@ -141,7 +145,8 @@ class Monologue:
         if len(self._messages) == 1:
             if self._messages[0].body.role != "user":
                 raise ValueError(
-                    "FileMonologue.get_last_toolcalls: The first message is not a user message.")
+                    "FileMonologue.get_last_toolcalls: The first message is not a user message."
+                )
             else:
                 # If there is only one message and it is a user message, then there are no tool calls.
                 return []

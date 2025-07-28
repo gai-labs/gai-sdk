@@ -58,6 +58,12 @@ class ChatState(StateBase):
 
         self.machine.monologue.add_user_message(state=self, content=system_message)
 
+        from gai.messages import message_helper
+
+        messages = self.machine.monologue.list_messages()
+        chat_messages = message_helper.convert_to_chat_messages(messages)
+        chat_messages = message_helper.shrink_messages(chat_messages)
+
         async def streamer():
             nonlocal assistant_message
             logger.info(f"ChatState.run_async: inside streamer()")
@@ -65,7 +71,7 @@ class ChatState(StateBase):
             async def stream_with_retry():
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
-                    messages=self.machine.monologue.list_chat_messages(),
+                    messages=chat_messages,
                     stream=True,
                 )
 
@@ -76,6 +82,10 @@ class ChatState(StateBase):
 
             # Retry the entire streaming operation
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
+            if not chat_messages:
+                raise ValueError(
+                    "AnthropicChatState: Cannot pass empty messages to LLM. Find out why messages are empty."
+                )
 
             async for chunk in retry_policy.run(stream_with_retry):
                 if isinstance(chunk, str):

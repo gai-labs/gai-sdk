@@ -1,0 +1,130 @@
+[
+    {
+        "message": {
+            "id": "msg_013D4oxqVv66n6Kjo9Q2z7nH",
+            "content": [],
+            "model": "claude-sonnet-4-20250514",
+            "role": "assistant",
+            "stop_reason": null,
+            "stop_sequence": null,
+            "type": "message",
+            "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 2519,
+                "output_tokens": 2,
+                "server_tool_use": null,
+                "service_tier": "standard"
+            }
+        },
+        "type": "message_start"
+    },
+    {
+        "content_block": {
+            "citations": null,
+            "text": "",
+            "type": "text"
+        },
+        "index": 0,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "text": "I understan",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": "d you'd like to hear",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": " a joke,",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": " but to",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": " properly answer your original",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": " question about the next public holiday, I",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": " still need some information:",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 0,
+        "type": "content_block_stop"
+    },
+    {
+        "content_block": {
+            "id": "toolu_01EA9B95vpzRkeaq4Bcq2729",
+            "input": {},
+            "name": "user_input",
+            "type": "tool_use"
+        },
+        "index": 1,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "partial_json": "",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 1,
+        "type": "content_block_stop"
+    },
+    {
+        "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null
+        },
+        "type": "message_delta",
+        "usage": {
+            "cache_creation_input_tokens": null,
+            "cache_read_input_tokens": null,
+            "input_tokens": null,
+            "output_tokens": 66,
+            "server_tool_use": null
+        }
+    },
+    {
+        "type": "message_stop"
+    }
+]

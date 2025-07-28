@@ -40,6 +40,11 @@ class AnthropicStateBase(StateBase):
         Main function is to stream text followed by the last chunk for the completed object.
         """
 
+        from gai.messages import message_helper
+
+        chat_messages = message_helper.convert_to_chat_messages(messages)
+        chat_messages = message_helper.shrink_messages(chat_messages)
+
         async def _streamer():
             has_text = False
 
@@ -69,12 +74,16 @@ class AnthropicStateBase(StateBase):
                             self.machine.state_bag["get_assistant_message"] = (
                                 lambda: text
                             )
-
+                        if item.get("type") == "tool_use":
+                            if item.get("name") == "user_input":
+                                self.machine.state_bag["is_user_input"] = True
+                            else:
+                                self.machine.state_bag["is_user_input"] = False
                 return last_chunk
 
             has_text = False
             async for chunk in await self._raw_llm_stream(
-                llm_client, llm_model, messages, tools
+                llm_client, llm_model, chat_messages, tools
             ):
                 # Stream until encountering a list type chunk.
 
@@ -146,6 +155,10 @@ class AnthropicChatState(AnthropicStateBase):
            
             You may respond to my following message using the context you have learnt.
             {self.machine.user_message}
+            
+            You may ask me for more information if you need to clarify my request but ask just enough to get the information you need to get started.
+            If you need to ask for more information, please use the "user_input" tool to get the information from me.
+            Please be very specific about what you need from me. Don't end with "I need some additional information" or similar phrases as you need to be specific about what you need.
             """
 
         mcp_client = self.input.get("mcp_client")
@@ -169,7 +182,8 @@ class AnthropicChatState(AnthropicStateBase):
         # End of Case 1
 
         self.machine.monologue.add_user_message(state=self, content=system_message)
-        messages = self.machine.monologue.list_chat_messages()
+
+        messages = self.machine.monologue.list_messages()
 
         self.machine.state_bag["streamer"] = self._make_streamer(
             llm_client, llm_model, messages, tools
@@ -332,14 +346,14 @@ class AnthropicToolUseState(AnthropicStateBase):
         assistant_message = ""
 
         self.machine.monologue.add_user_message(state=self, content=tool_results)
-        messages = self.machine.monologue.list_chat_messages()
+        messages = self.machine.monologue.list_messages()
 
         self.machine.state_bag["streamer"] = self._make_streamer(
             llm_client, llm_model, messages, tools
         )
 
 
-class ToolUseAgent2(AgentBase):
+class ToolUseAgent2:
     def __init__(
         self,
         agent_name: str,
@@ -347,9 +361,12 @@ class ToolUseAgent2(AgentBase):
         aggregated_client: McpAggregatedClient,
         monologue: Optional[Monologue] = None,
     ):
-        super().__init__(
-            agent_name=agent_name, monologue=monologue, llm_config=llm_config
-        )
+        self.monologue = monologue
+        if not self.monologue:
+            self.monologue = Monologue(agent_name=agent_name)
+
+        if not llm_config:
+            raise ValueError("ChatAgent: llm_config is required.")
 
         with AsyncStateMachine.StateMachineBuilder(
             # """
@@ -477,19 +494,10 @@ class ToolUseAgent2(AgentBase):
             and last_message.body.role == "assistant"
             and isinstance(last_message.body.content, list)
         ):
-            # if any(
-            #     item.get("type") == "tool_use" for item in last_message.body.content
-            # ):
-            #     result = True
-
-            for item in last_message.body.content:
-                if item.get("type") == "tool_use":
-                    result = True
-                    if item.get("name") == "user_input":
-                        state.machine.state_bag["is_user_input"] = True
-                    else:
-                        state.machine.state_bag["is_user_input"] = False
-                    break
+            if any(
+                item.get("type") == "tool_use" for item in last_message.body.content
+            ):
+                result = True
 
         state.machine.state_bag["is_tool_call_result"] = result
         return result
@@ -502,63 +510,15 @@ class ToolUseAgent2(AgentBase):
         state.machine.state_bag["is_terminate_result"] = result
         return result
 
-    # def is_tool_call(self, state):
-    #     messages = state.machine.monologue.list_messages()
-    #     last_message = messages[-1] if messages else None
-    #     if not last_message:
-    #         raise ValueError("ToolUseAgent.is_tool_call: Monologue has no messages.")
-    #     if last_message.body.role != "assistant":
-    #         raise ValueError(
-    #             "ToolUseAgent.is_tool_call: Last message is not from assistant."
-    #         )
-    #     try:
-    #         tool_use = None
-    #         if isinstance(last_message.body.content, list):
-    #             for t in last_message.body.content:
-    #                 if t.get("type") == "tool_use":
-    #                     tool_use = t
-
-    #         state.machine.state_bag["predicate_result"] = tool_use is not None
-    #         return state.machine.state_bag["predicate_result"]
-    #     except Exception as e:
-    #         logger.error(f"[red]Error processing last message content: {e}[/red]")
-    #         raise e
-
     async def start_async(self):
+        self.fsm.monologue.reset()
         self.fsm.restart()
         current_state = self.fsm.state
         await self.fsm.run_async()
         logger.info(f"Final state: {current_state} --> {self.fsm.state}")
 
-    # async def start_async(
-    #     self, user_message: str, recap: Optional[str] = None
-    # ) -> AsyncGenerator[str, None]:
-    #     self.fsm.restart()
-    #     if recap:
-    #         user_message = f"""
-    #         {user_message}
-
-    #         Here is a recap of the conversation:
-    #         {recap}
-    #         """
-    #     self.fsm.user_message = user_message
-
-    #     logger.info(f"Starting agent with user_message: {user_message}")
-    #     current_state = self.fsm.state
-    #     await self.fsm.run_async()
-    #     logger.info(f"Final state: {current_state} --> {self.fsm.state}")
-
-    #     async def streamer():
-    #         if self.fsm.state_bag.get("streamer"):
-    #             async for chunk in self.fsm.state_bag["streamer"]:
-    #                 if chunk:
-    #                     # if isinstance(chunk, str):
-    #                     yield (chunk)
-
-    #     return streamer()
-
     async def resume_async(
-        self, user_message: Optional[str] = None
+        self, user_message: Optional[str] = None, recap: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """
         If there is no user_message, then this is a regular call
@@ -568,15 +528,34 @@ class ToolUseAgent2(AgentBase):
         a response to the llm interrupted flow by the tool 'user_input'.
         """
 
-        if self.fsm.state_bag.get("is_user_input") == True and user_message is None:
+        if (
+            self.fsm.state_bag.get("is_user_input") == True
+            and (self.fsm.state == "IS_TOOL_CALL")
+            and user_message is None
+        ):
             raise ValueError("ToolUseAgent2.resume_async: pending user input")
 
         current_state = self.fsm.state
+
+        if recap:
+            user_message = f"""
+            {user_message}
+
+            Here is a recap of the conversation:
+            {recap}
+            """
         self.fsm.user_message = user_message
+
         await self.fsm.run_async()
         logger.info(f"Final state: {current_state} --> {self.fsm.state}")
 
         async def streamer():
+            if (
+                self.fsm.state_bag.get("is_user_input") == True
+                and self.fsm.state == "TOOL_USE"
+            ):
+                self.fsm.state_bag["is_user_input"] = False
+
             if self.fsm.state_bag.get("streamer"):
                 async for chunk in self.fsm.state_bag["streamer"]:
                     if chunk:

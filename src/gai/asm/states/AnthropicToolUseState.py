@@ -167,7 +167,12 @@ class AnthropicToolUseState(StateBase):
         assistant_message = ""
 
         self.machine.monologue.add_user_message(state=self, content=tool_results)
-        messages = self.machine.monologue.list_chat_messages()
+
+        from gai.messages import message_helper
+
+        messages = self.machine.monologue.list_messages()
+        chat_messages = message_helper.convert_to_chat_messages(messages)
+        chat_messages = message_helper.shrink_messages(chat_messages)
 
         async def streamer():
             nonlocal assistant_message
@@ -175,7 +180,7 @@ class AnthropicToolUseState(StateBase):
             async def stream_with_retry():
                 response = await llm_client.chat.completions.create(
                     model=llm_model,
-                    messages=messages,
+                    messages=chat_messages,
                     tools=tools,
                     stream=True,
                 )
@@ -193,7 +198,7 @@ class AnthropicToolUseState(StateBase):
             # Retry the entire streaming operation
             retry_policy = LLMGeneratorRetryPolicy(self.machine)
             has_text = False
-            if not messages:
+            if not chat_messages:
                 raise ValueError(
                     "AnthropicToolUseState: Cannot pass empty messages to LLM. Find out why messages are empty."
                 )
