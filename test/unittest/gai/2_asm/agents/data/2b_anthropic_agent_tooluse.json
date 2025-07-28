@@ -1,0 +1,178 @@
+[
+    {
+        "message": {
+            "id": "msg_01S2ZefNtbTxv3ofGyjkKj7N",
+            "content": [],
+            "model": "claude-sonnet-4-20250514",
+            "role": "assistant",
+            "stop_reason": null,
+            "stop_sequence": null,
+            "type": "message",
+            "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 2518,
+                "output_tokens": 1,
+                "server_tool_use": null,
+                "service_tier": "standard"
+            }
+        },
+        "type": "message_start"
+    },
+    {
+        "content_block": {
+            "citations": null,
+            "text": "",
+            "type": "text"
+        },
+        "index": 0,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "text": "Thank",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": " you! I'll search for the next public holiday in",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": " Singapore (SGT timezone).",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 0,
+        "type": "content_block_stop"
+    },
+    {
+        "content_block": {
+            "id": "toolu_014GdtVqB2CfNvzQUZc1NnLg",
+            "input": {},
+            "name": "current_time",
+            "type": "tool_use"
+        },
+        "index": 1,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "partial_json": "",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "{\"fo",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "rm",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "at\": \"Y",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "YYY-",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "MM-DD\"",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": ", \"timez",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "one\": \"Asia",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "/Si",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "ng",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "apore\"}",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 1,
+        "type": "content_block_stop"
+    },
+    {
+        "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null
+        },
+        "type": "message_delta",
+        "usage": {
+            "cache_creation_input_tokens": null,
+            "cache_read_input_tokens": null,
+            "input_tokens": null,
+            "output_tokens": 96,
+            "server_tool_use": null
+        }
+    },
+    {
+        "type": "message_stop"
+    }
+]

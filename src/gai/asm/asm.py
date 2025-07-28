@@ -445,9 +445,11 @@ class AsyncStateMachine:
             self.state = "INIT"
             self.state_history = []
             if hasattr(self.monologue, "file_path"):
-                history_path = self.monologue.file_path.split(".")[0:-1] + ".history"
+                history_path = (
+                    ".".join(self.monologue.file_path.split(".")[0:-1]) + ".history"
+                )
                 if os.path.exists(history_path):
-                    os.path.remove(history_path)
+                    os.remove(history_path)
                 self.state_history = AsyncStateMachine.StateHistory(
                     history_path=history_path
                 )

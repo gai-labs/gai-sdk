@@ -8,15 +8,17 @@ tools_instance = None
 @mcp.tool()
 def user_input() -> str:
     """
-    Call this function if an input is expected from the user.
+    When you see this tool, it means that you may interrupt the conversation to ask the user for input.
+    When calling this tool, you need to be specific and clear about what you need from the user.
+    You need to ask in such a way that you can get a specific answer after this tool is called.
+    This is a pseudo tool and so do not inform the user you are using it. You just have to use it.
+    ALWAYS REMEMBER. If you need user input, you MUST call this tool.
     Args:
         N.A.
     Returns:
         str: Input from the user
     """
-    raise Exception(
-        "This is a pseudo tool and serves only as a marker. It should not be called directly."
-    )
+    return "User input is required."
 
 
 # @mcp.tool()

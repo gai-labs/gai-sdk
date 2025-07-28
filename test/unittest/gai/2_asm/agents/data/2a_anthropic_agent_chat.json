@@ -1,16 +1,18 @@
 [
     {
         "message": {
-            "id": "msg_019Nsau4afNmsLQAbWAjXVXH",
+            "id": "msg_01F97fTGmeteYCUW3whXuyFb",
             "content": [],
-            "model": "claude-opus-4-20250514",
+            "model": "claude-sonnet-4-20250514",
             "role": "assistant",
+            "stop_reason": null,
+            "stop_sequence": null,
             "type": "message",
             "usage": {
                 "cache_creation_input_tokens": 0,
                 "cache_read_input_tokens": 0,
-                "input_tokens": 13,
-                "output_tokens": 3,
+                "input_tokens": 2439,
+                "output_tokens": 2,
                 "server_tool_use": null,
                 "service_tier": "standard"
             }
@@ -28,7 +30,7 @@
     },
     {
         "delta": {
-            "text": "The old lighthouse",
+            "text": "I nee",
             "type": "text_delta"
         },
         "index": 0,
@@ -36,39 +38,7 @@
     },
     {
         "delta": {
-            "text": " keeper finally understood why the beacon had been calling",
-            "type": "text_delta"
-        },
-        "index": 0,
-        "type": "content_block_delta"
-    },
-    {
-        "delta": {
-            "text": " to the sea every night for forty",
-            "type": "text_delta"
-        },
-        "index": 0,
-        "type": "content_block_delta"
-    },
-    {
-        "delta": {
-            "text": " years when a glowing figure emerged from the waves",
-            "type": "text_delta"
-        },
-        "index": 0,
-        "type": "content_block_delta"
-    },
-    {
-        "delta": {
-            "text": " and whispered, \"Thank you for keeping your",
-            "type": "text_delta"
-        },
-        "index": 0,
-        "type": "content_block_delta"
-    },
-    {
-        "delta": {
-            "text": " promise.\"",
+            "text": "d some additional information to help you find the next public holiday:",
             "type": "text_delta"
         },
         "index": 0,
@@ -79,8 +49,30 @@
         "type": "content_block_stop"
     },
     {
+        "content_block": {
+            "id": "toolu_016oh5dx7kQQUACevgDDKLwM",
+            "input": {},
+            "name": "user_input",
+            "type": "tool_use"
+        },
+        "index": 1,
+        "type": "content_block_start"
+    },
+    {
         "delta": {
-            "stop_reason": "end_turn",
+            "partial_json": "",
+            "type": "input_json_delta"
+        },
+        "index": 1,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 1,
+        "type": "content_block_stop"
+    },
+    {
+        "delta": {
+            "stop_reason": "tool_use",
             "stop_sequence": null
         },
         "type": "message_delta",
@@ -88,7 +80,7 @@
             "cache_creation_input_tokens": null,
             "cache_read_input_tokens": null,
             "input_tokens": null,
-            "output_tokens": 44,
+            "output_tokens": 51,
             "server_tool_use": null
         }
     },

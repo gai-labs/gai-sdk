@@ -1,12 +1,13 @@
 import os
 import json
+import uuid
 import pytest
 from anthropic.types import MessageStreamEvent
 from pydantic import TypeAdapter
 from typing import List
 from unittest.mock import MagicMock, patch, PropertyMock, AsyncMock
 from gai.lib.tests import get_local_datadir
-from gai.asm.agents.tool_use_agent import ToolUseAgent
+from gai.asm.agents.tool_use_agent_2 import ToolUseAgent2
 from gai.lib.config import GaiClientConfig
 from gai.mcp.client import McpAggregatedClient
 from gai.messages import Monologue
@@ -30,26 +31,29 @@ class TestToolUseAgent2:
                 "top_p": 0.95,
                 "tools": True,
                 "stream": True,
-            }
+            },
         )
 
     @pytest.fixture
     def mock_mcp_client(self):
         """Create a mock MCP aggregated client."""
         client = MagicMock(spec=McpAggregatedClient)
-        client.list_tools = AsyncMock(return_value=[
-            {
-                "name": "search",
-                "description": "Search for information",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "search_query": {"type": "string"}
+        client.list_tools = AsyncMock(
+            return_value=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "search",
+                        "description": "Search for information",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {"search_query": {"type": "string"}},
+                            "required": ["search_query"],
+                        },
                     },
-                    "required": ["search_query"]
                 }
-            }
-        ])
+            ]
+        )
         return client
 
     @pytest.fixture
@@ -61,29 +65,47 @@ class TestToolUseAgent2:
         monologue.pop.return_value = None
         return monologue
 
-    def test_tool_use_agent_initialization(self, mock_llm_config, mock_mcp_client, mock_monologue):
+    @pytest.fixture
+    def mock_file_monologue(self):
+        """Create a temporary file monologue"""
+        from gai.messages import FileMonologue
+
+        # import tempfile
+        # temp_file_path = None
+        # with tempfile.NamedTemporaryFile(delete=False, suffix=".log") as temp_file:
+        #     temp_file_path = temp_file.name
+        temp_file_path = os.path.join("/tmp", str(uuid.uuid4()) + ".log")
+        monologue = FileMonologue(file_path=temp_file_path)
+        monologue.reset()
+        return monologue
+
+    def test_tool_use_agent_initialization(
+        self, mock_llm_config, mock_mcp_client, mock_monologue
+    ):
         """Test that ToolUseAgent initializes correctly."""
-        agent = ToolUseAgent(
+        agent = ToolUseAgent2(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
             aggregated_client=mock_mcp_client,
-            monologue=mock_monologue
+            monologue=mock_monologue,
         )
 
         # Test that the agent was created successfully
-        assert isinstance(agent, ToolUseAgent)
+        assert isinstance(agent, ToolUseAgent2)
         assert agent.monologue == mock_monologue
         assert agent.fsm is not None
         # The FSM starts in INIT state
-        assert hasattr(agent.fsm, 'state')
+        assert hasattr(agent.fsm, "state")
 
-    def test_has_message_predicate_with_no_user_message(self, mock_llm_config, mock_mcp_client, mock_monologue):
+    def test_has_message_predicate_with_no_user_message(
+        self, mock_llm_config, mock_mcp_client, mock_monologue
+    ):
         """Test has_message predicate when no user message is provided."""
-        agent = ToolUseAgent(
+        agent = ToolUseAgent2(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
             aggregated_client=mock_mcp_client,
-            monologue=mock_monologue
+            monologue=mock_monologue,
         )
 
         # Create a mock state
@@ -98,13 +120,15 @@ class TestToolUseAgent2:
         assert mock_state.machine.state_bag["predicate_result"] is False
         assert mock_state.machine.state_bag["streamer"] is None
 
-    def test_has_message_predicate_with_user_message(self, mock_llm_config, mock_mcp_client, mock_monologue):
+    def test_has_message_predicate_with_user_message(
+        self, mock_llm_config, mock_mcp_client, mock_monologue
+    ):
         """Test has_message predicate when user message is provided."""
-        agent = ToolUseAgent(
+        agent = ToolUseAgent2(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
             aggregated_client=mock_mcp_client,
-            monologue=mock_monologue
+            monologue=mock_monologue,
         )
 
         # Create a mock state with user_message
@@ -119,12 +143,138 @@ class TestToolUseAgent2:
         assert mock_state.machine.state_bag["predicate_result"] is True
         assert mock_state.machine.state_bag["streamer"] is None
 
+    # @pytest.mark.asyncio
+    # @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
+    # async def test_normal_flow(
+    #     self,
+    #     mock_messages_prop,
+    #     mock_file_monologue,
+    #     mock_llm_config,
+    #     mock_mcp_client,
+    #     request,
+    # ):
+    #     count = 0
+
+    #     async def async_generator(**args):
+    #         nonlocal count
+
+    #         async def streamer_1():
+    #             datadir = get_local_datadir(request)
+    #             filename = "4c_stream_tool_anthropic.json"
+    #             fullpath = os.path.join(datadir, filename)
+    #             with open(fullpath, "r") as f:
+    #                 chunks = json.load(f)
+    #                 adapter = TypeAdapter(List[MessageStreamEvent])
+    #                 chunks = adapter.validate_python(chunks)
+    #                 for chunk in chunks:
+    #                     yield chunk
+
+    #         async def streamer_2():
+    #             datadir = get_local_datadir(request)
+    #             filename = "4d_stream_tool_use_2_anthropic.json"
+    #             fullpath = os.path.join(datadir, filename)
+    #             with open(fullpath, "r") as f:
+    #                 chunks = json.load(f)
+    #                 adapter = TypeAdapter(List[MessageStreamEvent])
+    #                 chunks = adapter.validate_python(chunks)
+    #                 for chunk in chunks:
+    #                     yield chunk
+
+    #         if count == 0:
+    #             count += 1
+    #             return streamer_1()
+    #         elif count == 1:
+    #             count += 1
+    #             return streamer_2()
+    #         else:
+    #             raise StopAsyncIteration
+
+    #     mock_messages = MagicMock()
+    #     mock_messages.create.side_effect = async_generator
+    #     mock_messages_prop.return_value = mock_messages
+
+    #     # Start testing
+
+    #     """Test that the agent has a history file."""
+    #     agent = ToolUseAgent2(
+    #         agent_name="TestAgent",
+    #         llm_config=mock_llm_config,
+    #         aggregated_client=mock_mcp_client,
+    #         monologue=mock_file_monologue,
+    #     )
+
+    #     # ACT: INIT -> HAS_MESSAGE
+
+    #     resp = await agent.start_async(
+    #         user_message="What is the current time in Singapore?"
+    #     )
+    #     print(f"\ncurrent state: {agent.fsm.state}")
+    #     assert agent.fsm.state == "HAS_MESSAGE"
+    #     assert agent.fsm.state_bag["predicate_result"] is True
+
+    #     # ACT: HAS_MESSAGE -> CHAT
+
+    #     resp = await agent.resume_async()
+    #     last_chunk = []
+    #     text = ""
+    #     async for chunk in resp:
+    #         if isinstance(chunk, str):
+    #             chunk = chunk.rstrip()
+    #             if chunk:
+    #                 text += chunk
+    #         else:
+    #             last_chunk = chunk
+    #     print(f"\ncurrent state: {agent.fsm.state}")
+
+    #     assert agent.fsm.state == "CHAT"
+    #     assert text == "I'll help you find the current time in Singapore."
+    #     assert len(last_chunk) == 2
+    #     assert last_chunk[0]["type"] == "text"
+    #     assert last_chunk[0]["text"] == text
+    #     assert last_chunk[1]["type"] == "tool_use"
+    #     assert last_chunk[1]["input"]["search_query"] == "current time in Singapore"
+    #     assert agent.final_output() == text
+    #     messages = agent.monologue.list_messages()
+    #     assert len(messages) == 2
+
+    #     # ACT: CHAT -> IS_TOOL_CALL
+
+    #     resp = await agent.resume_async()
+    #     print(f"\ncurrent state: {agent.fsm.state}")
+    #     assert agent.fsm.state == "IS_TOOL_CALL"
+    #     assert agent.fsm.state_bag["predicate_result"] is True
+
+    #     # ACT: IS_TOOL_CALL -> TOOL_USE
+
+    #     resp = await agent.resume_async()
+    #     last_chunk = []
+    #     text = ""
+    #     async for chunk in resp:
+    #         if isinstance(chunk, str):
+    #             if chunk.rstrip():
+    #                 text += chunk
+    #         else:
+    #             last_chunk = chunk
+    #     print(f"\ncurrent state: {agent.fsm.state}")
+
+    #     assert agent.fsm.state == "TOOL_USE"
+    #     assert (
+    #         text
+    #         == "The current time in Singapore is 3:00 PM. Singapore follows Singapore Standard Time (SGT), which is UTC+8 and does not observe daylight saving time."
+    #     )
+    #     assert len(last_chunk) == 1
+    #     assert last_chunk[0]["type"] == "text"
+    #     assert last_chunk[0]["text"] == text
+    #     assert agent.final_output() == text
+    #     messages = agent.monologue.list_messages()
+    #     assert len(messages) == 4
+
     @pytest.mark.asyncio
     @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
     async def test_normal_flow(
         self,
         mock_messages_prop,
-        tmp_file_monologue,
+        mock_file_monologue,
         mock_llm_config,
         mock_mcp_client,
         request,
@@ -136,7 +286,7 @@ class TestToolUseAgent2:
 
             async def streamer_1():
                 datadir = get_local_datadir(request)
-                filename = "4c_stream_tool_anthropic.json"
+                filename = "1a_anthropic_agent_chat.json"
                 fullpath = os.path.join(datadir, filename)
                 with open(fullpath, "r") as f:
                     chunks = json.load(f)
@@ -147,7 +297,7 @@ class TestToolUseAgent2:
 
             async def streamer_2():
                 datadir = get_local_datadir(request)
-                filename = "4d_stream_tool_use_2_anthropic.json"
+                filename = "1b_anthropic_agent_tooluse.json"
                 fullpath = os.path.join(datadir, filename)
                 with open(fullpath, "r") as f:
                     chunks = json.load(f)
@@ -172,46 +322,392 @@ class TestToolUseAgent2:
         # Start testing
 
         """Test that the agent has a history file."""
-        agent = ToolUseAgent(
+        agent = ToolUseAgent2(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
             aggregated_client=mock_mcp_client,
-            monologue=tmp_file_monologue,
+            monologue=mock_file_monologue,
         )
 
-        assert os.path.exists(tmp_file_monologue.file_path)
+        # ACT: INIT -> IS_TOOL_CALL
 
-        # Check if the monologue file exists
-        assert tmp_file_monologue.file_path.endswith(".log")
+        await agent.start_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TOOL_CALL"
+        assert agent.fsm.state_bag["predicate_result"] is False
+        assert agent.fsm.state_bag["is_tool_call_result"] is False
 
-        # Check if the history file exists
-        assert os.path.exists(
-            tmp_file_monologue.file_path.replace(".log", ".history"))
+        # ACT: IS_TOOL_CALL -> CHAT
 
-        # ACT: INIT -> CHAT -> IS_TOOL_CALL -> TOOL_USE -> FINAL
-
-        resp = agent.run(user_message="What is the current time in Singapore?")
-        last_chunk = None
+        resp = await agent.resume_async(
+            user_message="What is the current time in Singapore?"
+        )
+        last_chunk = []
         text = ""
         async for chunk in resp:
             if isinstance(chunk, str):
                 chunk = chunk.rstrip()
                 if chunk:
-                    if not text:
-                        text = chunk
-                    else:
-                        text += " " + chunk
+                    text += chunk
             else:
                 last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "CHAT"
+        assert text == "I'll help you find the current time in Singapore."
+        assert len(last_chunk) == 2
+        assert last_chunk[0]["type"] == "text"
+        assert last_chunk[0]["text"] == text
+        assert last_chunk[1]["type"] == "tool_use"
+        assert last_chunk[1]["input"]["search_query"] == "current time in Singapore"
+        assert agent.final_output() == text
+        messages = agent.monologue.list_messages()
+        assert len(messages) == 2
+
+        # ACT: CHAT -> IS_TERMINATE
+
+        resp = await agent.resume_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TERMINATE"
+        assert agent.fsm.state_bag["predicate_result"] is False
+        assert agent.fsm.state_bag["is_terminate_result"] is False
+
+        # ACT: IS_TERMINATE -> IS_TOOL_CALL
+
+        await agent.start_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TOOL_CALL"
+        assert agent.fsm.state_bag["predicate_result"] is True
+        assert agent.fsm.state_bag["is_tool_call_result"] is True
+
+        # ACT: IS_TOOL_CALL -> TOOL_USE
+
+        resp = await agent.resume_async()
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                if chunk.rstrip():
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        assert agent.fsm.state == "TOOL_USE"
         assert (
             text
-            == "I 'll help you find the current time in Singapore. The current time in Singapore is 3:00 PM.  Singapore follows Singapore Standard Time (SGT), which is UTC +8 and does not observe daylight saving time."
+            == "The current time in Singapore is 3:00 PM. Singapore follows Singapore Standard Time (SGT), which is UTC+8 and does not observe daylight saving time."
         )
         assert len(last_chunk) == 1
-        assert len(agent.fsm.state_history) == 6
-        assert agent.fsm.state_history[0]["state"] == "INIT"
-        assert agent.fsm.state_history[1]["state"] == "HAS_MESSAGE"
-        assert agent.fsm.state_history[2]["state"] == "CHAT"
-        assert agent.fsm.state_history[3]["state"] == "IS_TOOL_CALL"
-        assert agent.fsm.state_history[4]["state"] == "TOOL_USE"
-        assert agent.fsm.state_history[5]["state"] == "FINAL"
+        assert last_chunk[0]["type"] == "text"
+        assert last_chunk[0]["text"] == text
+        assert agent.final_output() == text
+        messages = agent.monologue.list_messages()
+        assert len(messages) == 4
+
+    @pytest.mark.asyncio
+    @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
+    async def test_llm_interrupt_and_resume_flow(
+        self,
+        mock_messages_prop,
+        mock_file_monologue,
+        mock_llm_config,
+        mock_mcp_client,
+        request,
+    ):
+        count = 0
+
+        async def async_generator(**args):
+            nonlocal count
+
+            async def streamer_1():
+                datadir = get_local_datadir(request)
+                filename = "2a_anthropic_agent_chat.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            async def streamer_2():
+                datadir = get_local_datadir(request)
+                filename = "2b_anthropic_agent_tooluse.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            if count == 0:
+                count += 1
+                return streamer_1()
+            elif count == 1:
+                count += 1
+                return streamer_2()
+            else:
+                raise StopAsyncIteration
+
+        mock_messages = MagicMock()
+        mock_messages.create.side_effect = async_generator
+        mock_messages_prop.return_value = mock_messages
+
+        # Start testing
+
+        """Test that the agent has a history file."""
+        agent = ToolUseAgent2(
+            agent_name="TestAgent",
+            llm_config=mock_llm_config,
+            aggregated_client=mock_mcp_client,
+            monologue=mock_file_monologue,
+        )
+
+        # ACT: INIT -> IS_TOOL_CALL
+
+        await agent.start_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TOOL_CALL"
+        assert agent.fsm.state_bag["predicate_result"] is False
+        assert agent.fsm.state_bag["is_tool_call_result"] is False
+
+        # ACT: IS_TOOL_CALL -> CHAT
+
+        resp = await agent.resume_async(
+            user_message="When is the next public holiday? Please ask if you need more information."
+        )
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "CHAT"
+        assert (
+            text
+            == "I need some additional information to help you find the next public holiday:"
+        )
+        assert len(last_chunk) == 2
+        assert last_chunk[0]["type"] == "text"
+        assert last_chunk[0]["text"] == text
+        assert last_chunk[1]["type"] == "tool_use"
+        assert last_chunk[1]["name"] == "user_input"
+        assert agent.final_output() == text
+        messages = agent.monologue.list_messages()
+        assert len(messages) == 2
+
+        # ACT: CHAT -> IS_TERMINATE
+
+        resp = await agent.resume_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TERMINATE"
+        assert agent.fsm.state_bag["predicate_result"] is False
+        assert agent.fsm.state_bag["is_terminate_result"] is False
+
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert not text
+
+        # ACT: IS_TERMINATE -> IS_TOOL_CALL
+
+        resp = await agent.resume_async()
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TOOL_CALL"
+        assert agent.fsm.state_bag["predicate_result"] is True
+        assert agent.fsm.state_bag["is_tool_call_result"] is True
+        assert agent.fsm.state_bag["is_user_input"] is True
+        assert not text
+
+        # ACT: IS_TOOL_CALL -> TOOL_USE
+
+        resp = await agent.resume_async("Use SGT")
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        print("text:", text)
+        assert (
+            text
+            == "Thank you! I'll search for the next public holiday in Singapore (SGT timezone)."
+        )
+        assert len(last_chunk) == 2
+        assert last_chunk[0]["type"] == "text"
+        assert last_chunk[0]["text"] == text
+        assert last_chunk[1]["type"] == "tool_use"
+        assert last_chunk[1]["name"] == "current_time"
+        assert agent.final_output() == text
+        messages = agent.monologue.list_messages()
+        assert len(messages) == 4
+
+    @pytest.mark.asyncio
+    @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
+    async def test_llm_interrupt_and_pending_flow(
+        self,
+        mock_messages_prop,
+        mock_file_monologue,
+        mock_llm_config,
+        mock_mcp_client,
+        request,
+    ):
+        count = 0
+
+        async def async_generator(**args):
+            nonlocal count
+
+            async def streamer_1():
+                datadir = get_local_datadir(request)
+                filename = "2a_anthropic_agent_chat.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            async def streamer_2():
+                datadir = get_local_datadir(request)
+                filename = "2b_anthropic_agent_tooluse.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            if count == 0:
+                count += 1
+                return streamer_1()
+            elif count == 1:
+                count += 1
+                return streamer_2()
+            else:
+                raise StopAsyncIteration
+
+        mock_messages = MagicMock()
+        mock_messages.create.side_effect = async_generator
+        mock_messages_prop.return_value = mock_messages
+
+        # Start testing
+
+        """Test that the agent has a history file."""
+        agent = ToolUseAgent2(
+            agent_name="TestAgent",
+            llm_config=mock_llm_config,
+            aggregated_client=mock_mcp_client,
+            monologue=mock_file_monologue,
+        )
+
+        # ACT: INIT -> IS_TOOL_CALL
+
+        await agent.start_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TOOL_CALL"
+        assert agent.fsm.state_bag["predicate_result"] is False
+        assert agent.fsm.state_bag["is_tool_call_result"] is False
+
+        # ACT: IS_TOOL_CALL -> CHAT
+
+        resp = await agent.resume_async(
+            user_message="When is the next public holiday? Please ask if you need more information."
+        )
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "CHAT"
+        assert (
+            text
+            == "I need some additional information to help you find the next public holiday:"
+        )
+        assert len(last_chunk) == 2
+        assert last_chunk[0]["type"] == "text"
+        assert last_chunk[0]["text"] == text
+        assert last_chunk[1]["type"] == "tool_use"
+        assert last_chunk[1]["name"] == "user_input"
+        assert agent.final_output() == text
+        messages = agent.monologue.list_messages()
+        assert len(messages) == 2
+
+        # ACT: CHAT -> IS_TERMINATE
+
+        resp = await agent.resume_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TERMINATE"
+        assert agent.fsm.state_bag["predicate_result"] is False
+        assert agent.fsm.state_bag["is_terminate_result"] is False
+
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert not text
+
+        # ACT: IS_TERMINATE -> IS_TOOL_CALL
+
+        resp = await agent.resume_async()
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "IS_TOOL_CALL"
+        assert agent.fsm.state_bag["predicate_result"] is True
+        assert agent.fsm.state_bag["is_tool_call_result"] is True
+        assert agent.fsm.state_bag["is_user_input"] is True
+        assert not text
+
+        # ACT: IS_TOOL_CALL -> TOOL_USE
+        # Because resume_async() is called without user input, TOOL_USE state will throw an exception
+
+        try:
+            await agent.resume_async()
+        except Exception as e:
+            print(f"Exception caught: {e}")
+            assert "pending user input" in str(e)

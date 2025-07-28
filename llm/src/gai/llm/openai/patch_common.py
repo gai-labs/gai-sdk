@@ -35,28 +35,33 @@ def is_BaseModel(item):
     return inspect.isclass(item) and issubclass(item, BaseModel)
 
 
-def create_get_client_config_function(client_config: Optional[Union[GaiClientConfig|dict]], file_path: str):
+def create_get_client_config_function(
+    client_config: Optional[Union[GaiClientConfig | dict]], file_path: str
+):
     """
     Factory function that creates a get_client_config function with the provided config and file_path.
     This function is used by both sync and async patch modules.
-    
+
     Parameters:
         client_config: The client configuration (dict or GaiClientConfig)
         file_path: Path to configuration file
-        
+
     Returns:
         function: A get_client_config function bound to the provided config
     """
+
     def get_client_config(model: str):
         nonlocal client_config, file_path
-        
+
         if client_config and file_path:
-            raise ValueError(f"__init__: config and path cannot be provided at the same time")
+            raise ValueError(
+                f"__init__: config and path cannot be provided at the same time"
+            )
 
         # If model is an openai model, return "openai"
         if model in get_args(ChatModel):
             return GaiClientConfig(client_type="openai", model=model)
-        
+
         # If it is not an openai model, then check client_config
         # There are two ways to provide the client_config:
         # 1. Provide the client_config directly
@@ -73,21 +78,23 @@ def create_get_client_config_function(client_config: Optional[Union[GaiClientCon
                 raise ValueError(f"__init__: Invalid config provided")
         else:
             # If no config is provided, load config from path
-            resolved_config = config_helper.get_client_config(model, file_path=file_path)
-            
+            resolved_config = config_helper.get_client_config(
+                model, file_path=file_path
+            )
+
         return resolved_config
-    
+
     return get_client_config
 
 
 def map_openai_to_ollama_params(client_config, **kwargs):
     """
     Map OpenAI parameters to Ollama parameters.
-    
+
     Parameters:
         client_config: The client configuration
         **kwargs: OpenAI parameters
-        
+
     Returns:
         dict: Mapped Ollama parameters
     """
@@ -104,26 +111,26 @@ def map_openai_to_ollama_params(client_config, **kwargs):
         "stream": kwargs.get("stream", False),
         "tools": kwargs.get("tools", None),
     }
-    
+
     # Change the default context length of 2048
     if client_config.extra and client_config.extra.get("num_ctx", None):
         mapped_kwargs["options"]["num_ctx"] = client_config.extra.get("num_ctx")
-    
+
     if mapped_kwargs.get("tools"):
         mapped_kwargs["stream"] = False
-    
+
     return mapped_kwargs
 
 
 def map_openai_to_ollama_parse_params(client_config, response_format, **kwargs):
     """
     Map OpenAI parameters to Ollama parameters for parse operations.
-    
+
     Parameters:
         client_config: The client configuration
         response_format: The response format (BaseModel or dict)
         **kwargs: OpenAI parameters
-        
+
     Returns:
         dict: Mapped Ollama parameters
     """
@@ -160,10 +167,10 @@ def map_openai_to_ollama_parse_params(client_config, response_format, **kwargs):
 def map_openai_to_gai_params(**kwargs):
     """
     Map OpenAI parameters to GAI parameters.
-    
+
     Parameters:
         **kwargs: OpenAI parameters
-        
+
     Returns:
         dict: Mapped GAI parameters
     """
@@ -185,11 +192,11 @@ def map_openai_to_gai_params(**kwargs):
 def map_openai_to_gai_parse_params(response_format, **kwargs):
     """
     Map OpenAI parameters to GAI parameters for parse operations.
-    
+
     Parameters:
         response_format: The response format (BaseModel or dict)
         **kwargs: OpenAI parameters
-        
+
     Returns:
         dict: Mapped GAI parameters
     """
@@ -200,7 +207,7 @@ def map_openai_to_gai_parse_params(response_format, **kwargs):
         "max_tokens": kwargs.get("max_tokens", None),
         "timeout": kwargs.get("timeout", None),
     }
-    
+
     if is_BaseModel(response_format):
         schema = response_format.model_json_schema()
         mapped_kwargs["json_schema"] = schema
@@ -218,33 +225,41 @@ def map_openai_to_gai_parse_params(response_format, **kwargs):
 def map_openai_to_anthropic_params(client_config, **kwargs):
     """
     Map OpenAI parameters to Anthropic parameters.
-    
+
     Parameters:
         client_config: The client configuration
         **kwargs: OpenAI parameters
-        
+
     Returns:
         dict: Mapped Anthropic parameters
     """
     config_model = client_config.model
-    config_max_tokens = client_config.extra.get("max_tokens", 1000) if client_config.extra else 1000
-    config_temperature = client_config.extra.get("temperature", None) if client_config.extra else None
-    config_top_k = client_config.extra.get("top_k", None) if client_config.extra else None
-    config_timeout = client_config.extra.get("timeout", None) if client_config.extra else None
-    
+    config_max_tokens = (
+        client_config.extra.get("max_tokens", 1000) if client_config.extra else 1000
+    )
+    config_temperature = (
+        client_config.extra.get("temperature", None) if client_config.extra else None
+    )
+    config_top_k = (
+        client_config.extra.get("top_k", None) if client_config.extra else None
+    )
+    config_timeout = (
+        client_config.extra.get("timeout", None) if client_config.extra else None
+    )
+
     final_kwargs = {
         "model": kwargs.get("model", config_model),
         "max_tokens": kwargs.get("max_tokens", config_max_tokens),
         "messages": kwargs.get("messages", [{"role": "user", "content": ""}]),
-        "stream": kwargs.get("stream", False)
+        "stream": kwargs.get("stream", False),
     }
-    
+
     if kwargs.get("temperature", config_temperature):
         final_kwargs["temperature"] = kwargs.get("temperature", config_temperature)
 
     if kwargs.get("top_k", config_top_k):
         final_kwargs["top_k"] = kwargs.get("top_k", config_top_k)
-    
+
     if kwargs.get("timeout", config_timeout):
         final_kwargs["timeout"] = kwargs.get("timeout", config_timeout)
 
@@ -262,7 +277,7 @@ def map_openai_to_anthropic_params(client_config, **kwargs):
                 anthropic_tool["input_schema"] = {
                     "type": "object",
                     "properties": {},
-                    "required": []
+                    "required": [],
                 }
             tools.append(anthropic_tool)
         final_kwargs["tools"] = tools
@@ -273,11 +288,11 @@ def map_openai_to_anthropic_params(client_config, **kwargs):
 def map_openai_to_anthropic_parse_params(response_format, **kwargs):
     """
     Map OpenAI parameters to Anthropic parameters for parse operations.
-    
+
     Parameters:
         response_format: The response format (BaseModel or dict)
         **kwargs: OpenAI parameters
-        
+
     Returns:
         tuple: (anthropic_tool, final_kwargs, messages)
     """
@@ -296,13 +311,13 @@ def map_openai_to_anthropic_parse_params(response_format, **kwargs):
     anthropic_tool = {
         "name": "structured_output",
         "description": "Structured output for the response",
-        "input_schema": schema
+        "input_schema": schema,
     }
-    
+
     # Hack the messages to tell claude to return result in json format.
     messages = kwargs.get("messages", [{"role": "user", "content": ""}])
     messages[-1]["content"] += "Return response in JSON format."
-    
+
     # Map openai parameters to anthropic parameters
     final_kwargs = {
         "model": kwargs.get("model", "claude-opus-4-20250514"),
@@ -315,38 +330,47 @@ def map_openai_to_anthropic_parse_params(response_format, **kwargs):
         final_kwargs["top_k"] = kwargs.get("top_k")
     if kwargs.get("timeout", None):
         final_kwargs["timeout"] = kwargs.get("timeout")
-    
+
     return anthropic_tool, final_kwargs, messages
 
 
-def validate_patch_state(client, attribute_path: str, patch_flag: str, operation_name: str):
+def validate_patch_state(
+    client, attribute_path: str, patch_flag: str, operation_name: str
+):
     """
     Validate that a client hasn't already been patched to prevent double-patching.
-    
+
     Parameters:
         client: The client object to check
         attribute_path: Dot-separated path to the object containing the method (e.g., "chat.completions")
         patch_flag: The flag name to check (e.g., "is_patched")
         operation_name: Human-readable operation name for error messages
-        
+
     Raises:
         Exception: If already patched
     """
     # Navigate to the target object
     target = client
-    for attr in attribute_path.split('.'):
+    for attr in attribute_path.split("."):
         target = getattr(target, attr)
-    
+
     if hasattr(target, patch_flag):
         error_message = f"{operation_name}: Attempted to re-patch the client which is already patched."
         logger.error(error_message)
         raise Exception(error_message)
 
 
-def apply_patch(client, target_object_path: str, method_name: str, original_attr: str, new_function, patch_flag: str):
+def apply_patch(
+    client,
+    target_object_path: str,
+    method_name: str,
+    original_attr: str,
+    new_function,
+    patch_flag: str,
+):
     """
     Apply a patch to a client method, backing up the original.
-    
+
     Parameters:
         client: The client object to patch
         target_object_path: Dot-separated path to the object containing the method (e.g., "chat.completions")
@@ -357,11 +381,50 @@ def apply_patch(client, target_object_path: str, method_name: str, original_attr
     """
     # Navigate to the target object (the one that contains the method)
     target = client
-    for attr in target_object_path.split('.'):
+    for attr in target_object_path.split("."):
         target = getattr(target, attr)
-    
+
     # Backup original method and install new function
     original_method = getattr(target, method_name)
     setattr(target, original_attr, original_method)
     setattr(target, method_name, new_function)
     setattr(target, patch_flag, True)
+
+
+def openai_to_anthropic_tools(openai_tools: list[dict]) -> list[dict]:
+    """
+    Convert a list of OpenAI-style tool/function definitions into Anthropic's
+    tool_specifications format.
+
+    Args:
+        openai_tools: [
+            {
+                "name": str,
+                "description": str,
+                "parameters": { ... JSON Schema ... }
+            },
+            ...
+        ]
+
+    Returns:
+        [
+            {
+                "name": str,
+                "description": str,
+                "custom": {
+                    "input_schema": { ... JSON Schema ... }
+                }
+            },
+            ...
+        ]
+    """
+    anthropic_tools = []
+    for fn in openai_tools:
+        anthropic_tools.append(
+            {
+                "name": fn["function"]["name"],
+                "description": fn["function"].get("description", ""),
+                "input_schema": fn["function"].get("parameters", {}),
+            }
+        )
+    return anthropic_tools
