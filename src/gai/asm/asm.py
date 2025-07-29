@@ -74,8 +74,11 @@ class AsyncStateMachine:
             with open(self.history_path, "r") as f:
                 self.history = json.loads(f.read())
 
-        def append(self, state_data: dict):
-            self.history.append(state_data)
+        def _save(self):
+            """
+            Write the current history to the history file.
+            This is called after each append() operation.
+            """
             serializable_history = [
                 {
                     "state": entry["state"],
@@ -84,9 +87,12 @@ class AsyncStateMachine:
                 }
                 for entry in self.history
             ]
-            if self.history_path:
-                with open(self.history_path, "w") as f:
-                    f.write(json.dumps(serializable_history, indent=4))
+            with open(self.history_path, "w") as f:
+                f.write(json.dumps(serializable_history, indent=4))
+
+        def append(self, state_data: dict):
+            self.history.append(state_data)
+            self._save()
 
         def __getitem__(self, index):
             if index >= len(self.history):
@@ -121,6 +127,16 @@ class AsyncStateMachine:
             """
             if self.history:
                 return self.history[-1]["state"]
+            return None
+
+        def pop(self):
+            """
+            Remove the last state from the history.
+            """
+            if self.history:
+                item = self.history.pop()
+                self._save()
+                return item
             return None
 
     class StateModel:
@@ -191,7 +207,10 @@ class AsyncStateMachine:
 
             resolved_input_data["user_message"] = self.user_message
             resolved_input_data["monologue"] = self.monologue.copy()
+
+            self.step += 1
             resolved_input_data["step"] = self.step
+
             resolved_input_data["time"] = datetime.now()
             resolved_input_data["name"] = self.agent_name
 
@@ -310,7 +329,6 @@ class AsyncStateMachine:
                         pass
 
             # Built-In State: Step
-            self.step += 1
             output["step"] = self.step
 
             # Built-In State: timestamp
@@ -515,6 +533,36 @@ class AsyncStateMachine:
             self.step = 0
             self.state_history.reset()
             self.state_bag = {}
+
+        async def undo_async(self):
+            """
+            Undo the last state and return to the previous state.
+            This is useful for undoing the last tool call or user message.
+            """
+            if len(self.state_history) < 2:
+                raise ValueError("Cannot undo, no previous state found.")
+
+            # Remove the last state from history
+            self.state_history.pop()
+            if len(self.state_history) == 0:
+                raise ValueError("No previous state found after undo.")
+
+            # Get the last state
+            # Load the state bag from the last entry in the history
+            state_bag = self.state_history.export_state_bag()
+            if state_bag:
+                self.state_bag = state_bag
+                self.step = state_bag.get("step", 0)
+                self.state = self.state_history.last_state()
+                self.user_message = state_bag.get("user_message", None)
+
+            # Check the last message's state name against last state
+            # pop until they match
+            while (
+                self.monologue._messages
+                and self.monologue._messages[-1].body.step_no > self.step
+            ):
+                self.monologue.pop()
 
     class StateMachineBuilder:
         def __init__(self, state_diagram: str):

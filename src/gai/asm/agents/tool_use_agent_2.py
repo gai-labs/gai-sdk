@@ -567,3 +567,12 @@ class ToolUseAgent2:
     def final_output(self):
         get_assistant_message = self.fsm.state_bag["get_assistant_message"]
         return get_assistant_message()
+
+    async def undo_async(self):
+        """
+        Undo the last state and return to the previous state.
+        This is useful for undoing the last tool call or user message.
+        """
+        await self.fsm.undo_async()
+        logger.info(f"Undo: current state: {self.fsm.state}")
+        return self.fsm.state
