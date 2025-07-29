@@ -69,11 +69,6 @@ class TestToolUseAgent:
     def mock_file_monologue(self):
         """Create a temporary file monologue"""
         from gai.messages import FileMonologue
-
-        # import tempfile
-        # temp_file_path = None
-        # with tempfile.NamedTemporaryFile(delete=False, suffix=".log") as temp_file:
-        #     temp_file_path = temp_file.name
         temp_file_path = os.path.join("/tmp", str(uuid.uuid4()) + ".log")
         monologue = FileMonologue(file_path=temp_file_path)
         monologue.reset()

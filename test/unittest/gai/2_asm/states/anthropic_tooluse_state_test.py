@@ -5,7 +5,7 @@ from anthropic.types import MessageStreamEvent
 from pydantic import TypeAdapter
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-from gai.asm.states.AnthropicToolUseState import AnthropicToolUseState
+from gai.asm.agents.tool_use_agent import AnthropicToolUseState
 from gai.asm.asm import AsyncStateMachine
 from gai.messages import Monologue
 from gai.lib.tests import get_local_datadir

@@ -1,7 +1,12 @@
+import os
 import pytest
+import json
+from anthropic.types import MessageStreamEvent
+from pydantic import TypeAdapter
+from typing import List
 from unittest.mock import MagicMock, patch, PropertyMock, AsyncMock
-from data.mock_openai_patch import chat_completions_streaming_toolcall
-from gai.asm.states.AnthropicChatState import AnthropicChatState
+from gai.lib.tests import get_local_datadir
+from gai.asm.agents.tool_use_agent import AnthropicChatState
 from gai.messages import Monologue
 from gai.asm.asm import AsyncStateMachine
 
@@ -64,7 +69,7 @@ class TestAnthropicChatState:
 
     @pytest.mark.asyncio
     @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
-    async def test_chat_state_with_tool_use(self, mock_messages_prop):
+    async def test_chat_state_with_tool_use(self, mock_messages_prop, request):
         """
         This test is using the same underlying Athropic API mocked response but called via the GAI client.
         """
@@ -73,8 +78,15 @@ class TestAnthropicChatState:
 
         async def async_generator(**args):
             async def streamer():
-                for chunk in chat_completions_streaming_toolcall("anthropic"):
-                    yield chunk
+                datadir = get_local_datadir(request)
+                filename = "1a_anthropic_agent_chat.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
 
             return streamer()
 

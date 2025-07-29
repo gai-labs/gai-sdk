@@ -300,8 +300,10 @@ class AnthropicToolUseState(AnthropicStateBase):
         llm_client = AsyncOpenAI(llm_config)
 
         # Get mcp client
-        mcp_client = self.input["mcp_client"]
-        tools = await mcp_client.list_tools()
+        mcp_client = self.input.get("mcp_client")
+        tools = []
+        if mcp_client:
+            tools = await mcp_client.list_tools()
 
         # Get model
         llm_model = llm_config["model"]
@@ -361,7 +363,7 @@ class ToolUseAgent:
         self,
         agent_name: str,
         llm_config: GaiClientConfig,
-        aggregated_client: McpAggregatedClient,
+        aggregated_client: Optional[McpAggregatedClient] = None,
         monologue: Optional[Monologue] = None,
     ):
         if not llm_config:
@@ -457,7 +459,8 @@ class ToolUseAgent:
                 },
                 agent_name=agent_name,
                 get_llm_config=lambda state: llm_config.model_dump(),
-                get_mcp_client=lambda state: aggregated_client,
+                get_mcp_client=lambda state: aggregated_client or McpAggregatedClient([
+                ]),
                 monologue=monologue,
                 has_message=self.has_message,
                 is_tool_call=self.is_tool_call,
