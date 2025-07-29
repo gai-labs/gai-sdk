@@ -139,11 +139,7 @@ class AnthropicChatState(AnthropicStateBase):
     async def run_async(self):
         # Get User Message
         if not self.machine.user_message:
-            # raise Exception("AnthropicToolCallState: user_message is missing.")
-            # async def stream_nothing():
-            #     yield
-            # return stream_nothing()
-            return None
+            raise Exception("AnthropicToolCallState: user_message is missing.")
 
         # Get llm client
         llm_config = self.input["llm_config"]
@@ -521,7 +517,7 @@ class ToolUseAgent:
         await self.fsm.run_async()
         logger.info(f"Final state: {current_state} --> {self.fsm.state}")
 
-    async def resume_async(
+    async def _resume_async(
         self, user_message: Optional[str] = None, recap: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """
@@ -568,15 +564,43 @@ class ToolUseAgent:
 
         return streamer()
 
+    async def resume_async(self, user_message: Optional[str] = None, recap: Optional[str] = None) -> AsyncGenerator[str, None]:
+        """
+        Public method to resume the agent with an optional user message.
+        """
+
+        # If continuing from previous state
+        if self.fsm.state == "IS_TERMINATE":
+            await self._resume_async()
+
+        # Run until LLM call
+        while self.fsm.state != "IS_TERMINATE":
+            if self.fsm.state == "IS_TOOL_CALL":
+                resp = await self._resume_async(user_message=user_message, recap=recap)
+                async for chunk in resp:
+                    yield chunk
+            else:
+                await self._resume_async()
+
     def final_output(self):
         get_assistant_message = self.fsm.state_bag["get_assistant_message"]
         return get_assistant_message()
 
-    async def undo_async(self):
+    async def _undo_async(self):
         """
         Undo the last state and return to the previous state.
         This is useful for undoing the last tool call or user message.
         """
         await self.fsm.undo_async()
         logger.info(f"Undo: current state: {self.fsm.state}")
+        return self.fsm.state
+
+    async def undo_async(self):
+        """
+        Public method to undo the last state.
+        """
+
+        while self.fsm.state != "IS_TOOL_CALL":
+            await self._undo_async()
+
         return self.fsm.state
