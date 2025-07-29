@@ -404,7 +404,7 @@ class ToolUseAgent:
                         "conditions": ["condition_true", "condition_false"],
                     },
                     "CHAT": {
-                        "module_path": "gai.asm.agents.tool_use_agent_2",
+                        "module_path": "gai.asm.agents.tool_use_agent",
                         "class_name": "AnthropicChatState",
                         "title": "CHAT",
                         "input_data": {
@@ -420,7 +420,7 @@ class ToolUseAgent:
                         "output_data": ["streamer", "get_assistant_message"],
                     },
                     "TOOL_USE": {
-                        "module_path": "gai.asm.agents.tool_use_agent_2",
+                        "module_path": "gai.asm.agents.tool_use_agent",
                         "class_name": "AnthropicToolUseState",
                         "title": "TOOL_USE",
                         "input_data": {
