@@ -331,8 +331,8 @@ class FileMonologue(Monologue):
         return super().list_messages()
 
     @load_only
-    def list_chat_messages(self, shrink=True) -> list[dict[str, Any]]:
-        return super().list_chat_messages(shrink=shrink)
+    def list_chat_messages(self) -> list[dict[str, Any]]:
+        return super().list_chat_messages()
 
     @transactional
     def add_user_message(self, content: Any, state=None):

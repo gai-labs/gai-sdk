@@ -361,23 +361,10 @@ class ToolUseAgent2:
         aggregated_client: McpAggregatedClient,
         monologue: Optional[Monologue] = None,
     ):
-        self.monologue = monologue
-        if not self.monologue:
-            self.monologue = Monologue(agent_name=agent_name)
-
         if not llm_config:
             raise ValueError("ChatAgent: llm_config is required.")
 
         with AsyncStateMachine.StateMachineBuilder(
-            # """
-            # INIT --> HAS_MESSAGE
-            # HAS_MESSAGE --> CHAT: condition_true
-            # HAS_MESSAGE --> TOOL_USE: condition_false
-            # CHAT--> IS_TOOL_CALL
-            # IS_TOOL_CALL --> TOOL_USE: condition_true
-            # IS_TOOL_CALL --> FINAL: condition_false
-            # TOOL_USE --> HAS_MESSAGE
-            # """
             """
             INIT --> IS_TOOL_CALL
             IS_TOOL_CALL --> CHAT: condition_false
@@ -419,12 +406,12 @@ class ToolUseAgent2:
                         "title": "CHAT",
                         "input_data": {
                             "llm_config": {
-                                "type": "state_bag",
-                                "dependency": "llm_config",
+                                "type": "getter",
+                                "dependency": "get_llm_config",
                             },
                             "mcp_client": {
-                                "type": "state_bag",
-                                "dependency": "mcp_client",
+                                "type": "getter",
+                                "dependency": "get_mcp_client",
                             },
                         },
                         "output_data": ["streamer", "get_assistant_message"],
@@ -435,12 +422,12 @@ class ToolUseAgent2:
                         "title": "TOOL_USE",
                         "input_data": {
                             "llm_config": {
-                                "type": "state_bag",
-                                "dependency": "llm_config",
+                                "type": "getter",
+                                "dependency": "get_llm_config",
                             },
                             "mcp_client": {
-                                "type": "state_bag",
-                                "dependency": "mcp_client",
+                                "type": "getter",
+                                "dependency": "get_mcp_client",
                             },
                         },
                         "output_data": ["tool_result", "get_assistant_message"],
@@ -468,11 +455,18 @@ class ToolUseAgent2:
                 agent_name=agent_name,
                 get_llm_config=lambda state: llm_config.model_dump(),
                 get_mcp_client=lambda state: aggregated_client,
-                monologue=self.monologue,
+                monologue=monologue,
                 has_message=self.has_message,
                 is_tool_call=self.is_tool_call,
                 is_terminate=self.is_terminate,
             )
+
+    @property
+    def monologue(self):
+        """
+        Returns the monologue associated with the agent.
+        """
+        return self.fsm.monologue
 
     def has_message(self, state):
         state.machine.state_bag["predicate_result"] = False

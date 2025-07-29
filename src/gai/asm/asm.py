@@ -7,6 +7,8 @@ from typing import Optional, Union
 from gai.lib.logging import getLogger
 from gai.messages import Monologue
 from datetime import datetime
+from gai.lib.constants import DEFAULT_GUID
+from gai.asm.constants import HISTORY_PATH
 
 logger = getLogger(__name__)
 
@@ -35,13 +37,42 @@ def is_json_serializable(v):
 
 class AsyncStateMachine:
     class StateHistory:
-        def __init__(self, history_path: Optional[str] = None):
+        def _create_history_path(self, dialogue_id: str, caller_id: str):
+            """
+            The history path is based on the the next message order number in the dialogue file
+            This number represents the next user message to be added to the dialogue
+            and is associated with the current session.
+            The current session is initiated by the agent's start() method.
+            """
+
+            # from gai.messages import FileDialogue
+            # dialogue = FileDialogue(dialogue_id=dialogue_id, caller_id=caller_id)
+            # next_message_order = dialogue.get_next_message_order()
+            next_message_order = 0
+            history_path = os.path.expanduser(
+                HISTORY_PATH.format(
+                    caller_id=caller_id,
+                    dialogue_id=dialogue_id,
+                    order_no=next_message_order,
+                )
+            )
+            return history_path
+
+        def __init__(
+            self, dialogue_id: str = DEFAULT_GUID, caller_id: str = DEFAULT_GUID
+        ):
             self.state = None
             self.history = []
-            self.history_path = history_path
-            if self.history_path and not os.path.exists(self.history_path):
+            self.history_path = self._create_history_path(
+                dialogue_id=dialogue_id, caller_id=caller_id
+            )
+            history_dir = os.path.dirname(self.history_path)
+            os.makedirs(history_dir, exist_ok=True)
+            if not os.path.exists(self.history_path):
                 with open(self.history_path, "w") as f:
                     f.write(json.dumps([]))
+            with open(self.history_path, "r") as f:
+                self.history = json.loads(f.read())
 
         def append(self, state_data: dict):
             self.history.append(state_data)
@@ -55,7 +86,7 @@ class AsyncStateMachine:
             ]
             if self.history_path:
                 with open(self.history_path, "w") as f:
-                    f.write(json.dumps(serializable_history))
+                    f.write(json.dumps(serializable_history, indent=4))
 
         def __getitem__(self, index):
             if index >= len(self.history):
@@ -68,36 +99,49 @@ class AsyncStateMachine:
         def __len__(self):
             return len(self.history)
 
+        def reset(self):
+            self.history = []
+            if self.history_path:
+                with open(self.history_path, "w") as f:
+                    f.write(json.dumps([]))
+            return self
+
+        def export_state_bag(self) -> dict:
+            """
+            Export the state bag from the state history.
+            """
+            last_entry = self.history[-1] if self.history else None
+            if last_entry and "output" in last_entry:
+                return last_entry["output"]
+            return {}
+
+        def last_state(self):
+            """
+            Returns the last state from the history.
+            """
+            if self.history:
+                return self.history[-1]["state"]
+            return None
+
     class StateModel:
         def __init__(
             self,
             state_manifest: dict,
             monologue: Optional[Monologue] = None,
             agent_name: str = "Assistant",
+            caller_id: str = DEFAULT_GUID,
+            dialogue_id: str = DEFAULT_GUID,
             **kwargs,
         ):
             self.state = None
             self.agent_name = agent_name
+            self.caller_id = caller_id
+            self.dialogue_id = dialogue_id
             self.state_manifest = state_manifest
             self.state_data = {}
-            self.state_bag = {}
             self.user_message = None
-
-            if not monologue:
-                monologue = Monologue(agent_name=agent_name)
-            self.monologue = monologue
-
-            self.state_history = []
-            if hasattr(self.monologue, "file_path"):
-                history_path = (
-                    ".".join(self.monologue.file_path.split(".")[0:-1]) + ".history"
-                )
-                self.state_history = AsyncStateMachine.StateHistory(
-                    history_path=history_path
-                )
-
-            self.step = 0
             self.kwargs = kwargs
+            self.monologue = monologue or Monologue(agent_name=agent_name)
 
         async def resolve_input(self, state):
             input_data = state.manifest.get("input_data", {})
@@ -254,57 +298,16 @@ class AsyncStateMachine:
             return resolved_input_data
 
         def finalize_output(self, state):
-            """
-            Since state_bag data is a snapshot of the current state,
-            this method finalizes the state_bag data item to be saved in history.
-            The item to be saved is determined by the output_data from the manifest.
-            NOTE: Data must exist in state_bag before this method is called.
-            """
             import copy
 
             output = {}
-            if "output_data" in state.manifest:
-                output = {}
-                for k in state.manifest["output_data"]:
-                    if k == "name":
-                        raise ValueError(
-                            "output_data cannot contain reserved key `name`"
-                        )
-                    if k == "step":
-                        raise ValueError(
-                            "output_data cannot contain reserved key `step`"
-                        )
-                    if k == "monologue":
-                        raise ValueError(
-                            "output_data cannot contain reserved key `monologue`"
-                        )
-                    if k == "user_message":
-                        raise ValueError(
-                            "output_data cannot contain reserved key `user_message`"
-                        )
-                    if k == "time":
-                        raise ValueError(
-                            "output_data cannot contain reserved key `time`"
-                        )
-
-                    if k in self.state_bag:
-                        try:
-                            # deepcopy-able items will be copied.
-                            output[k] = copy.deepcopy(self.state_bag.get(k))
-                        except Exception as e:
-                            # otherwise, keep a reference to the item.
-                            output[k] = self.state_bag.get(k)
-                            pass
-
-            # Built-In State: Name
-            output["name"] = self.state_bag["name"]
-
-            # Built-In State: User Message
-            output["user_message"] = self.state_bag["user_message"]
-
-            # Built-In State: Monologues Messages
-            # Keep a snapshot of the original monologue after action
-            output["monologue"] = self.monologue.copy()
+            for k, v in state.machine.state_bag.items():
+                if is_json_serializable(v):
+                    try:
+                        # deepcopy-able items will be copied.
+                        output[k] = copy.deepcopy(v)
+                    except Exception:
+                        pass
 
             # Built-In State: Step
             self.step += 1
@@ -316,6 +319,70 @@ class AsyncStateMachine:
             logger.debug(f"AsyncStateMachine.final_output: output={output}")
 
             return output
+
+        # def finalize_output(self, state):
+        #     """
+        #     Since state_bag data is a snapshot of the current state,
+        #     this method finalizes the state_bag data item to be saved in history.
+        #     The item to be saved is determined by the output_data from the manifest.
+        #     NOTE: Data must exist in state_bag before this method is called.
+        #     """
+        #     import copy
+
+        #     output = {}
+        #     if "output_data" in state.manifest:
+        #         output = {}
+        #         for k in state.manifest["output_data"]:
+        #             if k == "name":
+        #                 raise ValueError(
+        #                     "output_data cannot contain reserved key `name`"
+        #                 )
+        #             if k == "step":
+        #                 raise ValueError(
+        #                     "output_data cannot contain reserved key `step`"
+        #                 )
+        #             if k == "monologue":
+        #                 raise ValueError(
+        #                     "output_data cannot contain reserved key `monologue`"
+        #                 )
+        #             if k == "user_message":
+        #                 raise ValueError(
+        #                     "output_data cannot contain reserved key `user_message`"
+        #                 )
+        #             if k == "time":
+        #                 raise ValueError(
+        #                     "output_data cannot contain reserved key `time`"
+        #                 )
+
+        #             if k in self.state_bag:
+        #                 try:
+        #                     # deepcopy-able items will be copied.
+        #                     output[k] = copy.deepcopy(self.state_bag.get(k))
+        #                 except Exception as e:
+        #                     # otherwise, keep a reference to the item.
+        #                     output[k] = self.state_bag.get(k)
+        #                     pass
+
+        #     # Built-In State: Name
+        #     output["name"] = self.state_bag["name"]
+
+        #     # Built-In State: User Message
+        #     output["user_message"] = self.state_bag["user_message"]
+
+        #     # Built-In State: Monologues Messages
+        #     # Keep a snapshot of the original monologue after action
+        #     output["monologue"] = self.monologue.copy()
+
+        #     # Built-In State: Step
+        #     self.step += 1
+        #     output["step"] = self.step
+
+        #     # Built-In State: timestamp
+        #     output["time"] = datetime.now()
+
+        #     logger.debug(f"AsyncStateMachine.final_output: output={output}")
+
+        #     return output
 
         def resolve_action(self, state):
             """
@@ -443,16 +510,10 @@ class AsyncStateMachine:
 
         def restart(self):
             self.state = "INIT"
-            self.state_history = []
-            if hasattr(self.monologue, "file_path"):
-                history_path = (
-                    ".".join(self.monologue.file_path.split(".")[0:-1]) + ".history"
-                )
-                if os.path.exists(history_path):
-                    os.remove(history_path)
-                self.state_history = AsyncStateMachine.StateHistory(
-                    history_path=history_path
-                )
+            self.state_data = {}
+            self.user_message = None
+            self.step = 0
+            self.state_history.reset()
             self.state_bag = {}
 
     class StateMachineBuilder:
@@ -470,16 +531,26 @@ class AsyncStateMachine:
             fsm_model: Optional[Union[dict, "AsyncStateMachine.StateModel"]] = None,
             monologue: Optional[Monologue] = None,
             agent_name: str = "Assistant",
+            caller_id: Optional[str] = DEFAULT_GUID,
+            dialogue_id: Optional[str] = DEFAULT_GUID,
             **kwargs,
         ) -> "AsyncStateMachine.StateModel":
             if isinstance(fsm_model, dict):
                 fsm_model = AsyncStateMachine.StateModel(
-                    state_manifest=fsm_model, agent_name=agent_name, monologue=monologue
+                    state_manifest=fsm_model,
+                    agent_name=agent_name,
+                    monologue=monologue,
+                    caller_id=caller_id,
+                    dialogue_id=dialogue_id,
                 )
 
             if not fsm_model:
                 fsm_model = AsyncStateMachine.StateModel(
-                    state_manifest={}, agent_name=agent_name, monologue=monologue
+                    state_manifest={},
+                    agent_name=agent_name,
+                    monologue=monologue,
+                    caller_id=caller_id,
+                    dialogue_id=dialogue_id,
                 )
 
             fsm_model.kwargs = {**fsm_model.kwargs, **kwargs}
@@ -569,5 +640,20 @@ class AsyncStateMachine:
 
             for trans in transitions:
                 machine.add_transition(**trans)
+
+            # Load Previous State
+
+            # Load History
+            fsm_model.state_history = AsyncStateMachine.StateHistory(
+                dialogue_id=fsm_model.dialogue_id, caller_id=fsm_model.caller_id
+            )
+
+            # Load the state bag from the last entry in the history
+            state_bag = fsm_model.state_history.export_state_bag()
+            if state_bag:
+                fsm_model.state_bag = state_bag
+                fsm_model.step = state_bag.get("step", 0)
+                fsm_model.state = fsm_model.state_history.last_state()
+                fsm_model.user_message = state_bag.get("user_message", None)
 
             return fsm_model

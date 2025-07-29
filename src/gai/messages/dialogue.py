@@ -150,6 +150,17 @@ class Dialogue:
             self._messages, last_n=last_n, max_recap_size=self.max_recap_size
         )
 
+    def get_next_message_order(self) -> int:
+        """
+        Get the last order number from the dialogue.
+        """
+        if not self._messages:
+            return 0
+
+        last_message = self._messages[-1]
+        last_order_no = last_message.header.order
+        return last_order_no + 1
+
 
 # -----
 
@@ -225,8 +236,7 @@ class FileDialogue(Dialogue):
         )
         os.makedirs(user_dialogue_dir, exist_ok=True)
 
-        self.file_path = file_path or os.path.join(
-            user_dialogue_dir, "dialogue.json")
+        self.file_path = file_path or os.path.join(user_dialogue_dir, "dialogue.json")
         self.message_store = MessageStore[MessagePydantic](
             file_path=self.file_path, MessagePydantic_cls=MessagePydantic
         )
@@ -279,3 +289,7 @@ class FileDialogue(Dialogue):
     @load_only
     def extract_recap(self, last_n: int = 0) -> str:
         return super().extract_recap(last_n=last_n)
+
+    @load_only
+    def get_next_message_order(self) -> int:
+        return super().get_next_message_order()
