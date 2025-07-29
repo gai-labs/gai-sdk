@@ -140,9 +140,10 @@ class AnthropicChatState(AnthropicStateBase):
         # Get User Message
         if not self.machine.user_message:
             # raise Exception("AnthropicToolCallState: user_message is missing.")
-            async def stream_nothing():
-                yield
-            return stream_nothing()
+            # async def stream_nothing():
+            #     yield
+            # return stream_nothing()
+            return None
 
         # Get llm client
         llm_config = self.input["llm_config"]
