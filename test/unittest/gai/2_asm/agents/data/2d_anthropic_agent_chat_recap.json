@@ -1,0 +1,154 @@
+[
+    {
+        "message": {
+            "id": "msg_01LX2zmfMbw9wRATJNu2gvEf",
+            "content": [],
+            "model": "claude-sonnet-4-20250514",
+            "role": "assistant",
+            "stop_reason": null,
+            "stop_sequence": null,
+            "type": "message",
+            "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 2495,
+                "output_tokens": 8,
+                "server_tool_use": null,
+                "service_tier": "standard"
+            }
+        },
+        "type": "message_start"
+    },
+    {
+        "content_block": {
+            "citations": null,
+            "text": "",
+            "type": "text"
+        },
+        "index": 0,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "text": "I",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "text": "'ll help you get the current time in Singapore. Let me check that for you.",
+            "type": "text_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 0,
+        "type": "content_block_stop"
+    },
+    {
+        "content_block": {
+            "id": "toolu_017NfxJKbwNFoEJLTkkwj9SK",
+            "input": {},
+            "name": "current_time",
+            "type": "tool_use"
+        },
+        "index": 0,
+        "type": "content_block_start"
+    },
+    {
+        "delta": {
+            "partial_json": "",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "{\"format\":",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": " \"YYYY-MM-DD",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": " HH:mm:ss\"",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": ", \"time",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "zone",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "\": \"Asi",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "a/",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "delta": {
+            "partial_json": "Singapore\"}",
+            "type": "input_json_delta"
+        },
+        "index": 0,
+        "type": "content_block_delta"
+    },
+    {
+        "index": 0,
+        "type": "content_block_stop"
+    },
+    {
+        "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null
+        },
+        "type": "message_delta",
+        "usage": {
+            "cache_creation_input_tokens": null,
+            "cache_read_input_tokens": null,
+            "input_tokens": null,
+            "output_tokens": 83,
+            "server_tool_use": null
+        }
+    },
+    {
+        "type": "message_stop"
+    }
+]

@@ -1,5 +1,5 @@
-from .tool_use_agent import ToolUseAgent
+from .tool_use_agent import ToolUseAgent, PendingUserInputError
 from .chat_agent import ChatAgent
 from .base import AgentBase
 
-__all__ = ["ToolUseAgent", "ChatAgent", "AgentBase"]
+__all__ = ["ToolUseAgent", "ChatAgent", "AgentBase", "PendingUserInputError"]

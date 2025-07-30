@@ -161,8 +161,7 @@ class AsyncStateMachine:
 
         async def resolve_input(self, state):
             input_data = state.manifest.get("input_data", {})
-            logger.debug(
-                f"AsyncStateMachine.resolve_input: input_data={input_data}")
+            logger.debug(f"AsyncStateMachine.resolve_input: input_data={input_data}")
             resolved_input_data = {}
             last_output = (
                 state.machine.state_history[-1].get("output", None)
@@ -183,16 +182,13 @@ class AsyncStateMachine:
                     )
 
                 if k == "step":
-                    raise ValueError(
-                        "input_data cannot contain reserved key `step`")
+                    raise ValueError("input_data cannot contain reserved key `step`")
 
                 if k == "time":
-                    raise ValueError(
-                        "input_data cannot contain reserved key `time`")
+                    raise ValueError("input_data cannot contain reserved key `time`")
 
                 if k == "name":
-                    raise ValueError(
-                        "input_data cannot contain reserved key `name`")
+                    raise ValueError("input_data cannot contain reserved key `name`")
 
                 if not isinstance(v, dict):
                     # This is a literal value, resolve it immediately
@@ -294,8 +290,7 @@ class AsyncStateMachine:
                         # dependency refers to the name of a state bag item
 
                         dependency = v.get("dependency", None)
-                        resolved = state.machine.state_bag.get(
-                            dependency, None)
+                        resolved = state.machine.state_bag.get(dependency, None)
                         if resolved is None:
                             raise ValueError(
                                 f"Dependency {dependency} not found in state bag: {state.machine.state_bag}"
@@ -324,7 +319,13 @@ class AsyncStateMachine:
         def finalize_output(self, state):
             import copy
 
-            output = {}
+            # Init default output
+            output = {
+                "predicate_result": None,
+                "reset": None,
+                "time": None,
+            }
+
             for k, v in state.machine.state_bag.items():
                 if is_json_serializable(v):
                     try:
@@ -385,12 +386,10 @@ class AsyncStateMachine:
 
                     # Update history
                     self.state_history.append(
-                        {"state": "INIT", "input": state.input,
-                            "output": state.output}
+                        {"state": "INIT", "input": state.input, "output": state.output}
                     )
                 except Exception as e:
-                    logger.error(
-                        f"AsyncStateMachine.before_action_async: error={e}")
+                    logger.error(f"AsyncStateMachine.before_action_async: error={e}")
 
         async def action_async(self):
             # This function is only used for configuring any states other than "INIT" state
@@ -465,8 +464,7 @@ class AsyncStateMachine:
                     )
                     raise
             else:
-                raise ValueError(
-                    f"State {state_id} not found in state manifest.")
+                raise ValueError(f"State {state_id} not found in state manifest.")
 
             return self.state
 
@@ -520,8 +518,7 @@ class AsyncStateMachine:
 
         def build(
             self,
-            fsm_model: Optional[Union[dict,
-                                      "AsyncStateMachine.StateModel"]] = None,
+            fsm_model: Optional[Union[dict, "AsyncStateMachine.StateModel"]] = None,
             monologue: Optional[Monologue] = None,
             agent_name: str = "Assistant",
             caller_id: Optional[str] = DEFAULT_GUID,
@@ -561,8 +558,7 @@ class AsyncStateMachine:
                 dest_condition = parts[1].split(":")
                 dest = dest_condition[0].strip()
                 condition = (
-                    dest_condition[1].strip() if len(
-                        dest_condition) > 1 else None
+                    dest_condition[1].strip() if len(dest_condition) > 1 else None
                 )
 
                 states.add(source)

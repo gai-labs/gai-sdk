@@ -69,6 +69,7 @@ class TestToolUseAgent:
     def mock_file_monologue(self):
         """Create a temporary file monologue"""
         from gai.messages import FileMonologue
+
         temp_file_path = os.path.join("/tmp", str(uuid.uuid4()) + ".log")
         monologue = FileMonologue(file_path=temp_file_path)
         monologue.reset()
@@ -155,7 +156,7 @@ class TestToolUseAgent:
 
             async def streamer_1():
                 datadir = get_local_datadir(request)
-                filename = "1a_anthropic_agent_chat.json"
+                filename = "2d_anthropic_agent_chat_recap.json"
                 fullpath = os.path.join(datadir, filename)
                 with open(fullpath, "r") as f:
                     chunks = json.load(f)
@@ -166,7 +167,7 @@ class TestToolUseAgent:
 
             async def streamer_2():
                 datadir = get_local_datadir(request)
-                filename = "1b_anthropic_agent_tooluse.json"
+                filename = "2e_anthropic_agent_chat_tooluse.json"
                 fullpath = os.path.join(datadir, filename)
                 with open(fullpath, "r") as f:
                     chunks = json.load(f)
@@ -222,12 +223,15 @@ class TestToolUseAgent:
                 last_chunk = chunk
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "CHAT"
-        assert text == "I'll help you find the current time in Singapore."
+        assert (
+            text
+            == "I'll help you get the current time in Singapore. Let me check that for you."
+        )
         assert len(last_chunk) == 2
         assert last_chunk[0]["type"] == "text"
         assert last_chunk[0]["text"] == text
         assert last_chunk[1]["type"] == "tool_use"
-        assert last_chunk[1]["input"]["search_query"] == "current time in Singapore"
+        assert last_chunk[1]["input"]["timezone"] == "Asia/Singapore"
         assert agent.final_output() == text
         messages = agent.monologue.list_messages()
         assert len(messages) == 2
@@ -311,7 +315,7 @@ class TestToolUseAgent:
 
             async def streamer_1():
                 datadir = get_local_datadir(request)
-                filename = "1a_anthropic_agent_chat.json"
+                filename = "2d_anthropic_agent_chat_recap.json"
                 fullpath = os.path.join(datadir, filename)
                 with open(fullpath, "r") as f:
                     chunks = json.load(f)
@@ -322,7 +326,7 @@ class TestToolUseAgent:
 
             async def streamer_2():
                 datadir = get_local_datadir(request)
-                filename = "1b_anthropic_agent_tooluse.json"
+                filename = "2e_anthropic_agent_chat_tooluse.json"
                 fullpath = os.path.join(datadir, filename)
                 with open(fullpath, "r") as f:
                     chunks = json.load(f)
@@ -393,12 +397,15 @@ class TestToolUseAgent:
                 last_chunk = chunk
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "CHAT"
-        assert text == "I'll help you find the current time in Singapore."
+        assert (
+            text
+            == "I'll help you get the current time in Singapore. Let me check that for you."
+        )
         assert len(last_chunk) == 2
         assert last_chunk[0]["type"] == "text"
         assert last_chunk[0]["text"] == text
         assert last_chunk[1]["type"] == "tool_use"
-        assert last_chunk[1]["input"]["search_query"] == "current time in Singapore"
+        assert last_chunk[1]["input"]["timezone"] == "Asia/Singapore"
         assert agent.final_output() == text
         messages = agent.monologue.list_messages()
         assert len(messages) == 2

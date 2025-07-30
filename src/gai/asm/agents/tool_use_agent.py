@@ -12,6 +12,15 @@ from gai.mcp.client import McpAggregatedClient
 logger = getLogger(__name__)
 
 
+class PendingUserInputError(Exception):
+    """
+    Raised when the LLM has requested user input via the ‘user_input’ tool
+    and no input has yet been provided.
+    """
+
+    pass
+
+
 class AnthropicStateBase(StateBase):
     async def _raw_llm_stream(self, llm_client, llm_model, messages, tools):
         """Call the LLM once and yield raw (extracted) chunks."""
@@ -181,8 +190,7 @@ class AnthropicChatState(AnthropicStateBase):
             return  # Exit the state early
         # End of Case 1
 
-        self.machine.monologue.add_user_message(
-            state=self, content=system_message)
+        self.machine.monologue.add_user_message(state=self, content=system_message)
 
         messages = self.machine.monologue.list_messages()
 
@@ -311,8 +319,7 @@ class AnthropicToolUseState(AnthropicStateBase):
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
         if self.machine.monologue.is_terminated():
-            logger.info(
-                "AnthropicToolUseState: Task completed, nothing to continue.")
+            logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
             self.machine.state_bag["streamer"] = None
             return  # Exit the state early
 
@@ -328,8 +335,9 @@ class AnthropicToolUseState(AnthropicStateBase):
                 logger.info(
                     "AnthropicToolUseState: Pending user input, nothing to continue."
                 )
-                self.machine.state_bag["streamer"] = None
-                return
+                raise PendingUserInputError(
+                    "AnthropicToolUseState.run_async: pending user input"
+                )
 
             # Case 2b: LLM interrupt flow.
             # LLM request input from user by responding with a tool call of "user_input"
@@ -349,8 +357,7 @@ class AnthropicToolUseState(AnthropicStateBase):
 
         assistant_message = ""
 
-        self.machine.monologue.add_user_message(
-            state=self, content=tool_results)
+        self.machine.monologue.add_user_message(state=self, content=tool_results)
         messages = self.machine.monologue.list_messages()
 
         self.machine.state_bag["streamer"] = self._make_streamer(
@@ -459,8 +466,8 @@ class ToolUseAgent:
                 },
                 agent_name=agent_name,
                 get_llm_config=lambda state: llm_config.model_dump(),
-                get_mcp_client=lambda state: aggregated_client or McpAggregatedClient([
-                ]),
+                get_mcp_client=lambda state: aggregated_client
+                or McpAggregatedClient([]),
                 monologue=monologue,
                 has_message=self.has_message,
                 is_tool_call=self.is_tool_call,
@@ -533,7 +540,9 @@ class ToolUseAgent:
             and (self.fsm.state == "IS_TOOL_CALL")
             and user_message is None
         ):
-            raise ValueError("ToolUseAgent.resume_async: pending user input")
+            raise PendingUserInputError(
+                "ToolUseAgent._resume_async: pending user input"
+            )
 
         current_state = self.fsm.state
 
@@ -564,7 +573,9 @@ class ToolUseAgent:
 
         return streamer()
 
-    async def resume_async(self, user_message: Optional[str] = None, recap: Optional[str] = None) -> AsyncGenerator[str, None]:
+    async def resume_async(
+        self, user_message: Optional[str] = None, recap: Optional[str] = None
+    ) -> AsyncGenerator[str, None]:
         """
         Public method to resume the agent with an optional user message.
         """
@@ -574,13 +585,22 @@ class ToolUseAgent:
             await self._resume_async()
 
         # Run until LLM call
-        while self.fsm.state != "IS_TERMINATE":
-            if self.fsm.state == "IS_TOOL_CALL":
-                resp = await self._resume_async(user_message=user_message, recap=recap)
-                async for chunk in resp:
-                    yield chunk
-            else:
-                await self._resume_async()
+        try:
+            while self.fsm.state != "IS_TERMINATE":
+                if self.fsm.state == "IS_TOOL_CALL":
+                    resp = await self._resume_async(
+                        user_message=user_message, recap=recap
+                    )
+                    async for chunk in resp:
+                        yield chunk
+                else:
+                    await self._resume_async()
+        except PendingUserInputError as e:
+            self.fsm.state_bag["streamer"] = None
+            logger.error(f"ToolUserAgent.resume: {e}")
+            # Move to IS_TERMINATE state
+            await self._resume_async()
+            raise
 
     def final_output(self):
         get_assistant_message = self.fsm.state_bag["get_assistant_message"]
