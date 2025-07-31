@@ -139,6 +139,21 @@ class TestToolUseAgent:
         assert mock_state.machine.state_bag["predicate_result"] is True
         assert mock_state.machine.state_bag["streamer"] is None
 
+    def get_history_size(self):
+        import json
+        from gai.asm.constants import HISTORY_PATH
+        from gai.lib.constants import DEFAULT_GUID
+
+        history_path = os.path.expanduser(
+            HISTORY_PATH.format(
+                caller_id=DEFAULT_GUID, dialogue_id=DEFAULT_GUID, order_no=0
+            )
+        )
+        jsoned = []
+        with open(history_path, "r") as f:
+            jsoned = json.loads(f.read())
+        return len(jsoned)
+
     @pytest.mark.asyncio
     @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
     async def test_normal_flow(
@@ -191,7 +206,6 @@ class TestToolUseAgent:
 
         # Start testing
 
-        """Test that the agent has a history file."""
         agent = ToolUseAgent(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
@@ -277,21 +291,6 @@ class TestToolUseAgent:
         messages = agent.monologue.list_messages()
         assert len(messages) == 4
 
-    def get_history_size(self):
-        import json
-        from gai.asm.constants import HISTORY_PATH
-        from gai.lib.constants import DEFAULT_GUID
-
-        history_path = os.path.expanduser(
-            HISTORY_PATH.format(
-                caller_id=DEFAULT_GUID, dialogue_id=DEFAULT_GUID, order_no=0
-            )
-        )
-        jsoned = []
-        with open(history_path, "r") as f:
-            jsoned = json.loads(f.read())
-        return len(jsoned)
-
     @pytest.mark.asyncio
     @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
     async def test_stateless_flow(
@@ -350,7 +349,6 @@ class TestToolUseAgent:
 
         # Start testing
 
-        """Test that the agent has a history file."""
         agent = ToolUseAgent(
             agent_name="TestAgent",
             llm_config=mock_llm_config,
@@ -480,7 +478,168 @@ class TestToolUseAgent:
 
     @pytest.mark.asyncio
     @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
-    async def test_llm_interrupt_and_resume_flow(
+    async def test_terminate_flow(
+        self,
+        mock_messages_prop,
+        mock_file_monologue,
+        mock_llm_config,
+        mock_mcp_client,
+        request,
+    ):
+        """
+        This test will call resume() until agent has completed its task and unable to resume further.
+        Run resume(user_message) to continue.
+        """
+
+        count = 0
+
+        async def async_generator(**args):
+            nonlocal count
+
+            async def streamer_1():
+                datadir = get_local_datadir(request)
+                filename = "2d_anthropic_agent_chat_recap.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            async def streamer_2():
+                datadir = get_local_datadir(request)
+                filename = "2e_anthropic_agent_chat_tooluse.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            async def streamer_3():
+                datadir = get_local_datadir(request)
+                filename = "1a_anthropic_agent_chat.json"
+                fullpath = os.path.join(datadir, filename)
+                with open(fullpath, "r") as f:
+                    chunks = json.load(f)
+                    adapter = TypeAdapter(List[MessageStreamEvent])
+                    chunks = adapter.validate_python(chunks)
+                    for chunk in chunks:
+                        yield chunk
+
+            if count == 0:
+                count += 1
+                return streamer_1()
+            elif count == 1:
+                count += 1
+                return streamer_2()
+            elif count == 2:
+                count += 1
+                return streamer_3()
+            else:
+                raise StopAsyncIteration
+
+        mock_messages = MagicMock()
+        mock_messages.create.side_effect = async_generator
+        mock_messages_prop.return_value = mock_messages
+
+        # Start testing
+
+        agent = ToolUseAgent(
+            agent_name="TestAgent",
+            llm_config=mock_llm_config,
+            aggregated_client=mock_mcp_client,
+            monologue=mock_file_monologue,
+        )
+
+        # ACT: INIT -> IS_TOOL_CALL
+
+        await agent.start_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        # ACT: IS_TOOL_CALL -> CHAT
+
+        resp = await agent._resume_async(
+            user_message="What is the current time in Singapore?"
+        )
+        async for chunk in resp:
+            pass
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        # ACT: CHAT -> IS_TERMINATE
+
+        resp = await agent._resume_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        # ACT: IS_TERMINATE -> IS_TOOL_CALL
+
+        await agent._resume_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        # ACT: IS_TOOL_CALL -> TOOL_USE
+
+        resp = await agent._resume_async()
+        async for chunk in resp:
+            pass
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        # ACT: TOOL_USE -> IS_TERMINATE
+        await agent._resume_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        # ACT: IS_TERMINATE -> IS_TOOL_CALL
+        await agent._resume_async()
+        print(f"\ncurrent state: {agent.fsm.state}")
+
+        # ACT: IS_TOOL_CALL -> ERROR
+
+        # ┌─────────────────────────────────────────────────────────────────────────────┐
+        # │ task is completed and cannot resume()                                       │
+        # └─────────────────────────────────────────────────────────────────────────────┘
+
+        try:
+            await agent._resume_async()
+            print(f"\ncurrent state: {agent.fsm.state}")
+        except Exception as e:
+            # Expecting user_message is missing error
+            assert "user_message is missing" in str(e)
+
+        # ACT: ERROR -> IS_TERMINATE
+
+        await agent._resume_async()
+
+        # ACT: IS_TERMINATE -> IS_TOOL_CALL
+
+        await agent._resume_async()
+
+        # ACT: IS_TOOL_CALL -> CHAT
+
+        # ┌─────────────────────────────────────────────────────────────────────────────┐
+        # │ resume(user_message) to continue                                            │
+        # └─────────────────────────────────────────────────────────────────────────────┘
+
+        resp = await agent._resume_async("Tell me a one paragraph story")
+        last_chunk = []
+        text = ""
+        async for chunk in resp:
+            if isinstance(chunk, str):
+                chunk = chunk.rstrip()
+                if chunk:
+                    text += chunk
+            else:
+                last_chunk = chunk
+        print(f"\ncurrent state: {agent.fsm.state}")
+        assert agent.fsm.state == "CHAT"
+        assert (
+            text
+            == 'Here\'s a horror story for you:\n\nSarah always felt safe in her grandmother\'s old Victorian house until she found the diary hidden beneath the floorboards of the attic. The yellowed pages revealed her grandmother\'s desperate entries about "the thing that watches from the walls," describing how it would scratch and whisper her name each night, growing bolder with every passing day. As Sarah read the final entry—dated the night her grandmother died—she heard a familiar sound: the soft scraping of fingernails against wood, coming from inside the walls around her. The scratching grew louder, more insistent, and then she heard it—a raspy whisper calling her name, just as the diary had described. When she looked up from the pages, she saw fresh scratches appearing on the wall before her, spelling out a message that made her blood run cold: "Welcome home, Sarah."\n\nWhat did you think of that? Do you enjoy psychological horror, supernatural elements, or are you more drawn to other types of horror stories?'
+        )
+
+    @pytest.mark.asyncio
+    @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
+    async def test_llm_interrupt_and_resume_async_flow(
         self,
         mock_messages_prop,
         mock_file_monologue,
@@ -781,7 +940,7 @@ class TestToolUseAgent:
         assert not text
 
         # ACT: IS_TOOL_CALL -> TOOL_USE
-        # Because resume_async() is called without user input, TOOL_USE state will throw an exception
+        # Because resume() is called without user input, TOOL_USE state will throw an exception
 
         try:
             await agent._resume_async()

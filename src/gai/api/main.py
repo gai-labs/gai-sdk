@@ -127,7 +127,7 @@ async def start_asm(request: StartASMRequest = Body(...)):
     # Create a dialogue and extract recap
     dialogue = FileDialogue(caller_id=DEFAULT_GUID, dialogue_id=request.dialogue_id)
     recap = dialogue.extract_recap()
-    resp = agent.resume_async(user_message=request.user_message, recap=recap)
+    resp = agent.resume(user_message=request.user_message, recap=recap)
     return await precheck_streamer(streamer(resp))
 
 
@@ -164,7 +164,7 @@ async def resume_asm(request: ResumeASMRequest = Body(...)):
         aggregated_client=McpAggregatedClient(request.mcp_names),
         monologue=monologue,
     )
-    resp = agent.resume_async(user_message=request.user_message)
+    resp = agent.resume(user_message=request.user_message)
     return await precheck_streamer(streamer(resp))
 
 

@@ -21,6 +21,22 @@ class PendingUserInputError(Exception):
     pass
 
 
+class AutoResumeError(Exception):
+    """
+    Raised when resume() cannot be executed because the agent's task is completed.
+    """
+
+    pass
+
+
+class MissingUserMessageError(Exception):
+    """
+    Raised when chat state is run without a user message.
+    """
+
+    pass
+
+
 class AnthropicStateBase(StateBase):
     async def _raw_llm_stream(self, llm_client, llm_model, messages, tools):
         """Call the LLM once and yield raw (extracted) chunks."""
@@ -148,7 +164,9 @@ class AnthropicChatState(AnthropicStateBase):
     async def run_async(self):
         # Get User Message
         if not self.machine.user_message:
-            raise Exception("AnthropicToolCallState: user_message is missing.")
+            raise MissingUserMessageError(
+                "AnthropicChatState.run_async: user_message is missing."
+            )
 
         # Get llm client
         llm_config = self.input["llm_config"]
@@ -573,7 +591,7 @@ class ToolUseAgent:
 
         return streamer()
 
-    async def resume_async(
+    async def resume(
         self, user_message: Optional[str] = None, recap: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """
@@ -601,6 +619,13 @@ class ToolUseAgent:
             # Move to IS_TERMINATE state
             await self._resume_async()
             raise
+        except MissingUserMessageError as e:
+            # This error is only raised when the chat state is run without a user message and
+            # since this is a resume() operation, that means the agent has completed its task and expecting a new user message.
+            # In this case, we will raise AutoResumeError to indicate that the agent is ready for a new user message.
+            raise AutoResumeError(
+                "ToolUseAgent.resume: Cannot resume() as agent has completed its task. Either resume(user_message) to update the task or start a new task with start_async(user_message)."
+            )
 
     def final_output(self):
         get_assistant_message = self.fsm.state_bag["get_assistant_message"]

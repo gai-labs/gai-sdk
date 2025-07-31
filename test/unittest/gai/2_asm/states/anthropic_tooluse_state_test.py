@@ -113,7 +113,7 @@ class TestAnthropicToolUseState:
         async def async_generator(**args):
             async def streamer():
                 datadir = get_local_datadir(request)
-                filename = "4d_stream_tool_use_2_anthropic.json"
+                filename = "2e_anthropic_agent_chat_tooluse.json"
                 fullpath = os.path.join(datadir, filename)
                 with open(fullpath, "r") as f:
                     chunks = json.load(f)
@@ -144,18 +144,18 @@ class TestAnthropicToolUseState:
         # Verify streamer was created
         assert "streamer" in self.mock_machine.state_bag
         streamer = self.mock_machine.state_bag["streamer"]
-        content = ""
+        text = ""
         last_chunk = None
         async for chunk in streamer:
             if isinstance(chunk, str):
                 chunk = chunk.rstrip()
                 if chunk:
-                    content += chunk
+                    text += chunk
             else:
                 last_chunk = chunk
         assert (
-            content
-            == "The current time in Singapore is3:00 PM. Singapore follows Singapore Standard Time (SGT), which is UTC+8 and does not observe daylight saving time."
+            text
+            == "The current time in Singapore is 3:00 PM. Singapore follows Singapore Standard Time (SGT), which is UTC+8 and does not observe daylight saving time."
         )
         assert len(last_chunk) == 1
 

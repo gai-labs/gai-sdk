@@ -96,7 +96,7 @@ class TestAnthropicChatState:
 
         # Init State
         self.mock_machine = MockMachine()
-        self.mock_machine.user_message = "What is the current time in Singapore?"
+        self.mock_machine.user_message = "Tell me a one paragraph story."
         state = AnthropicChatState(self.mock_machine)
         state.input = {
             "llm_config": self.mock_machine.state_bag["llm_config"],
@@ -110,17 +110,23 @@ class TestAnthropicChatState:
         # Verify streamer was created
         assert "streamer" in self.mock_machine.state_bag
         streamer = self.mock_machine.state_bag["streamer"]
-        content = ""
+        text = ""
         last_chunk = []
         async for chunk in streamer:
             if isinstance(chunk, str):
                 chunk = chunk.rstrip()
                 if chunk:
-                    content += chunk
+                    text += chunk
             else:
                 last_chunk = chunk
-        assert content == "I'll help you find the current time in Singapore."
-        assert last_chunk[1]["input"]["search_query"] == "current time in Singapore"
+        assert (
+            "Here's a horror story for you:\n\nSarah always felt safe in her grandmother's old Victorian house until she found the diary hidden beneath the floorboards of the attic. The yellowed pages revealed her grandmother's desperate entries about \"the thing that watches from the walls,\" describing how it would scratch and whisper her name each night, growing bolder with every passing day."
+            in text
+        )
+        assert len(last_chunk) == 1
+        assert last_chunk[0]["type"] == "text"
+        assert last_chunk[0]["text"] == text
+
         monologue_messages = self.mock_machine.monologue.list_messages()
         assert len(monologue_messages) == 2
         assert monologue_messages[0].body.role == "user"

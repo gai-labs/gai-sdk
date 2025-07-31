@@ -46,6 +46,7 @@ class TestChatAgent:
     def mock_file_monologue(self):
         """Create a temporary file monologue"""
         from gai.messages import FileMonologue
+
         temp_file_path = os.path.join("/tmp", str(uuid.uuid4()) + ".log")
         monologue = FileMonologue(file_path=temp_file_path)
         monologue.reset()
@@ -101,9 +102,7 @@ class TestChatAgent:
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent.resume_async(
-            user_message="What is the current time in Singapore?"
-        )
+        resp = await agent._resume_async(user_message="Tell me a one paragraph story.")
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -115,7 +114,10 @@ class TestChatAgent:
                 last_chunk = chunk
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "CHAT"
-        assert "Here's a horror story for you:\n\nSarah always felt safe in her grandmother\'s old Victorian house until she found the diary hidden beneath the floorboards of the attic. The yellowed pages revealed her grandmother's desperate entries about \"the thing that watches from the walls,\" describing how it would scratch and whisper her name each night, growing bolder with every passing day." in text
+        assert (
+            "Here's a horror story for you:\n\nSarah always felt safe in her grandmother's old Victorian house until she found the diary hidden beneath the floorboards of the attic. The yellowed pages revealed her grandmother's desperate entries about \"the thing that watches from the walls,\" describing how it would scratch and whisper her name each night, growing bolder with every passing day."
+            in text
+        )
         assert len(last_chunk) == 1
         assert last_chunk[0]["type"] == "text"
         assert last_chunk[0]["text"] == text
