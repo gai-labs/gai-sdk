@@ -94,7 +94,7 @@ class TestChatAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -102,7 +102,7 @@ class TestChatAgent:
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent._resume_async(user_message="Tell me a one paragraph story.")
+        resp = await agent._run_async(user_message="Tell me a one paragraph story.")
         last_chunk = []
         text = ""
         async for chunk in resp:

@@ -476,7 +476,7 @@ class AsyncStateMachine:
             self.state_history.reset()
             self.state_bag = {}
 
-        async def undo_async(self):
+        def undo(self):
             """
             Undo the last state and return to the previous state.
             This is useful for undoing the last tool call or user message.

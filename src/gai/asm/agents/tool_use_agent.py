@@ -23,7 +23,7 @@ class PendingUserInputError(Exception):
 
 class AutoResumeError(Exception):
     """
-    Raised when resume() cannot be executed because the agent's task is completed.
+    Raised when agent's task is completed and cannot resume()
     """
 
     pass
@@ -535,14 +535,14 @@ class ToolUseAgent:
         state.machine.state_bag["is_terminate_result"] = result
         return result
 
-    async def start_async(self):
+    async def _init_async(self):
         self.fsm.monologue.reset()
         self.fsm.restart()
         current_state = self.fsm.state
         await self.fsm.run_async()
         logger.info(f"Final state: {current_state} --> {self.fsm.state}")
 
-    async def _resume_async(
+    async def _run_async(
         self, user_message: Optional[str] = None, recap: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """
@@ -558,9 +558,7 @@ class ToolUseAgent:
             and (self.fsm.state == "IS_TOOL_CALL")
             and user_message is None
         ):
-            raise PendingUserInputError(
-                "ToolUseAgent._resume_async: pending user input"
-            )
+            raise PendingUserInputError("ToolUseAgent._run_async: pending user input")
 
         current_state = self.fsm.state
 
@@ -591,61 +589,79 @@ class ToolUseAgent:
 
         return streamer()
 
+    async def start(self, user_message: str, recap: Optional[str] = None):
+        """
+        First call always require a user_message
+        Call always ends with "IS_TERMINATE"
+        """
+
+        # INIT -> IS_TOOL_CALL
+        await self._init_async()
+
+        # IS_TOOL_CALL -> CHAT
+        resp = await self._run_async(user_message=user_message, recap=recap)
+        async for chunk in resp:
+            yield chunk
+
+        # CHAT -> IS_TERMINATE
+        await self._run_async()
+
     async def resume(
-        self, user_message: Optional[str] = None, recap: Optional[str] = None
+        self, user_message: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """
-        Public method to resume the agent with an optional user message.
+        Subsequent calls does not require user_message if task is not completed.
+        Call always ends with "IS_TERMINATE"
         """
 
         # If continuing from previous state
         if self.fsm.state == "IS_TERMINATE":
-            await self._resume_async()
+            await self._run_async()
 
         # Run until LLM call
         try:
             while self.fsm.state != "IS_TERMINATE":
                 if self.fsm.state == "IS_TOOL_CALL":
-                    resp = await self._resume_async(
-                        user_message=user_message, recap=recap
-                    )
+                    resp = await self._run_async(user_message=user_message)
                     async for chunk in resp:
                         yield chunk
                 else:
-                    await self._resume_async()
+                    await self._run_async()
         except PendingUserInputError as e:
             self.fsm.state_bag["streamer"] = None
             logger.error(f"ToolUserAgent.resume: {e}")
             # Move to IS_TERMINATE state
-            await self._resume_async()
+            await self._run_async()
             raise
         except MissingUserMessageError as e:
+            # Move to IS_TERMINATE state
+            await self._run_async()
             # This error is only raised when the chat state is run without a user message and
             # since this is a resume() operation, that means the agent has completed its task and expecting a new user message.
             # In this case, we will raise AutoResumeError to indicate that the agent is ready for a new user message.
             raise AutoResumeError(
-                "ToolUseAgent.resume: Cannot resume() as agent has completed its task. Either resume(user_message) to update the task or start a new task with start_async(user_message)."
+                "ToolUseAgent.resume: Cannot resume() as agent has completed its task. Either resume(user_message) to update the task or start a new task with start(user_message)."
             )
 
     def final_output(self):
         get_assistant_message = self.fsm.state_bag["get_assistant_message"]
         return get_assistant_message()
 
-    async def _undo_async(self):
+    def _undo(self):
         """
         Undo the last state and return to the previous state.
         This is useful for undoing the last tool call or user message.
         """
-        await self.fsm.undo_async()
+        self.fsm.undo()
         logger.info(f"Undo: current state: {self.fsm.state}")
         return self.fsm.state
 
-    async def undo_async(self):
+    def undo(self):
         """
         Public method to undo the last state.
         """
 
         while self.fsm.state != "IS_TOOL_CALL":
-            await self._undo_async()
+            self._undo()
 
         return self.fsm.state

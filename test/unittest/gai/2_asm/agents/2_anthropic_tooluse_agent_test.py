@@ -215,7 +215,7 @@ class TestToolUseAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -223,7 +223,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent._resume_async(
+        resp = await agent._run_async(
             user_message="What is the current time in Singapore?"
         )
         last_chunk = []
@@ -252,7 +252,7 @@ class TestToolUseAgent:
 
         # ACT: CHAT -> IS_TERMINATE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TERMINATE"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -260,7 +260,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
 
-        await agent._resume_async()
+        await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is True
@@ -268,7 +268,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TOOL_CALL -> TOOL_USE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -304,7 +304,7 @@ class TestToolUseAgent:
         """
         The stateless flow is similar to the normal flow but we reinitialize the agent object after each step to simulate a stateless interaction.
         The agent should be able to load its state from the history file and continue the conversation seamlessly.
-        For this to work, make sure agent.start_async() is not called after the first step otherwise it will reset the history.
+        For this to work, make sure agent._init_async() is not called after the first step otherwise it will reset the history.
         """
 
         count = 0
@@ -358,7 +358,7 @@ class TestToolUseAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -381,7 +381,7 @@ class TestToolUseAgent:
         assert agent.fsm.state_bag["predicate_result"] is False
         assert agent.fsm.state_bag["is_tool_call_result"] is False
 
-        resp = await agent._resume_async(
+        resp = await agent._run_async(
             user_message="What is the current time in Singapore?"
         )
         last_chunk = []
@@ -419,7 +419,7 @@ class TestToolUseAgent:
             monologue=mock_file_monologue,
         )
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TERMINATE"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -436,7 +436,7 @@ class TestToolUseAgent:
             monologue=mock_file_monologue,
         )
 
-        await agent._resume_async()
+        await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is True
@@ -453,7 +453,7 @@ class TestToolUseAgent:
             monologue=mock_file_monologue,
         )
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -556,12 +556,12 @@ class TestToolUseAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent._resume_async(
+        resp = await agent._run_async(
             user_message="What is the current time in Singapore?"
         )
         async for chunk in resp:
@@ -570,27 +570,27 @@ class TestToolUseAgent:
 
         # ACT: CHAT -> IS_TERMINATE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
 
-        await agent._resume_async()
+        await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
 
         # ACT: IS_TOOL_CALL -> TOOL_USE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         async for chunk in resp:
             pass
         print(f"\ncurrent state: {agent.fsm.state}")
 
         # ACT: TOOL_USE -> IS_TERMINATE
-        await agent._resume_async()
+        await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
-        await agent._resume_async()
+        await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
 
         # ACT: IS_TOOL_CALL -> ERROR
@@ -600,7 +600,7 @@ class TestToolUseAgent:
         # └─────────────────────────────────────────────────────────────────────────────┘
 
         try:
-            await agent._resume_async()
+            await agent._run_async()
             print(f"\ncurrent state: {agent.fsm.state}")
         except Exception as e:
             # Expecting user_message is missing error
@@ -608,11 +608,11 @@ class TestToolUseAgent:
 
         # ACT: ERROR -> IS_TERMINATE
 
-        await agent._resume_async()
+        await agent._run_async()
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
 
-        await agent._resume_async()
+        await agent._run_async()
 
         # ACT: IS_TOOL_CALL -> CHAT
 
@@ -620,7 +620,7 @@ class TestToolUseAgent:
         # │ resume(user_message) to continue                                            │
         # └─────────────────────────────────────────────────────────────────────────────┘
 
-        resp = await agent._resume_async("Tell me a one paragraph story")
+        resp = await agent._run_async("Tell me a one paragraph story")
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -639,7 +639,7 @@ class TestToolUseAgent:
 
     @pytest.mark.asyncio
     @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
-    async def test_llm_interrupt_and_resume_async_flow(
+    async def test_llm_interrupt_and_run_async_flow(
         self,
         mock_messages_prop,
         mock_file_monologue,
@@ -698,7 +698,7 @@ class TestToolUseAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -706,7 +706,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent._resume_async(
+        resp = await agent._run_async(
             user_message="When is the next public holiday? Please ask if you need more information."
         )
         last_chunk = []
@@ -736,7 +736,7 @@ class TestToolUseAgent:
 
         # ACT: CHAT -> IS_TERMINATE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TERMINATE"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -756,7 +756,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -777,7 +777,7 @@ class TestToolUseAgent:
         # │ Resume pending message from AI                                              │
         # └─────────────────────────────────────────────────────────────────────────────┘
 
-        resp = await agent._resume_async("Use SGT")
+        resp = await agent._run_async("Use SGT")
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -865,7 +865,7 @@ class TestToolUseAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -873,7 +873,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent._resume_async(
+        resp = await agent._run_async(
             user_message="When is the next public holiday? Please ask if you need more information."
         )
         last_chunk = []
@@ -902,7 +902,7 @@ class TestToolUseAgent:
 
         # ACT: CHAT -> IS_TERMINATE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TERMINATE"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -922,7 +922,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -943,7 +943,7 @@ class TestToolUseAgent:
         # Because resume() is called without user input, TOOL_USE state will throw an exception
 
         try:
-            await agent._resume_async()
+            await agent._run_async()
         except Exception as e:
             print(f"Exception caught: {e}")
             assert "pending user input" in str(e)
@@ -1010,7 +1010,7 @@ class TestToolUseAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -1018,7 +1018,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent._resume_async(
+        resp = await agent._run_async(
             user_message="When is the next public holiday? Please ask if you need more information."
         )
         last_chunk = []
@@ -1048,7 +1048,7 @@ class TestToolUseAgent:
 
         # ACT: CHAT -> IS_TERMINATE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TERMINATE"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -1068,7 +1068,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -1091,7 +1091,7 @@ class TestToolUseAgent:
         # │ Instead of answering the question, interrupt with something else  │
         # └───────────────────────────────────────────────────────────────────┘
 
-        resp = await agent._resume_async("Tell me a one paragraph joke.")
+        resp = await agent._run_async("Tell me a one paragraph joke.")
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -1187,7 +1187,7 @@ class TestToolUseAgent:
 
         # ACT: INIT -> IS_TOOL_CALL
 
-        await agent.start_async()
+        await agent._init_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -1195,7 +1195,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TOOL_CALL -> CHAT
 
-        resp = await agent._resume_async(
+        resp = await agent._run_async(
             user_message="When is the next public holiday? Please ask if you need more information."
         )
         last_chunk = []
@@ -1225,7 +1225,7 @@ class TestToolUseAgent:
 
         # ACT: CHAT -> IS_TERMINATE
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TERMINATE"
         assert agent.fsm.state_bag["predicate_result"] is False
@@ -1245,7 +1245,7 @@ class TestToolUseAgent:
 
         # ACT: IS_TERMINATE -> IS_TOOL_CALL
 
-        resp = await agent._resume_async()
+        resp = await agent._run_async()
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -1268,7 +1268,7 @@ class TestToolUseAgent:
         # │ Instead of answering the question, interrupt with something else  │
         # └───────────────────────────────────────────────────────────────────┘
 
-        resp = await agent._resume_async("Tell me a one paragraph joke.")
+        resp = await agent._run_async("Tell me a one paragraph joke.")
         last_chunk = []
         text = ""
         async for chunk in resp:
@@ -1297,7 +1297,7 @@ class TestToolUseAgent:
         # │ This time we will undo the previous user message and send the correct one   │
         # └─────────────────────────────────────────────────────────────────────────────┘
 
-        await agent._undo_async()
+        agent._undo()
         print(f"\ncurrent state: {agent.fsm.state}")
         assert agent.fsm.state == "IS_TOOL_CALL"
 
@@ -1312,7 +1312,7 @@ class TestToolUseAgent:
         # │ Resume pending message from AI                                              │
         # └─────────────────────────────────────────────────────────────────────────────┘
 
-        resp = await agent._resume_async("Use SGT")
+        resp = await agent._run_async("Use SGT")
         last_chunk = []
         text = ""
         async for chunk in resp:
