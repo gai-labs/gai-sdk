@@ -1,6 +1,6 @@
 [project]
 name = "gai-init"
-version = "0.1.16"
+version = "0.1.17"
 description = "This is a bootstrap package for GAI SDK."
 classifiers = [ "Programming Language :: Python :: 3.10", "Development Status :: 3 - Alpha", "License :: OSI Approved :: MIT License", "Intended Audience :: Science/Research", "Intended Audience :: Developers", "Operating System :: OS Independent", "Topic :: Software Development", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Scientific/Engineering :: Artificial Intelligence",]
 requires-python = ">=3.10"

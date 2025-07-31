@@ -246,6 +246,14 @@ clients:
         url: file://../servers/mcp_pseudo.py
         extra:
             command: "python"
+    mcp-common:
+        type: mcp
+        client_type: gai
+        name: mcp-common
+        url: file://../servers/mcp_common.py
+        extra:
+            command: python
+
 pull:
     instructor:
         type: "huggingface"
