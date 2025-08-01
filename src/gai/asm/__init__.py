@@ -1,2 +1,2 @@
-from .asm import AsyncStateMachine
-__all__ = ["AsyncStateMachine"]
+from .asm import AgenticStateMachine
+__all__ = ["AgenticStateMachine"]

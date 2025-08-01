@@ -35,7 +35,7 @@ def is_json_serializable(v):
         return False
 
 
-class AsyncStateMachine:
+class AgenticStateMachine:
     class StateHistory:
         def _create_history_path(self, dialogue_id: str, caller_id: str):
             """
@@ -161,7 +161,8 @@ class AsyncStateMachine:
 
         async def resolve_input(self, state):
             input_data = state.manifest.get("input_data", {})
-            logger.debug(f"AsyncStateMachine.resolve_input: input_data={input_data}")
+            logger.debug(
+                f"AgenticStateMachine.resolve_input: input_data={input_data}")
             resolved_input_data = {}
             last_output = (
                 state.machine.state_history[-1].get("output", None)
@@ -182,13 +183,16 @@ class AsyncStateMachine:
                     )
 
                 if k == "step":
-                    raise ValueError("input_data cannot contain reserved key `step`")
+                    raise ValueError(
+                        "input_data cannot contain reserved key `step`")
 
                 if k == "time":
-                    raise ValueError("input_data cannot contain reserved key `time`")
+                    raise ValueError(
+                        "input_data cannot contain reserved key `time`")
 
                 if k == "name":
-                    raise ValueError("input_data cannot contain reserved key `name`")
+                    raise ValueError(
+                        "input_data cannot contain reserved key `name`")
 
                 if not isinstance(v, dict):
                     # This is a literal value, resolve it immediately
@@ -215,7 +219,7 @@ class AsyncStateMachine:
             resolved_input_data["name"] = self.agent_name
 
             logger.debug(
-                f"AsyncStateMachine.resolve_input: Resolved Pass 1. resolved_input_data={resolved_input_data}"
+                f"AgenticStateMachine.resolve_input: Resolved Pass 1. resolved_input_data={resolved_input_data}"
             )
 
             # Merge Pass 1 results into a working copy for Pass 2
@@ -256,14 +260,14 @@ class AsyncStateMachine:
                                 resolved = await callable_(state)
                             except Exception as e:
                                 logger.error(
-                                    f"AsyncStateMachine.resolve_input: error calling coroutine {dependency}. error={e}"
+                                    f"AgenticStateMachine.resolve_input: error calling coroutine {dependency}. error={e}"
                                 )
                         else:
                             try:
                                 resolved = callable_(state)
                             except Exception as e:
                                 logger.error(
-                                    f"AsyncStateMachine.resolve_input: error calling callable {dependency}. error={e}"
+                                    f"AgenticStateMachine.resolve_input: error calling callable {dependency}. error={e}"
                                 )
 
                     elif v.get("type", None) == "prev_state":
@@ -290,7 +294,8 @@ class AsyncStateMachine:
                         # dependency refers to the name of a state bag item
 
                         dependency = v.get("dependency", None)
-                        resolved = state.machine.state_bag.get(dependency, None)
+                        resolved = state.machine.state_bag.get(
+                            dependency, None)
                         if resolved is None:
                             raise ValueError(
                                 f"Dependency {dependency} not found in state bag: {state.machine.state_bag}"
@@ -311,7 +316,7 @@ class AsyncStateMachine:
                 state.machine.state_bag[k] = v
 
             logger.debug(
-                f"AsyncStateMachine.resolve_input: Resolved Pass 2. resolved_input_data={resolved_input_data}"
+                f"AgenticStateMachine.resolve_input: Resolved Pass 2. resolved_input_data={resolved_input_data}"
             )
 
             return resolved_input_data
@@ -340,7 +345,7 @@ class AsyncStateMachine:
             # Built-In State: timestamp
             output["time"] = datetime.now()
 
-            logger.debug(f"AsyncStateMachine.final_output: output={output}")
+            logger.debug(f"AgenticStateMachine.final_output: output={output}")
 
             return output
 
@@ -386,10 +391,12 @@ class AsyncStateMachine:
 
                     # Update history
                     self.state_history.append(
-                        {"state": "INIT", "input": state.input, "output": state.output}
+                        {"state": "INIT", "input": state.input,
+                            "output": state.output}
                     )
                 except Exception as e:
-                    logger.error(f"AsyncStateMachine.before_action_async: error={e}")
+                    logger.error(
+                        f"AgenticStateMachine.before_action_async: error={e}")
 
         async def action_async(self):
             # This function is only used for configuring any states other than "INIT" state
@@ -460,11 +467,12 @@ class AsyncStateMachine:
                     )
                 except Exception as e:
                     logger.error(
-                        f"AsyncStateMachine.action_async: error appending state history. error={e}"
+                        f"AgenticStateMachine.action_async: error appending state history. error={e}"
                     )
                     raise
             else:
-                raise ValueError(f"State {state_id} not found in state manifest.")
+                raise ValueError(
+                    f"State {state_id} not found in state manifest.")
 
             return self.state
 
@@ -518,15 +526,16 @@ class AsyncStateMachine:
 
         def build(
             self,
-            fsm_model: Optional[Union[dict, "AsyncStateMachine.StateModel"]] = None,
+            fsm_model: Optional[Union[dict,
+                                      "AgenticStateMachine.StateModel"]] = None,
             monologue: Optional[Monologue] = None,
             agent_name: str = "Assistant",
             caller_id: Optional[str] = DEFAULT_GUID,
             dialogue_id: Optional[str] = DEFAULT_GUID,
             **kwargs,
-        ) -> "AsyncStateMachine.StateModel":
+        ) -> "AgenticStateMachine.StateModel":
             if isinstance(fsm_model, dict):
-                fsm_model = AsyncStateMachine.StateModel(
+                fsm_model = AgenticStateMachine.StateModel(
                     state_manifest=fsm_model,
                     agent_name=agent_name,
                     monologue=monologue,
@@ -535,7 +544,7 @@ class AsyncStateMachine:
                 )
 
             if not fsm_model:
-                fsm_model = AsyncStateMachine.StateModel(
+                fsm_model = AgenticStateMachine.StateModel(
                     state_manifest={},
                     agent_name=agent_name,
                     monologue=monologue,
@@ -558,7 +567,8 @@ class AsyncStateMachine:
                 dest_condition = parts[1].split(":")
                 dest = dest_condition[0].strip()
                 condition = (
-                    dest_condition[1].strip() if len(dest_condition) > 1 else None
+                    dest_condition[1].strip() if len(
+                        dest_condition) > 1 else None
                 )
 
                 states.add(source)
@@ -634,7 +644,7 @@ class AsyncStateMachine:
             # Load Previous State
 
             # Load History
-            fsm_model.state_history = AsyncStateMachine.StateHistory(
+            fsm_model.state_history = AgenticStateMachine.StateHistory(
                 dialogue_id=fsm_model.dialogue_id, caller_id=fsm_model.caller_id
             )
 

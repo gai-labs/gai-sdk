@@ -1,6 +1,6 @@
 from typing import AsyncGenerator, Optional
 from gai.asm.base import StateBase
-from gai.asm import AsyncStateMachine
+from gai.asm import AgenticStateMachine
 from gai.asm.agents.base import AgentBase
 from gai.lib.logging import getLogger
 from gai.llm.lib import LLMGeneratorRetryPolicy
@@ -208,7 +208,8 @@ class AnthropicChatState(AnthropicStateBase):
             return  # Exit the state early
         # End of Case 1
 
-        self.machine.monologue.add_user_message(state=self, content=system_message)
+        self.machine.monologue.add_user_message(
+            state=self, content=system_message)
 
         messages = self.machine.monologue.list_messages()
 
@@ -337,7 +338,8 @@ class AnthropicToolUseState(AnthropicStateBase):
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
         if self.machine.monologue.is_terminated():
-            logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
+            logger.info(
+                "AnthropicToolUseState: Task completed, nothing to continue.")
             self.machine.state_bag["streamer"] = None
             return  # Exit the state early
 
@@ -375,7 +377,8 @@ class AnthropicToolUseState(AnthropicStateBase):
 
         assistant_message = ""
 
-        self.machine.monologue.add_user_message(state=self, content=tool_results)
+        self.machine.monologue.add_user_message(
+            state=self, content=tool_results)
         messages = self.machine.monologue.list_messages()
 
         self.machine.state_bag["streamer"] = self._make_streamer(
@@ -394,7 +397,7 @@ class ToolUseAgent:
         if not llm_config:
             raise ValueError("ChatAgent: llm_config is required.")
 
-        with AsyncStateMachine.StateMachineBuilder(
+        with AgenticStateMachine.StateMachineBuilder(
             """
             INIT --> IS_TOOL_CALL
             IS_TOOL_CALL --> CHAT: condition_false
@@ -558,7 +561,8 @@ class ToolUseAgent:
             and (self.fsm.state == "IS_TOOL_CALL")
             and user_message is None
         ):
-            raise PendingUserInputError("ToolUseAgent._run_async: pending user input")
+            raise PendingUserInputError(
+                "ToolUseAgent._run_async: pending user input")
 
         current_state = self.fsm.state
 
@@ -661,6 +665,11 @@ class ToolUseAgent:
         Public method to undo the last state.
         """
 
+        if self.fsm.state == "IS_TOOL_CALL":
+            # If we are already in IS_TOOL_CALL state, then undo one step.
+            self._undo()
+
+        # Undo until the last IS_TOOL_CALL state
         while self.fsm.state != "IS_TOOL_CALL":
             self._undo()
 

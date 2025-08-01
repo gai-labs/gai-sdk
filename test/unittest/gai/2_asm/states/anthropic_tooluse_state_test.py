@@ -6,7 +6,7 @@ from pydantic import TypeAdapter
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from gai.asm.agents.tool_use_agent import AnthropicToolUseState
-from gai.asm.asm import AsyncStateMachine
+from gai.asm.asm import AgenticStateMachine
 from gai.messages import Monologue
 from gai.lib.tests import get_local_datadir
 
@@ -43,7 +43,7 @@ class MockMachine:
             "mcp_client": mcp_client,
             "llm_config": {"client_type": "anthropic", "model": "claude-sonnet-4-0"},
         }
-        self.state_history = AsyncStateMachine.StateHistory()
+        self.state_history = AgenticStateMachine.StateHistory()
         self.state_history.append(
             {
                 "state": "CHAT",

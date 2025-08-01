@@ -1337,3 +1337,32 @@ class TestToolUseAgent:
         assert agent.final_output() == text
         messages = agent.monologue.list_messages()
         assert len(messages) == 4
+
+    @pytest.mark.asyncio
+    @patch("anthropic.AsyncAnthropic.messages", new_callable=PropertyMock)
+    async def test_user_undo_history(
+        self,
+        mock_messages_prop,
+        mock_file_monologue,
+        mock_llm_config,
+        mock_mcp_client,
+        request,
+    ):
+        """
+        Compare the history size before and after undo.
+        """
+
+        # Start testing
+
+        """Test that the agent has a history file."""
+        agent = ToolUseAgent(
+            agent_name="TestAgent",
+            llm_config=mock_llm_config,
+            aggregated_client=mock_mcp_client,
+            monologue=mock_file_monologue,
+        )
+        # '/home/vscode/.gai/data/00000000-0000-0000-0000-000000000000/User/dialogue/00000000-0000-0000-0000-000000000000/history/0.json'
+        history_size_before = len(agent.fsm.state_history.history)
+        agent.undo()
+        history_size_after = len(agent.fsm.state_history.history)
+        assert history_size_after < history_size_before
