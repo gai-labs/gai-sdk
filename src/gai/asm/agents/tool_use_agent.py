@@ -566,7 +566,8 @@ class ToolUseAgent:
             user_message = f"""
             {user_message}
 
-            Here is a recap of the conversation:
+            Here is a recap of the conversation. Note that the recap may include agents other than yourself.
+            Do not confuse your identity and do not mention the recap. Just continue.
             {recap}
             """
         self.fsm.user_message = user_message

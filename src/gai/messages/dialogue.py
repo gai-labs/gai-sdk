@@ -254,14 +254,21 @@ class FileDialogue(Dialogue):
         # Initialize MessageStore
         self.caller_id = caller_id or DEFAULT_GUID
         self.dialogue_id = dialogue_id or DEFAULT_GUID
-        user_dialogue_dir = os.path.expanduser(
-            USER_DIALOGUE_DIR.format(
-                caller_id=self.caller_id, dialogue_id=self.dialogue_id
-            )
-        )
-        os.makedirs(user_dialogue_dir, exist_ok=True)
 
-        self.file_path = file_path or os.path.join(user_dialogue_dir, "dialogue.json")
+        if file_path:
+            dialogue_dir = os.path.expanduser(os.path.dirname(file_path))
+            if dialogue_dir:
+                os.makedirs(dialogue_dir, exist_ok=True)
+            self.file_path = file_path
+        else:
+            dialogue_dir = os.path.expanduser(
+                USER_DIALOGUE_DIR.format(
+                    caller_id=self.caller_id, dialogue_id=self.dialogue_id
+                )
+            )
+            os.makedirs(dialogue_dir, exist_ok=True)
+            self.file_path = os.path.join(dialogue_dir, "dialogue.json")
+
         self.message_store = MessageStore[MessagePydantic](
             file_path=self.file_path, MessagePydantic_cls=MessagePydantic
         )

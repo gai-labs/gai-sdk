@@ -62,8 +62,7 @@ _registry_lock = threading.Lock()
 def register_body(cls: Type[BaseModel]) -> Type[BaseModel]:
     with _registry_lock:
         # drop any earlier class with this __name__
-        _BODY_CLASSES[:] = [
-            c for c in _BODY_CLASSES if c.__name__ != cls.__name__]
+        _BODY_CLASSES[:] = [c for c in _BODY_CLASSES if c.__name__ != cls.__name__]
         _BODY_CLASSES.append(cls)
     return cls
 
@@ -125,6 +124,66 @@ class ChatReplyBodyPydantic(BaseModel, MessageBodyMixin):
     content: Optional[str]
 
 
+# Handshake Body -----------------------------------------------------------------------------------
+
+
+class OrchStepPydantic(BaseModel):
+    step_type: Literal["chat.send", "chat.reply"] = Field(
+        ...,
+        description="Type of message step, either 'chat.send' for initiating or 'chat.reply' for responding.",
+    )
+    sender: str = Field(
+        ..., description="Name of the node or agent sending the message."
+    )
+    recipient: str = Field(
+        ..., description="Name of the node or agent intended to receive the message."
+    )
+    step_no: int = Field(
+        ...,
+        description="Step number in the conversation flow, indicating order of execution.",
+    )
+    is_pm: bool = Field(
+        ...,
+        description="Indicates whether this step is a private message (True) or not (False).",
+    )
+
+
+class OrchPlanPydantic(BaseModel):
+    dialogue_id: str = Field(
+        ..., description="Unique identifier for the dialogue session."
+    )
+    round_no: int = Field(
+        ...,
+        description="The round number within the current dialogue context. A round begins with the User and ends with the last agent's reply.",
+    )
+    curr_step_no: int = Field(
+        0, description="Current step number being executed in the dialogue plan."
+    )
+    steps: list[OrchStepPydantic] = Field(
+        default_factory=list,
+        description="Ordered list of steps to execute in this plan.",
+    )
+    participants: list[str] = Field(
+        ..., description="List of participant node names involved in the dialogue."
+    )
+    flow_type: Literal["poll", "chain"] = Field(
+        ...,
+        description="Type of dialogue flow: 'poll' for simultaneous turns, 'chain' for sequential turns.",
+    )
+
+
+@register_body
+class HandshakeBodyPydantic(BaseModel, MessageBodyMixin):
+    type: Literal["system.handshake"] = "system.handshake"
+    body: OrchPlanPydantic
+
+
+@register_body
+class HandshakeAckBodyPydantic(BaseModel, MessageBodyMixin):
+    type: Literal["system.handshake_ack"] = "system.handshake_ack"
+    body: OrchPlanPydantic
+
+
 # ─── Registry hookup ─────────────────────────────────────────────────────────
 
 
@@ -147,8 +206,7 @@ def get_message_cls():
     model = create_model(
         "MessagePydantic",
         id=(str, Field(default_factory=lambda: str(uuid.uuid4()))),
-        header=(MessageHeaderPydantic, Field(
-            default_factory=MessageHeaderPydantic)),
+        header=(MessageHeaderPydantic, Field(default_factory=MessageHeaderPydantic)),
         body=(BodyType, ...),
         __base__=BaseModel,
     )
