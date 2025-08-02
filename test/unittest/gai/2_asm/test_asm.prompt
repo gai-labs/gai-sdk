@@ -1,0 +1,6 @@
+Generate unit tests based on the following
+{
+    "asm_test.test_resolve_input_getter": "Review to /workspace/target/src/gai/asm/asm.py for the logic for resolving getter dependency type. Generate good and exception tests in `test_resolve_input_getter` in `/workspace/tests/gai-asm/gai/2_asm/test_asm.py`.",
+    "asm_test.test_resolve_input_prev_state": "Review to /workspace/target/src/gai/asm/asm.py for the logic for resolving previous state dependency type. Generate good and exception tests in `test_resolve_input_prev_state` in `/workspace/tests/gai-asm/gai/2_asm/test_asm.py`.",
+    "asm_test.test_resolve_input_state_bag": "Review to /workspace/target/src/gai/asm/asm.py for the logic for resolving state bag dependency type. Generate good and exception tests in `test_resolve_input_state_bag` in `/workspace/tests/gai-asm/gai/2_asm/test_asm.py`.",
+}
