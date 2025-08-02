@@ -38,7 +38,9 @@ class Dialogue:
         """
         self._messages.clear()
 
-    def add_user_message(self, recipient: str, content: str) -> MessagePydantic:
+    def add_user_message(
+        self, recipient: str, content: str, sender: str = "User"
+    ) -> MessagePydantic:
         # 1) Find round_no
         # User message's round number is the last user message's round number + 1
 
@@ -58,29 +60,41 @@ class Dialogue:
         step_no = 0
 
         # 3) Create the user message
-        named_content = f"{recipient}, {content}"
-        user_message = MessagePydantic(
-            **{
-                "header": {
-                    "sender": "User",
-                    "recipient": recipient,
-                },
-                "body": {
-                    "type": "chat.send",
-                    "dialogue_id": self.dialogue_id,
-                    "round_no": round_no,
-                    "step_no": step_no,
-                    "role": "user",
-                    "content": named_content,
-                },
-            }
+        user_message = message_helper.create_chat_send_message(
+            dialogue_id=self.dialogue_id,
+            round_no=round_no,
+            step_no=step_no,
+            recipient=recipient,
+            content=content,
+            sender=sender,
         )
+        # named_content = f"{recipient}, {content}"
+        # user_message = MessagePydantic(
+        #     **{
+        #         "header": {
+        #             "sender": sender,
+        #             "recipient": recipient,
+        #         },
+        #         "body": {
+        #             "type": "chat.send",
+        #             "dialogue_id": self.dialogue_id,
+        #             "round_no": round_no,
+        #             "step_no": step_no,
+        #             "role": "user",
+        #             "content": named_content,
+        #         },
+        #     }
+        # )
 
         self._messages.append(user_message)
         return user_message
 
     def add_assistant_message(
-        self, sender: str, chunk: str, content: Optional[str] = None
+        self,
+        sender: str,
+        chunk: str,
+        recipient: str = "User",
+        content: Optional[str] = None,
     ) -> MessagePydantic:
         if not self._messages or len(self._messages) == 0:
             raise ValueError("The first message must be a user message.")
@@ -106,35 +120,46 @@ class Dialogue:
 
         # 4) Validate chunk and content
 
-        # If content is provided, then chunk must be "<eom>"
-        if chunk != "<eom>" and content is not None:
-            raise ValueError("If content is provided, chunk must be '<eom>'.")
-
-        # If chunk is "<eom>", then content must not be None
-        if chunk == "<eom>" and content is None:
-            raise ValueError(
-                "If chunk is '<eom>', content can be '' but must not be None."
-            )
-
-        # 5) Create the assistant message
-        assistant_message = MessagePydantic(
-            **{
-                "header": {
-                    "sender": sender,
-                    "recipient": "User",
-                },
-                "body": {
-                    "type": "chat.reply",
-                    "dialogue_id": self.dialogue_id,
-                    "round_no": round_no,
-                    "step_no": step_no,
-                    "role": "assistant",
-                    "chunk": chunk,
-                    "chunk_no": chunk_no,
-                    "content": content,
-                },
-            }
+        assistant_message = message_helper.create_chat_reply_message(
+            dialogue_id=self.dialogue_id,
+            round_no=round_no,
+            step_no=step_no,
+            sender=sender,
+            chunk_no=chunk_no,
+            chunk=chunk,
+            content=content,
+            recipient=recipient,
         )
+
+        # # If content is provided, then chunk must be "<eom>"
+        # if chunk != "<eom>" and content is not None:
+        #     raise ValueError("If content is provided, chunk must be '<eom>'.")
+
+        # # If chunk is "<eom>", then content must not be None
+        # if chunk == "<eom>" and content is None:
+        #     raise ValueError(
+        #         "If chunk is '<eom>', content can be '' but must not be None."
+        #     )
+
+        # # 5) Create the assistant message
+        # assistant_message = MessagePydantic(
+        #     **{
+        #         "header": {
+        #             "sender": sender,
+        #             "recipient": recipient,
+        #         },
+        #         "body": {
+        #             "type": "chat.reply",
+        #             "dialogue_id": self.dialogue_id,
+        #             "round_no": round_no,
+        #             "step_no": step_no,
+        #             "role": "assistant",
+        #             "chunk": chunk,
+        #             "chunk_no": chunk_no,
+        #             "content": content,
+        #         },
+        #     }
+        # )
 
         self._messages.append(assistant_message)
         return assistant_message
@@ -269,14 +294,24 @@ class FileDialogue(Dialogue):
         return super().list_chat_messages()
 
     @transactional
-    def add_user_message(self, recipient: str, content: str) -> MessagePydantic:
-        return super().add_user_message(recipient, content)
+    def add_user_message(
+        self, recipient: str, content: str, sender: str = "User"
+    ) -> MessagePydantic:
+        return super().add_user_message(
+            recipient=recipient, content=content, sender=sender
+        )
 
     @transactional
     def add_assistant_message(
-        self, sender: str, chunk: str, content: Optional[str] = None
+        self,
+        sender: str,
+        chunk: str,
+        content: Optional[str] = None,
+        recipient: str = "User",
     ) -> MessagePydantic:
-        return super().add_assistant_message(sender, chunk, content)
+        return super().add_assistant_message(
+            sender=sender, chunk=chunk, content=content, recipient=recipient
+        )
 
     # @transactional
     # def insert_message(self, message: MessagePydantic) -> None:

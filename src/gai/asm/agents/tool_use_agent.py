@@ -208,8 +208,7 @@ class AnthropicChatState(AnthropicStateBase):
             return  # Exit the state early
         # End of Case 1
 
-        self.machine.monologue.add_user_message(
-            state=self, content=system_message)
+        self.machine.monologue.add_user_message(state=self, content=system_message)
 
         messages = self.machine.monologue.list_messages()
 
@@ -338,8 +337,7 @@ class AnthropicToolUseState(AnthropicStateBase):
         # Case 1: Either user terminated or LLM terminated. Stream nothing.
 
         if self.machine.monologue.is_terminated():
-            logger.info(
-                "AnthropicToolUseState: Task completed, nothing to continue.")
+            logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
             self.machine.state_bag["streamer"] = None
             return  # Exit the state early
 
@@ -377,8 +375,7 @@ class AnthropicToolUseState(AnthropicStateBase):
 
         assistant_message = ""
 
-        self.machine.monologue.add_user_message(
-            state=self, content=tool_results)
+        self.machine.monologue.add_user_message(state=self, content=tool_results)
         messages = self.machine.monologue.list_messages()
 
         self.machine.state_bag["streamer"] = self._make_streamer(
@@ -561,8 +558,7 @@ class ToolUseAgent:
             and (self.fsm.state == "IS_TOOL_CALL")
             and user_message is None
         ):
-            raise PendingUserInputError(
-                "ToolUseAgent._run_async: pending user input")
+            raise PendingUserInputError("ToolUseAgent._run_async: pending user input")
 
         current_state = self.fsm.state
 
@@ -634,18 +630,39 @@ class ToolUseAgent:
         except PendingUserInputError as e:
             self.fsm.state_bag["streamer"] = None
             logger.error(f"ToolUserAgent.resume: {e}")
+
             # Move to IS_TERMINATE state
-            await self._run_async()
+            prev = self.fsm.state
+            while self.fsm.state != "IS_TERMINATE":
+                try:
+                    await self._run_async()
+                except Exception:
+                    pass
+                if prev == self.fsm.state:
+                    raise Exception(
+                        "tool_user_agent.resume: Error while handling PendingUserInputError. Cannot fast forward to IS_TERMINATE."
+                    )
+
             raise
-        except MissingUserMessageError as e:
+        except MissingUserMessageError:
             # Move to IS_TERMINATE state
-            await self._run_async()
+            prev = self.fsm.state
+            while self.fsm.state != "IS_TERMINATE":
+                try:
+                    await self._run_async()
+                except Exception:
+                    pass
+                if prev == self.fsm.state:
+                    raise Exception(
+                        "tool_user_agent.resume: Error while handling MissingUserMessageError. Cannot fast forward to IS_TERMINATE."
+                    )
+
             # This error is only raised when the chat state is run without a user message and
             # since this is a resume() operation, that means the agent has completed its task and expecting a new user message.
             # In this case, we will raise AutoResumeError to indicate that the agent is ready for a new user message.
             raise AutoResumeError(
                 "ToolUseAgent.resume: Cannot resume() as agent has completed its task. Either resume(user_message) to update the task or start a new task with start(user_message)."
-            )
+            ) from None
 
     def final_output(self):
         get_assistant_message = self.fsm.state_bag["get_assistant_message"]

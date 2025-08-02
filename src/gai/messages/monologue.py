@@ -51,14 +51,11 @@ class Monologue:
             state_name = state.title
             step_no = state.input["step"]
 
-        message = MessagePydantic(
-            header=MessageHeaderPydantic(sender="User", recipient=self.agent_name),
-            body=MonologueBodyPydantic(
-                state_name=state_name,
-                step_no=step_no,
-                role="user",
-                content=content,
-            ),
+        message = message_helper.create_monologue_user_message(
+            recipient=self.agent_name,
+            state_name=state_name,
+            state_step=step_no,
+            content=content,
         )
         self._messages.append(message)
         return self
@@ -70,14 +67,20 @@ class Monologue:
             state_name = state.title
             step_no = state.input["step"]
 
-        message = MessagePydantic(
-            header=MessageHeaderPydantic(sender=self.agent_name, recipient="User"),
-            body=MonologueBodyPydantic(
-                state_name=state_name,
-                step_no=step_no,
-                role="assistant",
-                content=content,
-            ),
+        # message = MessagePydantic(
+        #     header=MessageHeaderPydantic(sender=self.agent_name, recipient="User"),
+        #     body=MonologueBodyPydantic(
+        #         state_name=state_name,
+        #         step_no=step_no,
+        #         role="assistant",
+        #         content=content,
+        #     ),
+        # )
+        message = message_helper.create_monologue_assistant_message(
+            sender=self.agent_name,
+            state_name=state_name,
+            state_step=step_no,
+            content=content,
         )
         self._messages.append(message)
         return self

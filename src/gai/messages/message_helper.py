@@ -1,14 +1,16 @@
 import re
-from typing import Any, Literal, Type, TypeVar
+from typing import Any, Literal, Type, TypeVar, Optional
 from gai.lib.logging import getLogger
 from gai.lib.constants import DEFAULT_GUID
 from pydantic import BaseModel
+
 from .typing import (
     DefaultBodyPydantic,
     MessageHeaderPydantic,
     # ReplyBodyPydantic,
     # SendBodyPydantic,
     MessagePydantic,
+    MonologueBodyPydantic,
 )
 
 logger = getLogger(__name__)
@@ -224,9 +226,9 @@ def fix_messages(chat_messages: list[dict]) -> list[dict]:
         else:
             fixed_messages.append(msg)
 
-    if chat_messages[-1].get("role") == "assistant":
+    if fixed_messages[-1].get("role") == "assistant":
         # If the last message is an assistant message, remove it
-        chat_messages.pop()
+        fixed_messages.pop()
 
     return fixed_messages
 
@@ -459,3 +461,106 @@ def validate_tool_messages(chat_messages: list[dict]) -> bool:
     #         f"unexpected `tool_use_id` found in `tool_result` blocks: {', '.join(unmatched_tool_result_message_ids)}. Each `tool_result` block must have a corresponding `tool_use` block in the previous message.")
     #     return False
     # return True
+
+
+def create_chat_send_message(
+    dialogue_id: str,
+    round_no: int,
+    step_no: int,
+    recipient: str,
+    content: str,
+    sender: str = "User",
+):
+    # 3) Create the user message
+    named_content = f"{recipient}, {content}"
+    user_message = MessagePydantic(
+        **{
+            "header": {
+                "sender": sender,
+                "recipient": recipient,
+            },
+            "body": {
+                "type": "chat.send",
+                "dialogue_id": dialogue_id,
+                "round_no": round_no,
+                "step_no": step_no,
+                "role": "user",
+                "content": named_content,
+            },
+        }
+    )
+    return user_message
+
+
+def create_chat_reply_message(
+    dialogue_id: str,
+    round_no: int,
+    step_no: int,
+    sender: str,
+    chunk_no: int,
+    chunk: str,
+    content: Optional[str] = None,
+    recipient: str = "User",
+) -> MessagePydantic:
+    # If content is provided, then chunk must be "<eom>"
+    if chunk != "<eom>" and content is not None:
+        raise ValueError("If content is provided, chunk must be '<eom>'.")
+
+    # If chunk is "<eom>", then content must not be None
+    if chunk == "<eom>" and content is None:
+        raise ValueError("If chunk is '<eom>', content can be '' but must not be None.")
+
+    # 5) Create the assistant message
+    assistant_message = MessagePydantic(
+        **{
+            "header": {
+                "sender": sender,
+                "recipient": recipient,
+            },
+            "body": {
+                "type": "chat.reply",
+                "dialogue_id": dialogue_id,
+                "round_no": round_no,
+                "step_no": step_no,
+                "role": "assistant",
+                "chunk": chunk,
+                "chunk_no": chunk_no,
+                "content": content,
+            },
+        }
+    )
+    return assistant_message
+
+
+def create_monologue_user_message(
+    recipient: str, state_name: str, state_step: int, content: str
+):
+    user_message = MessagePydantic(
+        **{
+            "header": MessageHeaderPydantic(sender="User", recipient=recipient),
+            "body": MonologueBodyPydantic(
+                state_name=state_name,
+                step_no=state_step,
+                role="user",
+                content=content,
+            ),
+        }
+    )
+    return user_message
+
+
+def create_monologue_assistant_message(
+    sender: str, state_name: str, state_step: int, content: str
+):
+    assistant_message = MessagePydantic(
+        **{
+            "header": MessageHeaderPydantic(sender=sender, recipient="User"),
+            "body": MonologueBodyPydantic(
+                state_name=state_name,
+                step_no=state_step,
+                role="assistant",
+                content=content,
+            ),
+        }
+    )
+    return assistant_message
