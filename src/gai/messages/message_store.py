@@ -13,6 +13,28 @@ logger = getLogger(__name__)
 MessagePydanticT = TypeVar("MessagePydanticT", bound=BaseModel)
 
 
+class MessageStoreLoadError(Exception):
+    def __init__(self, file_path: str, data: str, *, cause: Exception | None = None):
+        self.file_path = file_path
+        self.data = data
+        self.cause = cause
+        msg = (
+            f"MessageStore: Failed to load internal structure from {file_path} "
+            f"with data={data!r}. Creating new one."
+        )
+        if cause:
+            # preserve chaining
+            super().__init__(msg + f" Cause: {cause!r}")
+        else:
+            super().__init__(msg)
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(file_path={self.file_path!r}, "
+            f"data={self.data!r}, cause={self.cause!r})"
+        )
+
+
 class MessageStore(Generic[MessagePydanticT]):
     class InternalStructure(BaseModel):
         next_message_order: int = 0
@@ -64,30 +86,40 @@ class MessageStore(Generic[MessagePydanticT]):
 
     def list_messages(self) -> list[MessagePydanticT]:
         """List all messages in the messages store file."""
-        with MessageStore.file_lock:
-            if not os.path.exists(self.file_path):
-                logger.warning(f"MessageStore: File not found. path={self.file_path}")
-                raise FileNotFoundError(
-                    f"MessageStore: File not found path={self.file_path}"
-                )
-
-            with open(self.file_path, "r") as f:
-                data = ""
-                try:
-                    data = f.read()
-                    jsoned = json.loads(data)
-                    internal_structure = MessageStore.InternalStructure(**jsoned)
-                except json.JSONDecodeError:
-                    logger.error(
-                        f"MessageStore: Failed to load internal structure from {self.file_path} with data='{data}'. Creating new one."
+        try:
+            with MessageStore.file_lock:
+                if not os.path.exists(self.file_path):
+                    logger.warning(
+                        f"MessageStore: File not found. path={self.file_path}"
                     )
-                    raise Exception(
-                        f"MessageStore: Failed to load internal structure from {self.file_path} with data='{data}'. Creating new one."
+                    raise FileNotFoundError(
+                        f"MessageStore: File not found path={self.file_path}"
                     )
 
-            return [
-                self.MessagePydantic_cls(**msg) for msg in internal_structure.messages
-            ]
+                with open(self.file_path, "r") as f:
+                    data = ""
+                    try:
+                        data = f.read()
+                        jsoned = json.loads(data)
+                        internal_structure = MessageStore.InternalStructure(**jsoned)
+                    except json.JSONDecodeError as e:
+                        logger.error(
+                            f"MessageStore: Failed to load internal structure from {self.file_path} with data='{data}'. Creating new one."
+                        )
+                        raise MessageStoreLoadError(
+                            self.file_path, data, cause=e
+                        ) from e
+        except MessageStoreLoadError as e:
+            """
+            Recreate the file with an empty structure
+            """
+            logger.error(
+                f"MessageStore: Recreating file {self.file_path} due to load error: {e}"
+            )
+            self.reset()
+            internal_structure = MessageStore.InternalStructure()
+
+        return [self.MessagePydantic_cls(**msg) for msg in internal_structure.messages]
 
     def insert_message(self, message: MessagePydanticT):
         """Insert a message into the messages store file."""
@@ -229,7 +261,6 @@ class MessageStore(Generic[MessagePydanticT]):
             with open(self.file_path, "w") as f:
                 initial = MessageStore.InternalStructure().model_dump()
                 f.write(json.dumps(initial, indent=4))
-                time.sleep(1)  # Ensure file system is updated
             logger.debug(
                 f"MessageStore: File reset. all messages cleared. path={self.file_path}"
             )

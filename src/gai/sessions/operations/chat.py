@@ -137,6 +137,14 @@ class ChatResponder:
         # ChatResponder is used by Agents so it only listen to send messages from user and reply from other agents as well.
 
         async def _chatsend_handler(message: MessagePydantic):
+            if not self.plans:
+                # If no plans are available that means this agent is not part of any chat session, ignore and return early.
+
+                logger.warning(
+                    f"ChatResponder({self.node_name})._chatsend_handler: No plans available; ignoring message."
+                )
+                return None
+
             try:
                 pydantic = message.copy()
                 plan = self.plans[pydantic.body.dialogue_id]
@@ -197,8 +205,8 @@ class ChatResponder:
                 )
 
             except Exception as e:
-                logger.error(
-                    f"ChatResponder({self.node_name})._chatsend_handler: error={e}"
+                logger.exception(
+                    "ChatResponder(%s)._chatsend_handler: ", self.node_name
                 )
                 raise
 
@@ -214,11 +222,11 @@ class ChatResponder:
 
                 pydantic = message.model_copy()
 
-                # Guard: if self.plan is not set, log an error and return early.
+                # If no plans are available that means this agent is not part of any chat session, ignore and return early.
 
                 plan = self.plans.get(pydantic.body.dialogue_id)
                 if plan is None:
-                    logger.error(
+                    logger.warning(
                         "ChatResponder({self.node_name})._chatreply_handler: Received chat reply but self.plan is None; ignoring message."
                     )
                     return

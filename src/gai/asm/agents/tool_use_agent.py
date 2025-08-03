@@ -185,7 +185,8 @@ class AnthropicChatState(AnthropicStateBase):
             
             You may ask me for more information if you need to clarify my request but ask just enough to get the information you need to get started.
             If you need to ask for more information, please use the "user_input" tool to get the information from me.
-            Please be very specific about what you need from me. Don't end with "I need some additional information" or similar phrases as you need to be specific about what you need.
+            Never call "user_input" without providing a description of what you need from me.
+            Do not be vague and expect an input from me, be specific about what you want.
             """
 
         mcp_client = self.input.get("mcp_client")
@@ -394,6 +395,10 @@ class ToolUseAgent:
         if not llm_config:
             raise ValueError("ChatAgent: llm_config is required.")
 
+        self.agent_name = agent_name
+        self.aggregated_client = aggregated_client
+        self.llm_config = llm_config
+
         with AgenticStateMachine.StateMachineBuilder(
             """
             INIT --> IS_TOOL_CALL
@@ -482,9 +487,9 @@ class ToolUseAgent:
                         "output_data": ["monologue", "get_assistant_message"],
                     },
                 },
-                agent_name=agent_name,
-                get_llm_config=lambda state: llm_config.model_dump(),
-                get_mcp_client=lambda state: aggregated_client
+                agent_name=self.agent_name,
+                get_llm_config=lambda state: self.llm_config.model_dump(),
+                get_mcp_client=lambda state: self.aggregated_client
                 or McpAggregatedClient([]),
                 monologue=monologue,
                 has_message=self.has_message,

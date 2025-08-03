@@ -99,7 +99,7 @@ services:
     # #         - gai_network
 
     gai-mcp-web-svr:
-        image: kakkoii1337/gai-tools-web-svr:0.0.57
+        image: kakkoii1337/gai-tools-web-svr:0.0.61
         container_name: gai-tools-web-svr
         shm_size: "2g" # for non-headless
         environment:

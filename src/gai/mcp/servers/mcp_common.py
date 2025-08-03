@@ -256,6 +256,41 @@ def file_tree(file_path: str, max_depth: int = -1) -> dict:
     return {"tree": tree_output}
 
 
+@mcp.tool()
+def run_pytest(test_file_path: str):
+    """
+    Run pytest on a specified test file and return the results.
+    Args:
+        test_file_path (str): Path to the test file to run.
+    Returns:
+        str: Result of the pytest run, including any errors or output.
+    """
+    import subprocess
+
+    try:
+        test_file_path = os.path.expanduser(test_file_path)
+        if not os.path.exists(test_file_path):
+            return {"error": f"Test file {test_file_path} does not exist."}
+
+        # Run pytest command
+        result = subprocess.run(
+            ["pytest", test_file_path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        # Return the output and error messages
+        return {
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode,
+        }
+
+    except Exception as e:
+        return {"error": f"Failed to run pytest on {test_file_path}: {str(e)}"}
+
+
 if __name__ == "__main__":
     mcp.run(
         transport="stdio",

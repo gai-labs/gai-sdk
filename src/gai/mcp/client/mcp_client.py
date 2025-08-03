@@ -172,7 +172,9 @@ class McpClient:
 
 
 class McpAggregatedClient:
-    def __init__(self, mcp_clients: Union[list[McpClient], list[str]]):
+    def __init__(
+        self, mcp_clients: Union[list[McpClient], list[str], list[GaiClientConfig]]
+    ):
         """
         Accepts either a list of McpClient instances, eg. [McpClient(...), McpClient(...)] or a list of MCP server names, eg. ["mcp_server1", "mcp_server2"].
         """
@@ -191,6 +193,9 @@ class McpAggregatedClient:
                 McpClient(client_config=config_helper.get_client_config(name))
                 for name in mcp_clients
             ]
+
+        if mcp_clients and isinstance(mcp_clients[0], GaiClientConfig):
+            mcp_clients = [McpClient(client_config=config) for config in mcp_clients]
 
         # List tools from all MCP clients right upfront, de-duplicate and cache them
         self.mcp_names = [client.name for client in mcp_clients]
