@@ -70,8 +70,8 @@ class ChatSender:
                 f"ChatSender.chat_send_handler: Invalid flow type: {self.plan.flow_type}"
             )
 
+        # Log user's outgoing message
         self.session_mgr.log_message(pydantic=pydantic)
-
         await self.session_mgr.publish(pydantic=pydantic)
 
         self.inc_step()
@@ -97,6 +97,10 @@ class ChatSender:
         self, output_chunks_callback: Callable[[MessagePydantic], Awaitable[Any]]
     ):
         async def _output_chunks_handler(message: MessagePydantic):
+            if message.body.chunk == "<eom>":
+                # Log incoming streamed message from agent
+                self.session_mgr.log_message(message)
+
             await output_chunks_callback(message)
 
         await self.session_mgr.subscribe(
@@ -150,8 +154,6 @@ class ChatResponder:
                         f"ChatResponder({self.node_name})._chatsend_handler: Step number mismatch: message_step_no={pydantic.body.step_no} curr_step_no={plan.curr_step_no}"
                     )
 
-                self.session_mgr.log_message(pydantic)
-
                 self.inc_step(pydantic.body.dialogue_id)
 
                 if pydantic.header.recipient != self.node_name:
@@ -159,16 +161,13 @@ class ChatResponder:
 
                     return None
 
-                    # Obsolete code: This was used to process messages not meant for this agent.
-
-                    # if plan.steps[plan.curr_step_no].can_observe and self.input_chunks_callback:
-                    #     # NOTE: This is where you process the "send" messages not meant for this agent.
-                    #     pydantic = await self.input_chunks_callback(pydantic=pydantic)
-
                 # NOTE: Get streamer from LLM
                 # We need to be careful here because the input_chunks_callback may return a coroutine or an async generator.
                 # If it returns a coroutine, we need to await it to get the async generator.
                 # If it returns an async generator, we can use it directly.
+
+                # Log incoming message from user
+                self.session_mgr.log_message(pydantic)
 
                 res = input_chunks_callback(pydantic=pydantic)
                 import inspect
@@ -185,7 +184,9 @@ class ChatResponder:
                 # This will be blocked until the streamer is exhausted.
                 last_chunk = await self._send_chunks(streamer, pydantic)
 
+                # Log streamed outgoing message from assistant
                 await completed_content_callback(last_chunk)
+                self.session_mgr.log_message(last_chunk)
 
                 # ✅ Step increment only once after sending full response
 
@@ -244,9 +245,10 @@ class ChatResponder:
                         )
 
                     if not plan.steps[plan.curr_step_no].is_pm:
-                        # Note: Save completed message meant for other recipients for context
+                        # Note: Log streamed outgoing message from other agent
 
                         await completed_content_callback(pydantic)
+                        self.session_mgr.log_message(pydantic)
 
                     # ✅ Only increment here
                     self.inc_step(pydantic.body.dialogue_id)

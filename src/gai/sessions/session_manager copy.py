@@ -70,6 +70,7 @@ class LocalSessionManager(Generic[T]):
         self.logger_name = logger_name
         self.dialogue_id = dialogue_id or str(uuid.uuid4())
         self.max_recap_size = max_recap_size
+        self.messages: list[T] = []
 
         # Message bus
         self.bus = message_bus
@@ -83,6 +84,12 @@ class LocalSessionManager(Generic[T]):
             self.dialogue = FileDialogue(file_path=file_path)
             if reset:
                 self.dialogue.reset()
+            # Load existing messages
+            try:
+                self.messages = self.dialogue.list_messages()
+            except Exception as e:
+                logger.warning(f"Could not load messages from storage: {e}")
+                self.messages = []
         else:
             self.dialogue = Dialogue(agent_name=logger_name)
 
@@ -229,19 +236,20 @@ class LocalSessionManager(Generic[T]):
 
     def list_messages(self) -> list[T]:
         """Get all messages in dialogue history."""
-        return self.dialogue.list_messages()
+        return self.messages
 
     def log_message(self, pydantic: T):
         """Add a message to dialogue history."""
         logger.debug(f"LocalSessionManager: message={pydantic}")
 
         # Check if message is already appended before appending to avoid duplicating message
-        messages = self.dialogue.list_messages()
-        if any(m for m in messages if pydantic.id == m.id):
+        if any(m for m in self.messages if pydantic.id == m.id):
             logger.debug(
                 f"LocalSessionManager: message with id={pydantic.id} already logged, skipping."
             )
             return
+
+        self.messages.append(pydantic)
 
         # Prepare message for dialogue
         if pydantic.body.type == "chat.send":
@@ -267,17 +275,27 @@ class LocalSessionManager(Generic[T]):
 
     def extract_recap(self, last_n: int = 0) -> str:
         """Extract conversation recap for LLM context."""
-        return self.dialogue.extract_recap(last_n=last_n)
+        from gai.messages.message_helper import extract_recap
+
+        return extract_recap(
+            self.messages, last_n=last_n, max_recap_size=self.max_recap_size
+        )
 
     def reset(self):
         """Reset the dialogue by clearing all messages."""
-        self.dialogue.reset()
+        self.messages.clear()
         logger.debug("LocalSessionManager: Dialogue reset. all messages cleared.")
+
+        if self.dialogue:
+            self.dialogue.reset()
 
     def delete_message(self, message_id: str):
         """Delete a message by its ID."""
-        self.dialogue.delete_message(message_id)
+        self.messages = [m for m in self.messages if m.id != message_id]
         logger.debug(f"LocalSessionManager: Message deleted. message_id= {message_id}")
+
+        if self.dialogue:
+            self.dialogue.delete_message(message_id)
 
 
 def make_session_manager(message_cls: Type[T]) -> Type[LocalSessionManager[T]]:
