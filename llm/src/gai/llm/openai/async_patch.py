@@ -298,8 +298,8 @@ async def async_gai_parse(client_config, response_format, **kwargs):
 
 def patch_async_chatcompletions(
     openai_async_client,
-    file_path: str = None,
-    client_config: Optional[Union[GaiClientConfig | dict]] = None,
+    file_path: Optional[str] = None,
+    client_config: Optional[GaiClientConfig | dict] = None,
 ):
     """
     Patch an async OpenAI client to support multiple LLM backends.

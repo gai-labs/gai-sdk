@@ -170,6 +170,8 @@ class AnthropicChatState(AnthropicStateBase):
 
         # Get llm client
         llm_config = self.input["llm_config"]
+        if isinstance(llm_config, GaiClientConfig):
+            llm_config = llm_config.model_dump()
         llm_client = AsyncOpenAI(llm_config)
 
         # Get model
@@ -324,6 +326,8 @@ class AnthropicToolUseState(AnthropicStateBase):
     async def run_async(self):
         # Get llm client
         llm_config = self.input["llm_config"]
+        if isinstance(llm_config, GaiClientConfig):
+            llm_config = llm_config.model_dump()
         llm_client = AsyncOpenAI(llm_config)
 
         # Get mcp client
@@ -335,7 +339,7 @@ class AnthropicToolUseState(AnthropicStateBase):
         # Get model
         llm_model = llm_config["model"]
 
-        # Case 1: Either user terminated or LLM terminated. Stream nothing.
+        # Case 1: Either user terminated or LLM terminated. Streamer is `None`
 
         if self.machine.monologue.is_terminated():
             logger.info("AnthropicToolUseState: Task completed, nothing to continue.")
@@ -592,6 +596,7 @@ class ToolUseAgent:
                     if chunk:
                         # if isinstance(chunk, str):
                         yield (chunk)
+            # If the streamer is None, then reading from streamer will yield nothing.
 
         return streamer()
 
