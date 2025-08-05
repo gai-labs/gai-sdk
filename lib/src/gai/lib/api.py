@@ -1,4 +1,5 @@
 import os
+from queue import Empty
 import sys
 import time
 import toml
@@ -295,11 +296,15 @@ class SingletonHost:
         Otherwise, block and return the final result.
         """
         
+        from gai.lib.config.gai_generator_config import MissingGeneratorConfigError, MissingGeneratorSectionError
+        
         # Step 1: Check if the model is loaded
-
-        config = config_helper.get_generator_config(name=model)
-        if config is None:
-            raise ModelNotFoundException(model)
+        config=None
+        try:
+            config = config_helper.get_generator_config(name=model)
+        except MissingGeneratorConfigError as e:
+            raise ModelNotFoundException(model) from e
+            
         if config.name != self.generator_name:
             
             # Do not compare with model name because model can be an alias.

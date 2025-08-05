@@ -16,6 +16,7 @@ clients:
     dolphin3.0_llama3.1:4.25bpw:exl2:
         type: ttt
         client_type: gai
+        model: dolphin3.0_llama3.1:4.25bpw:exl2
         url: http://gai-llm-svr:12031/gen/v1/chat/completions
     tool-web:
         type: tool
@@ -24,6 +25,16 @@ clients:
     gpt-4o:
         type: ttt
         client_type: openai
+    sonnet-4:
+        client_type: anthropic
+        type: ttt
+        engine: null
+        model: claude-sonnet-4-0
+        name: claude-sonnet-4-0
+        url: null
+        env: null
+        extra:
+            ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     mcp-web:
         type: mcp
         client_type: gai

@@ -34,7 +34,7 @@ services:
             - gai_network
 
     gai-llm-svr:
-        image: kakkoii1337/gai-llm-svr-exl2:1.0.97
+        image: kakkoii1337/gai-llm-svr-exl2:1.0.99
         container_name: gai-llm-svr
         environment:
             DEFAULT_GENERATOR: "ttt"

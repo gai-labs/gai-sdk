@@ -1,6 +1,6 @@
 [project]
 name = "gai-llm-svr-exl2"
-version = "1.0.97"
+version = "1.0.99"
 requires-python = ">=3.10"
 dependencies = [ "pynvml==12.0.0", "numpy==1.26.4", "tokenizers==0.20.0", "uvicorn==0.30.6", "jsonschema>=4.23.0", "lm-format-enforcer==0.10.11", "toml>=0.10.2", "fastapi>=0.115.12", "gai-lib",]
 [[project.authors]]

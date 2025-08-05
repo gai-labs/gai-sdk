@@ -5,9 +5,9 @@ import yaml
 from typing import Literal, Optional, Union, overload
 from ..utils import get_app_path
 from .gai_config import GaiConfig
-from .gai_generator_config import GaiGeneratorConfig, MissingGeneratorConfigError
+from .gai_generator_config import GaiGeneratorConfig, MissingGeneratorConfigError, MissingGeneratorSectionError
 from .gai_client_config import GaiClientConfig
-from .gai_tool_config import GaiToolConfig, MissingToolConfigError
+from .gai_tool_config import GaiToolConfig, MissingToolConfigError, MissingToolSectionError
 from .download_config import (
     DownloadConfig,
     HuggingfaceDownloadConfig,
@@ -110,15 +110,15 @@ def get_gai_config(config_or_path: Optional[Union[dict, str]] = None) -> GaiConf
 
         config = _resolve_references(raw_config)
 
-        if not config.get("generators", None):
-            config["generators"] = {}
+        # if not config.get("generators", None):
+        #     config["generators"] = {}
 
-        # Convert class_ to class before converting to GaiConfig
+        # # Convert class_ to class before converting to GaiConfig
 
-        for k, v in config["generators"].items():
-            if v.get("module", None):
-                if v["module"].get("class_", None):
-                    v["module"]["class"] = v["module"].pop("class_")
+        # for k, v in config["generators"].items():
+        #     if v.get("module", None):
+        #         if v["module"].get("class_", None):
+        #             v["module"]["class"] = v["module"].pop("class_")
 
         return GaiConfig(**config)
 
@@ -247,15 +247,12 @@ def get_generator_config(
         # If name is provided, load the tool config from gai.yml
         # If not, return None to update the global config
 
-        try:
-            gai_config = get_gai_config(file_path)
-            generator_config = gai_config.generators.get(name, None)
-            if not generator_config:
-                return None
-        except Exception as e:
-            raise ValueError(
-                f"config_helper: Error loading generator config from file: {e}"
-            )
+        gai_config = get_gai_config(file_path)
+        if not gai_config.generators:
+            raise MissingGeneratorSectionError("config_helper.get_generator_config")            
+        generator_config = gai_config.generators.get(name, None)
+        if not generator_config:
+            raise MissingGeneratorConfigError("config_helper.get_generator_config",name)
     else:
         generator_config = GaiGeneratorConfig(**generator_config)
 
@@ -437,31 +434,28 @@ def get_and_update_tool_config(tool_name, builtin_config_path) -> GaiToolConfig:
     tool_config = None
     try:
         tool_config = get_tool_config(tool_name)
-    except MissingToolConfigError:
-        pass
-    except Exception as e:
-        print(f"Failed to load tool config: {str(e)}")
-        raise e
-
-    if not tool_config:
+    except MissingToolSectionError as e:
         # This means "tools" section is not present in global gai.yml
+        # This is usually caused by resetting gai.yml to default.
         # Update global config with local config
 
-        update_gai_config(
-            updateable_config_type="tools", builtin_config_path=builtin_config_path
-        )
-
+        try:
+            update_gai_config(
+                updateable_config_type="tools", builtin_config_path=builtin_config_path
+            )
+        except Exception as e:
+            print(f"get_and_update_tools_config: Failed to update global config with local config: {str(e)}")
+            raise e
+        
         try:
             # Try to load the tool config again after updating global config
             tool_config = get_tool_config(tool_name)
-        except MissingToolConfigError:
-            print("Failed to load tool config after updating global config.")
-            raise MissingToolConfigError(
-                "Failed to load tool config after updating global config."
-            )
         except Exception as e:
-            print(f"Failed to load tool config after updating global config: {str(e)}")
+            print(f"get_and_update_tools_config: Failed to load tool config after updating global config: {str(e)}")
             raise e
+    except Exception as e:
+        print(f"get_and_update_tools_config: Failed to load tool config: {str(e)}")
+        raise e
 
     return tool_config
 
@@ -476,32 +470,29 @@ def get_and_update_generator_config(
     generator_config = None
     try:
         generator_config = get_generator_config(generator_name)
-    except MissingToolConfigError:
-        pass
-    except Exception as e:
-        print(f"Failed to load generator config: {str(e)}")
-        raise e
-
-    if not generator_config:
-        # This means "tools" section is not present in global gai.yml
+    except MissingGeneratorSectionError as e:
+        # This means "generators" section is not present in global gai.yml
+        # This is usually caused by resetting gai.yml to default.
         # Update global config with local config
-
-        update_gai_config(
-            updateable_config_type="generators", builtin_config_path=builtin_config_path
-        )
-
+        
+        try:
+            update_gai_config(
+                updateable_config_type="generators", builtin_config_path=builtin_config_path
+            )
+        except Exception as e:
+            print(f"get_and_update_generator_config: Failed to update global config with local config: {str(e)}")
+            raise e
+        
         try:
             # Try to load the generator config again after updating global config
             generator_config = get_generator_config(generator_name)
-        except MissingGeneratorConfigError:
-            print("Failed to load generator config after updating global config.")
-            raise MissingGeneratorConfigError(
-                "Failed to load generator config after updating global config."
-            )
         except Exception as e:
             print(
-                f"Failed to load generator config after updating global config: {str(e)}"
+                f"get_and_update_generator_config: Failed to load generator config after updating global config: {str(e)}"
             )
             raise e
+    except Exception as e:
+        print(f"get_and_update_generator_config: Failed to load generator config: {str(e)}")
+        raise e
 
     return generator_config

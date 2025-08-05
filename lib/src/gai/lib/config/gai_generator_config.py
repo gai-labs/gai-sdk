@@ -7,8 +7,13 @@ logger = getLogger(__name__)
 
 class MissingGeneratorConfigError(Exception):
     """Custom Exception with a message"""
-    def __init__(self, message):
-        super().__init__(message)
+    def __init__(self, func_name, name):
+        super().__init__(f"{func_name}: Missing generator config for generator_name='{name}'. ")
+        
+class MissingGeneratorSectionError(Exception):
+    """Custom Exception with a message"""
+    def __init__(self, func_name):
+        super().__init__(f"{func_name}: Missing 'generators' section in global config. Usually caused by resetting gai.yml to default. Restart the server to regen the section.")
 
 class GaiGeneratorConfig(BaseModel):
     type: str

@@ -564,3 +564,25 @@ def create_monologue_assistant_message(
         }
     )
     return assistant_message
+
+
+def print_chunk(chunk: Any) -> None:
+    if chunk:
+        if isinstance(chunk, str):
+            print(chunk, end="", flush=True)
+        else:
+            if isinstance(chunk, list):
+                for item in chunk:
+                    if item.get("name"):
+                        print(f'Tool: "{item["name"]}"')
+                    if item.get("input"):
+                        inputs = item.get("input")
+                        if isinstance(inputs, dict):
+                            for key, value in inputs.items():
+                                if isinstance(value, str):
+                                    if len(value) > 100:
+                                        print(
+                                            f"\tInput: {key} = {value[:100]}... (truncated)"
+                                        )
+                                    else:
+                                        print(f"\tInput: {key} = {value}")

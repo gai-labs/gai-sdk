@@ -4,6 +4,11 @@ from typing import Dict, Optional
 from gai.lib.logging import getLogger
 logger = getLogger(__name__)
 
+class MissingToolSectionError(Exception):
+    """Custom Exception with a message"""
+    def __init__(self):
+        super().__init__("Missing 'tools' section in global config. Usually caused by resetting gai.yml to default. Restart the server to regen the section.")
+
 class MissingToolConfigError(Exception):
     """Custom Exception with a message"""
     def __init__(self, message):

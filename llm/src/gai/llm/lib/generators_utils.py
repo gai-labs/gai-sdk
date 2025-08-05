@@ -215,31 +215,6 @@ def word_streamer( char_generator):
                 buffer = words[-1]
     yield buffer
 
-    
-    # if isinstance(name_or_config, str):
-    #     generator_name = name_or_config
-        
-    #     # generator config from global config
-    #     Exllamav2GeneratorConfig.get_generator_config(generator_name=generator_name)
-    #     if not generator_config.source:
-    #         raise Exception(f"Generator '{generator_name}' does not have a source defined.")
-    #     name_or_config = generator_config.source
-
-    # if isinstance(name_or_config, DownloadConfig):
-    #     return name_or_config
-        
-    # if isinstance(name_or_config, dict):
-    #     if "type" in name_or_config:
-    #         if name_or_config["type"] == "huggingface":
-    #             download_config = HuggingfaceDownloadConfig(**name_or_config)
-    #         elif name_or_config["type"] == "civictai":
-    #             download_config = CivitaiDownloadConfig(**name_or_config)
-    #         else:
-    #             raise Exception(f"Invalid generator config type '{name_or_config['type']}'. Must be 'huggingface' or 'civictai'.")
-    #     return download_config
-    # else:
-    #     raise Exception(f"Invalid generator config type '{type(name_or_config)}'. Must be str, GaiGeneratorConfig or dict.")
-
 def progress_bar_callback(status):
     """
     A callback function that prints download progress in a human-readable format
