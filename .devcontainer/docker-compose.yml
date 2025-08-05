@@ -25,8 +25,8 @@ services:
             # Make sure this matches the workspaceFolder in .devcontainer/devcontainer.json
             - ..:/workspaces/gai-sdk:cached
 
-            # Mount the projects directory
-            - $HOME/.gai:/home/vscode/.gai:cached
+            # Mount HOME
+            - $HOME:/home/vscode:cached
 
             - /var/run/docker.sock:/var/run/docker.sock
         command: sleep infinity

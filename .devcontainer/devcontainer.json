@@ -32,6 +32,5 @@
     },
     "remoteUser": "vscode",
     "onCreateCommand": "/bin/bash .devcontainer/onCreateCommand.sh",
-    "postStartCommand": "/bin/bash .devcontainer/postStartCommand.sh",
-    "shutdownAction": "downCompose"
+    "postStartCommand": "/bin/bash .devcontainer/postStartCommand.sh"
 }
