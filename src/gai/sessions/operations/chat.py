@@ -285,6 +285,7 @@ class ChatResponder:
 
         chunk_no = 0
         combined_chunks = ""
+        last_chunk = ""
         curr_step_no = self.plans[pydantic.body.dialogue_id].curr_step_no
         template = MessagePydantic(
             header=MessageHeaderPydantic(
@@ -311,6 +312,7 @@ class ChatResponder:
         async for chunk in streamer:
             if isinstance(chunk, str):
                 combined_chunks += chunk
+                last_chunk = chunk
                 reply = template.model_copy()
                 reply.body.chunk_no = chunk_no
                 reply.body.chunk = chunk
@@ -319,13 +321,21 @@ class ChatResponder:
                 await self.session_mgr.publish(pydantic=reply)
                 chunk_no += 1
 
-        final_reply = template.model_copy()
-        final_reply.body.chunk_no = chunk_no
-        final_reply.body.chunk = "<eom>"
-        final_reply.body.content = combined_chunks
-        await self.session_mgr.publish(pydantic=final_reply)
-
-        return final_reply
+        # Only send final <eom> if the last chunk wasn't already <eom>
+        if last_chunk != "<eom>":
+            final_reply = template.model_copy()
+            final_reply.body.chunk_no = chunk_no
+            final_reply.body.chunk = "<eom>"
+            final_reply.body.content = combined_chunks
+            await self.session_mgr.publish(pydantic=final_reply)
+            return final_reply
+        else:
+            # Return the last reply that was already <eom>
+            final_reply = template.model_copy()
+            final_reply.body.chunk_no = chunk_no - 1  # Last chunk was already sent
+            final_reply.body.chunk = "<eom>"
+            final_reply.body.content = combined_chunks
+            return final_reply
 
     async def unsubscribe(self):
         """Unsubscribe from the chat.send and chat.reply messages."""
