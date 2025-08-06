@@ -230,6 +230,7 @@ class LLMGeneratorRetryPolicy:
             try:
                 async for chunk in func():
                     yield chunk
+                return  # Successfully completed, exit the retry loop
             except Exception as e:
                 if retries >= self.max_retries or not self.should_retry(e):
                     raise e

@@ -72,17 +72,88 @@ model_name = "llama3.2:3b"
 llm_config = config_helper.get_client_config(model_name)
 ```
 
+#### Initiate a Session
+
+```python
+import os
+from gai.lib.constants import DEFAULT_GUID
+from gai.sessions import SessionManager
+from rich.console import Console
+from gai.nodes.agent_node import AgentNode
+from gai.nodes.user_node import UserNode
+from dotenv import load_dotenv
+
+load_dotenv()
+console = Console(force_terminal=True)
+
+os.environ["LOG_LEVEL"] = "Warning"
+
+# Initiate a session
+
+session_mgr = SessionManager(
+    dialogue_id=DEFAULT_GUID, file_path=os.path.join("tmp", "dialogue.json")
+)
+session_mgr.reset()
+await session_mgr.start()
+
+## Create flow plan
+
+flow_plan = """
+    User ->> HaikuWriter
+    HaikuWriter ->> HaikuReviewer
+    """
+```
+
 #### Create a Haiku Writer Agent
 
-TBD
+```python
+HaikuWriter = AgentNode(
+    agent_name="HaikuWriter",
+    model_name="llama3.2:3b",
+    session_mgr=session_mgr
+)
+await HaikuWriter.subscribe(flow_plan)
+```
 
 #### Create a Haiku Reviewer Agent
 
-TBD
+```python
+HaikuReviewer = AgentNode(
+    agent_name="HaikuReviewer", model_name="ttt", session_mgr=session_mgr
+)
+await HaikuReviewer.subscribe(flow_plan)
+```
 
 #### Create a Multi-Agent Session
 
-TBD
+```python
+user = UserNode(session_mgr=session_mgr)
+
+## START Chain Response
+resp = await user.start(
+    user_message="You will work as a team to write a haiku poem about the beauty of coding and review it. Please share your thoughts while you are writing. Do not ask for any input from me.",
+    flow_plan=flow_plan,
+)
+content = ""
+async for chunk in resp:
+    if not content:
+        console.print(f"[bright_green]{chunk}[/bright_green] :")
+        content = chunk
+    else:
+        print(chunk, end="", flush=True)
+        content += chunk
+
+## RESUME Chain Response
+resp = await user.resume()
+content = ""
+async for chunk in resp:
+    if not content:
+        console.print(f"[bright_green]{chunk}[/bright_green] :")
+        content = chunk
+    else:
+        print(chunk, end="", flush=True)
+        content += chunk
+```
 
 ---
 

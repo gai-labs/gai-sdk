@@ -25,6 +25,14 @@ class OutputChunkBuilderBase(ABC):
                 yield self.build_content(chunk)
         return (chunk for chunk in streamer())
 
+    async def build_async_stream(self, streaming_response):
+        if hasattr(streaming_response, '__aiter__'):
+            async for chunk in streaming_response:
+                yield self.build_content(chunk)
+        else:
+            for chunk in streaming_response:
+                yield self.build_content(chunk)
+
     def build_tool_stream(self,streaming_response):
         if not getattr(self, 'build_toolcall', None):
             raise NotImplementedError("build_toolcall method is not implemented")

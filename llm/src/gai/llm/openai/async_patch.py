@@ -155,13 +155,17 @@ async def async_ollama_create(client_config, **kwargs):
     factory = CompletionsFactory()
     if stream and not tools:
         # Collect async chunks first, then use existing build_stream()
-        chunks = []
-        async for chunk in response:
-            chunks.append(chunk)
+        # chunks = []
+        # async for chunk in response:
+        #     chunks.append(chunk)
+        # response = factory.chunk.build_stream(chunks)
+        # response = attach_extractor_async(response, stream)
 
-        response = factory.chunk.build_stream(chunks)
-        response = attach_extractor_async(response, stream)
-        return response
+        # Convert Ollama ChatResponse to OpenAI Response but this will fail because build_stream doesn't support async generator
+        response = factory.chunk.build_async_stream(response)
+
+        _response = attach_extractor_async(response, is_stream=stream)
+        return _response
     else:
         if tools:
             response = factory.message.build_toolcall(response)

@@ -77,12 +77,11 @@ class AnthropicStateBase(StateBase):
                 self.machine.state_bag["get_assistant_message"] = None
                 self.machine.state_bag["user_message"] = None
 
-                if not isinstance(last_chunk, list):
-                    raise TypeError(
-                        f"AnthropicStateBase._streamer: Expected last chunk to be a list, got {type(chunk)} instead."
-                    )
+                # The last chunk is a special case. It is either a dict that contains the finish reason.
+                # Or it is a list of content blocks from Anthropic.
+                # Or it could be the last chunk of the text stream which just means that there is no object to return.
 
-                if last_chunk:
+                if isinstance(last_chunk, list):
                     # record assistant message, history & getter
                     self.machine.monologue.add_assistant_message(
                         state=self, content=last_chunk
@@ -104,6 +103,21 @@ class AnthropicStateBase(StateBase):
                                 self.machine.state_bag["is_user_input"] = True
                             else:
                                 self.machine.state_bag["is_user_input"] = False
+
+                elif (
+                    isinstance(last_chunk, dict)
+                    and last_chunk.get("type") == "finish_reason"
+                ):
+                    # The last chunk is a dict with type=finish_reason
+                    # This means that the LLM has finished its response.
+                    pass
+                elif isinstance(last_chunk, str):
+                    pass
+                else:
+                    raise ValueError(
+                        f"AnthropicStateBase._streamer: The last chunk should be a str or list, got {last_chunk} instead."
+                    )
+
                 return last_chunk
 
             has_text = False
