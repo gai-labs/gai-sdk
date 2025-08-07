@@ -10,15 +10,56 @@ A comprehensive Python SDK for building intelligent multi-agent AI systems using
 
 ### a) Installation
 
-Initialize the GAI-SDK application directory at `~/.gai`.
+**NOTE:** This repository is designed to run on Windows Subsystem for Linux (WSL) with Visual Studio Code and Docker Desktop. It can also run on native Linux or macOS environments following additions setup steps below.
+
+Install UV package manager:
+
+```bash
+curl -sSL https://install.uv.sh | sh
+```
+
+Run the command below to initialize the app directory at `~/.gai`.
 
 ```bash
 uvx gai-init@latest
 ```
 
-### b) Setup
+Clone the repository and open the project in Visual Studio Code.
 
-GAI-SDK supports local LLMs(EXL2,GGUF) and cloud-based LLMs(OpenAI,Claude).
+```bash
+git clone http://github.com/gai-labs/gai-sdk --recursive
+cd gai-sdk
+code .
+```
+
+#### Reopen the folder in Dev Container
+
+-   Click bottom-left blue button and select Reopen in Container
+    ![open in container](./doc/images/dev-container.png)
+
+    **📝 Note for Mac (Apple Silicon/M1/M2) Users:**
+
+    If you are running on a Mac with Apple Silicon (M1/M2), you may encounter compatibility issues with some Docker images built for `amd64` (x86_64) architecture.
+    To ensure compatibility:
+
+    1. **Add `platform: linux/amd64` to each service in your `docker-compose.yml`:**
+        ```yaml
+        services:
+            your-service:
+                image: your-image
+                platform: linux/amd64
+                # ...other config...
+        ```
+    2. **Enable Rosetta emulation in Docker Desktop:**
+        - Open Docker Desktop.
+        - Go to **Settings** > **Features in development** (or **Settings** > **General**).
+        - Enable **"Use Rosetta for x86_64/amd64 emulation on Apple Silicon"**.
+        - Restart Docker Desktop if prompted.
+          These steps are required for proper compatibility with the provided containers and images.
+
+### b) Basic Configuration
+
+Once opened in the container, there are some basic configurations you need to set up depending on the LLMs you want to use. GAI-SDK currently supports both local and cloud-based LLMs. For local LLMs, you can use Ollama or Exllama-v2. For cloud-based LLMs, you can use OpenAI or Anthropic.
 
 -   **For OpenAI**
 
@@ -53,6 +94,8 @@ GAI-SDK supports local LLMs(EXL2,GGUF) and cloud-based LLMs(OpenAI,Claude).
     ```
 
 ### c) Basic Usage
+
+Once you are in the dev container, you can continue the quick start guide [here](doc/quick-start.ipynb). The following section provides at-a-glance the steps to create a multi-agent system using the GAI SDK.
 
 #### Start a Session
 
