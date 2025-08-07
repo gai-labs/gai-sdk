@@ -10,10 +10,9 @@ A comprehensive Python SDK for building intelligent multi-agent AI systems using
 
 ### a) Installation
 
-Download gai-init script and run it to initialize the gai application directory at `~/.gai`.
+Initialize the GAI-SDK application directory at `~/.gai`.
 
 ```bash
-pip install --upgrade gai-init
 uvx gai-init@latest
 ```
 
@@ -21,83 +20,52 @@ uvx gai-init@latest
 
 GAI-SDK supports local LLMs(EXL2,GGUF) and cloud-based LLMs(OpenAI,Claude).
 
-**Configure for OpenAI**
+-   **For OpenAI**
 
-Create a .env file
+    Create a .env file
 
-```bash
-OPENAI_API_KEY=your_openai_api_key
-```
+    ```bash
+    OPENAI_API_KEY=your_openai_api_key
+    ```
 
-**Configure for Anthropic**
+-   **For Anthropic**
 
-Create a .env file
+    Create a .env file
 
-```bash
-ANTHROPIC_API_KEY=your_anthropic_api_key
-```
+    ```bash
+    ANTHROPIC_API_KEY=your_anthropic_api_key
+    ```
 
-**Configure for Ollama**
+-   **For Ollama**
 
-Download the Ollama model
+    Download the Ollama model
 
-```bash
-ollama pull llama3.2:3b
-```
+    ```bash
+    ollama pull llama3.2:3b
+    ```
 
-**Configure for Exllama-v2**
+-   **For Exllama-v2**
 
-Download the Exllama-v2 model
+    Download the Exllama-v2 model
 
-```bash
-uvx gai-pull@latest llama3.1-exl2
-```
+    ```bash
+    uvx gai-pull@latest llama3.1-exl2
+    ```
 
 ### c) Basic Usage
 
-#### Create an LLM Configuration
-
-In the example below, we use a local Ollama model.
+#### Start a Session
 
 ```python
-from gai.lib.config import config_helper
-from gai.llm.openai import AsyncOpenAI
-
-# "llama3.2:3b" for Ollama with CPU
-# or "ttt" for Gai/Exl2 running llama3.1-exl2 with GPU
-# or "sonnet-4" for Claude
-# or "gpt-4o" for OpenAI
-
-model_name = "llama3.2:3b"
-llm_config = config_helper.get_client_config(model_name)
-```
-
-#### Initiate a Session
-
-```python
-import os
-from gai.lib.constants import DEFAULT_GUID
 from gai.sessions import SessionManager
-from rich.console import Console
-from gai.nodes.agent_node import AgentNode
-from gai.nodes.user_node import UserNode
-from dotenv import load_dotenv
-
-load_dotenv()
-console = Console(force_terminal=True)
-
-os.environ["LOG_LEVEL"] = "Warning"
-
-# Initiate a session
-
-session_mgr = SessionManager(
-    dialogue_id=DEFAULT_GUID, file_path=os.path.join("tmp", "dialogue.json")
-)
+session_mgr = SessionManager()
 session_mgr.reset()
 await session_mgr.start()
+```
 
-## Create flow plan
+#### Create a Flow Plan
 
+```python
 flow_plan = """
     User ->> HaikuWriter
     HaikuWriter ->> HaikuReviewer
@@ -107,9 +75,10 @@ flow_plan = """
 #### Create a Haiku Writer Agent
 
 ```python
+from gai.nodes.agent_node import AgentNode
 HaikuWriter = AgentNode(
     agent_name="HaikuWriter",
-    model_name="llama3.2:3b",
+    model_name="llama3.2:3b", # for Ollama (CPU)
     session_mgr=session_mgr
 )
 await HaikuWriter.subscribe(flow_plan)
@@ -118,41 +87,35 @@ await HaikuWriter.subscribe(flow_plan)
 #### Create a Haiku Reviewer Agent
 
 ```python
+from gai.nodes.agent_node import AgentNode
 HaikuReviewer = AgentNode(
-    agent_name="HaikuReviewer", model_name="ttt", session_mgr=session_mgr
+    agent_name="HaikuReviewer",
+    model_name="ttt",       # for Llama3.1-exl2 (GPU)
+    session_mgr=session_mgr
 )
 await HaikuReviewer.subscribe(flow_plan)
 ```
 
-#### Create a Multi-Agent Session
+#### Start a Multi-Agent Session
 
 ```python
+from gai.nodes.user_node import UserNode
 user = UserNode(session_mgr=session_mgr)
 
-## START Chain Response
 resp = await user.start(
     user_message="You will work as a team to write a haiku poem about the beauty of coding and review it. Please share your thoughts while you are writing. Do not ask for any input from me.",
     flow_plan=flow_plan,
 )
-content = ""
 async for chunk in resp:
-    if not content:
-        console.print(f"[bright_green]{chunk}[/bright_green] :")
-        content = chunk
-    else:
-        print(chunk, end="", flush=True)
-        content += chunk
+    print(chunk, end="", flush=True)
+```
 
-## RESUME Chain Response
+#### Auto-Resume the Session
+
+```python
 resp = await user.resume()
-content = ""
 async for chunk in resp:
-    if not content:
-        console.print(f"[bright_green]{chunk}[/bright_green] :")
-        content = chunk
-    else:
-        print(chunk, end="", flush=True)
-        content += chunk
+    print(chunk, end="", flush=True)
 ```
 
 ---
