@@ -13,6 +13,8 @@ from gai.messages.dialogue import FileDialogue
 from gai.lib.constants import DEFAULT_GUID
 from gai.lib.config import config_helper
 from gai.lib.tests import get_pyproject_path, get_pyproject_version
+
+os.environ["LOG_LEVEL"] = "DEBUG"
 from gai.lib.logging import getLogger
 
 logger = getLogger(__name__)

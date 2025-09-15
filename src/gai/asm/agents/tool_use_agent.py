@@ -42,6 +42,10 @@ class AnthropicStateBase(StateBase):
         """Call the LLM once and yield raw (extracted) chunks."""
 
         async def _gen():
+            logger.debug(
+                "AnthropicStateBase._raw_llm_stream: tools=%s",
+                str([tool["function"]["name"] for tool in tools]),
+            )
             resp = await llm_client.chat.completions.create(
                 model=llm_model,
                 messages=messages,
@@ -121,6 +125,7 @@ class AnthropicStateBase(StateBase):
                 return last_chunk
 
             has_text = False
+            assistant_message = ""
             async for chunk in await self._raw_llm_stream(
                 llm_client, llm_model, chat_messages, tools
             ):
@@ -128,6 +133,7 @@ class AnthropicStateBase(StateBase):
 
                 if isinstance(chunk, str):
                     has_text = True
+                    assistant_message += chunk
                     yield chunk
                     continue
 
@@ -138,6 +144,9 @@ class AnthropicStateBase(StateBase):
                     break
 
             last_chunk = await process_last_chunk(chunk)
+            if isinstance(last_chunk, str):
+                assistant_message += last_chunk
+            self.machine.state_bag["assistant_message"] = assistant_message
             yield last_chunk
             return
 
@@ -258,7 +267,7 @@ class AnthropicToolUseState(AnthropicStateBase):
                     "dependency": "mcp_server_names",
                 },
             },
-            "output_data": ["streamer", "get_assistant_message"],
+            "output_data": ["streamer", "get_assistant_message","assistant_message"],
         }
     }
     """
@@ -391,9 +400,6 @@ class AnthropicToolUseState(AnthropicStateBase):
             tool_results = await self._use_tool(last_tool_calls=last_tool_calls)
 
         # At this point, tool_results should either be a list of real tool results or psuedo tool result.
-
-        assistant_message = ""
-
         self.machine.monologue.add_user_message(state=self, content=tool_results)
         messages = self.machine.monologue.list_messages()
 
@@ -467,7 +473,11 @@ class ToolUseAgent:
                                 "dependency": "get_mcp_client",
                             },
                         },
-                        "output_data": ["streamer", "get_assistant_message"],
+                        "output_data": [
+                            "streamer",
+                            "get_assistant_message",
+                            "assistant_message",
+                        ],
                     },
                     "TOOL_USE": {
                         "module_path": "gai.asm.agents.tool_use_agent",
@@ -483,7 +493,11 @@ class ToolUseAgent:
                                 "dependency": "get_mcp_client",
                             },
                         },
-                        "output_data": ["tool_result", "get_assistant_message"],
+                        "output_data": [
+                            "tool_result",
+                            "get_assistant_message",
+                            "assistant_message",
+                        ],
                     },
                     "IS_TOOL_CALL": {
                         "module_path": "gai.asm.states",
@@ -654,7 +668,7 @@ class ToolUseAgent:
                     await self._run_async()
         except PendingUserInputError as e:
             self.fsm.state_bag["streamer"] = None
-            logger.error(f"ToolUserAgent.resume: {e}")
+            logger.error("ToolUserAgent.resume: Pending user input cannot proceed.")
 
             # Move to IS_TERMINATE state
             prev = self.fsm.state
