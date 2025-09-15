@@ -548,7 +548,7 @@ class ToolUseAgent:
         return state.machine.state_bag["predicate_result"]
 
     def is_tool_call(self, state):
-        messages = state.machine.monologue.list_messages()
+        messages = self.fsm.monologue.list_messages()
         last_message = messages[-1] if messages else None
         result = False
         if (
@@ -561,7 +561,7 @@ class ToolUseAgent:
             ):
                 result = True
 
-        state.machine.state_bag["is_tool_call_result"] = result
+        self.fsm.state_bag["is_tool_call_result"] = result
         return result
 
     def is_terminate(self, state):
@@ -666,23 +666,11 @@ class ToolUseAgent:
                         yield chunk
                 else:
                     await self._run_async()
-        except PendingUserInputError as e:
+        except PendingUserInputError:
             self.fsm.state_bag["streamer"] = None
-            logger.error("ToolUserAgent.resume: Pending user input cannot proceed.")
-
-            # Move to IS_TERMINATE state
-            prev = self.fsm.state
-            while self.fsm.state != "IS_TERMINATE":
-                try:
-                    await self._run_async()
-                except Exception:
-                    pass
-                if prev == self.fsm.state:
-                    raise Exception(
-                        "tool_user_agent.resume: Error while handling PendingUserInputError. Cannot fast forward to IS_TERMINATE."
-                    )
-
+            logger.info("ToolUserAgent.resume: Pending user input cannot proceed.")
             raise
+
         except MissingUserMessageError:
             # Move to IS_TERMINATE state
             prev = self.fsm.state

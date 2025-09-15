@@ -26,6 +26,13 @@ class Dialogue:
     def list_messages(self) -> list[MessagePydantic]:
         return self._messages.copy()
 
+    def get_last_message(self) -> MessagePydantic:
+        messages = self.list_messages()
+        if messages:
+            return messages[-1]
+        else:
+            return None
+
     def list_chat_messages(self) -> list[dict[str, Any]]:
         """
         Returns the list of chat messages in the monologue.
@@ -295,6 +302,10 @@ class FileDialogue(Dialogue):
     @load_only
     def list_messages(self) -> list[MessagePydantic]:
         return super().list_messages()
+
+    @load_only
+    def get_last_message(self) -> MessagePydantic:
+        return super().get_last_message()
 
     @load_only
     def list_chat_messages(self) -> list[dict[str, Any]]:

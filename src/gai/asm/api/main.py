@@ -53,17 +53,32 @@ async def streamer(resp):
                 yield json.dumps(tool)
 
 
-async def precheck_streamer(gen):
+async def precheck_streamer(streamer, agent, dialogue):
     """
     Stream LLM response and check if the agent is expecting user input for resume or if task has completed
     """
     try:
-        first = await anext(gen)  # force the first item to detect any errors early
+        first = await anext(streamer)  # force the first item to detect any errors early
 
         async def yield_with_first():
             yield first
-            async for chunk in gen:
+            async for chunk in streamer:
                 yield chunk
+
+            # assistant message is only available after the full response is received
+            if not agent.is_tool_call(None):
+                last_dialogue_message = dialogue.get_last_message()
+                if last_dialogue_message and last_dialogue_message.body.role == "user":
+                    assistant_message = agent.fsm.state_bag.get("assistant_message", "")
+                    if assistant_message:
+                        dialogue.add_assistant_message(
+                            sender=agent.agent_name,
+                            chunk="<eom>",
+                            content=assistant_message,
+                        )
+                        logger.info(
+                            f"Assistant message added to dialogue {dialogue.dialogue_id}"
+                        )
 
         return StreamingResponse(yield_with_first(), media_type="application/json")
 
@@ -71,10 +86,13 @@ async def precheck_streamer(gen):
         logger.error(f"Pending user input error: {e}")
         return JSONResponse(
             status_code=409,
-            content={"error": "Pending user input", "details": str(e)},
+            content={
+                "error": "Pending user input",
+                "details": "Please provide the required user message to resume the conversation.",
+            },
         )
     except AutoResumeError as e:
-        logger.error(f"Task has completed error: {e}")
+        logger.info("Task has completed. {e}")
         return JSONResponse(
             status_code=409, content={"error": "Task has completed", "details": str(e)}
         )
@@ -87,24 +105,20 @@ async def precheck_streamer(gen):
 
 
 def make_agent(model_name: str, agent_name: str, mcp_names: Optional[list[str]] = None):
-    if agent_cache.get(agent_name):
-        agent = agent_cache[agent_name]
-    else:
-        llm_config = config_helper.get_client_config(model_name)
-        file_path = os.path.expanduser(
-            MONOLOGUE_PATH.format(
-                agent_name=agent_name.replace(" ", "_"),
-            )
+    llm_config = config_helper.get_client_config(model_name)
+    file_path = os.path.expanduser(
+        MONOLOGUE_PATH.format(
+            agent_name=agent_name.replace(" ", "_"),
         )
-        monologue = FileMonologue(agent_name=agent_name, file_path=file_path)
-        aggregated_client = McpAggregatedClient(mcp_names if mcp_names else [])
-        agent = ToolUseAgent(
-            agent_name=agent_name,
-            llm_config=llm_config,
-            aggregated_client=aggregated_client,
-            monologue=monologue,
-        )
-        agent_cache[agent_name] = agent
+    )
+    monologue = FileMonologue(agent_name=agent_name, file_path=file_path)
+    aggregated_client = McpAggregatedClient(mcp_names if mcp_names else [])
+    agent = ToolUseAgent(
+        agent_name=agent_name,
+        llm_config=llm_config,
+        aggregated_client=aggregated_client,
+        monologue=monologue,
+    )
     return agent
 
 
@@ -152,10 +166,13 @@ async def asm_start(req: ASMStartRequest = Body(...)):
     # Create a dialogue and extract recap
     dialogue = FileDialogue(caller_id=DEFAULT_GUID, dialogue_id=req.dialogue_id)
     recap = dialogue.extract_recap()
+    dialogue.add_user_message(recipient=req.agent_name, content=req.user_message)
 
     # Start the agent asynchronously
     resp = agent.start(user_message=req.user_message, recap=recap)
-    return await precheck_streamer(streamer(resp))
+    return await precheck_streamer(
+        streamer=streamer(resp), agent=agent, dialogue=dialogue
+    )
 
 
 class ASMResumeRequest(BaseModel):
@@ -168,6 +185,7 @@ class ASMResumeRequest(BaseModel):
     user_message: Optional[str] = Field(
         description="User message to resume the conversation", default=None
     )
+    dialogue_id: str = Field(description="Dialogue ID", default=DEFAULT_GUID)
 
 
 @router.post("/asm/resume")
@@ -178,7 +196,10 @@ async def asm_resume(req: ASMResumeRequest = Body(...)):
         mcp_names=req.mcp_names,
     )
     resp = agent.resume(user_message=req.user_message)
-    return await precheck_streamer(streamer(resp))
+    dialogue = FileDialogue(caller_id=DEFAULT_GUID, dialogue_id=req.dialogue_id)
+    return await precheck_streamer(
+        streamer=streamer(resp), agent=agent, dialogue=dialogue
+    )
 
 
 class ASMUndoRequest(BaseModel):
