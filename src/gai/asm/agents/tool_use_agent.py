@@ -576,7 +576,6 @@ class ToolUseAgent:
         self.fsm.monologue.reset()
         self.fsm.restart()
         current_state = self.fsm.state
-        await self.fsm.run_async()
         logger.info(f"Final state: {current_state} --> {self.fsm.state}")
 
     async def _run_async(
@@ -628,6 +627,9 @@ class ToolUseAgent:
 
         return streamer()
 
+    async def reset(self):
+        await self._init_async()
+
     async def start(self, user_message: str, recap: Optional[str] = None):
         """
         First call always require a user_message
@@ -636,6 +638,7 @@ class ToolUseAgent:
 
         # INIT -> IS_TOOL_CALL
         await self._init_async()
+        await self.fsm.run_async()
 
         # IS_TOOL_CALL -> CHAT
         resp = await self._run_async(user_message=user_message, recap=recap)

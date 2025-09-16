@@ -105,7 +105,7 @@ class AgenticStateMachine:
         def __len__(self):
             return len(self.history)
 
-        def reset(self):
+        def step(self):
             self.history = []
             if self.history_path:
                 with open(self.history_path, "w") as f:
@@ -138,6 +138,10 @@ class AgenticStateMachine:
                 self._save()
                 return item
             return None
+
+        def clear(self):
+            self.history.clear()
+            self._save()
 
     class StateModel:
         def __init__(
@@ -322,7 +326,7 @@ class AgenticStateMachine:
             # Init default output
             output = {
                 "predicate_result": None,
-                "reset": None,
+                "step": None,
                 "time": None,
             }
 
@@ -475,7 +479,7 @@ class AgenticStateMachine:
             self.state_data = {}
             self.user_message = None
             self.step = 0
-            self.state_history.reset()
+            self.state_history.clear()
             self.state_bag = {}
 
         def undo(self):
