@@ -42,20 +42,15 @@ code .
     If you are running on a Mac with Apple Silicon (M1/M2), you may encounter compatibility issues with some Docker images built for `amd64` (x86_64) architecture.
     To ensure compatibility:
 
-    1. **Add `platform: linux/amd64` to each service in your `docker-compose.yml`:**
-        ```yaml
-        services:
-            your-service:
-                image: your-image
-                platform: linux/amd64
-                # ...other config...
-        ```
-    2. **Enable Rosetta emulation in Docker Desktop:**
-        - Open Docker Desktop.
-        - Go to **Settings** > **Features in development** (or **Settings** > **General**).
-        - Enable **"Use Rosetta for x86_64/amd64 emulation on Apple Silicon"**.
-        - Restart Docker Desktop if prompted.
-          These steps are required for proper compatibility with the provided containers and images.
+    **Add `platform: linux/amd64` to each service in your `docker-compose.yml`:**
+
+    ```yaml
+    services:
+        your-service:
+            image: your-image
+            platform: linux/amd64
+            # ...other config...
+    ```
 
 ### b) Basic Configuration
 
