@@ -113,7 +113,6 @@ def _cli():
         "--part", choices=["major", "minor", "patch"], default="patch"
     )
     sub.add_parser("build")
-    sub.add_parser("smoke-test")
     sub.add_parser("publish")
     sub.add_parser("inspect-pkg-data")
 
@@ -148,8 +147,6 @@ def _cli():
         bump_version(args.part)
     elif args.cmd == "build":
         build()
-    elif args.cmd == "smoke-test":
-        smoke_install()
     elif args.cmd == "inspect-pkg-data":
         inspect_pkg_data()
     elif args.cmd == "publish":

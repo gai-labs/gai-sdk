@@ -108,6 +108,7 @@ def _docker_build(
         console.print(f"""[white]Removing existing {versioned_image}[/]""")
         _cmd(f"""docker rmi -f {versioned_image}""")
     cmd=f"""docker buildx build """ + ("""--no-cache""" if no_cache else "") + f""" \
+        --platform=linux/amd64,linux/arm64 \
         --progress=plain \
         -f {dockerfile_path} \
         -t {versioned_image} \
