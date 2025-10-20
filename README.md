@@ -37,20 +37,18 @@ code .
 -   Click bottom-left blue button and select Reopen in Container
     ![open in container](./doc/images/dev-container.png)
 
-    **📝 Note for Mac (Apple Silicon/M1/M2) Users:**
+    **📝⚠️ IMPORTANT for Mac Users:**
 
-    If you are running on a Mac with Apple Silicon (M1/M2), you may encounter compatibility issues with some Docker images built for `amd64` (x86_64) architecture.
-    To ensure compatibility:
+    If you are running on a Mac with Apple Silicon (M1/M2/...):
 
-    **Add `platform: linux/amd64` to each service in your `docker-compose.yml`:**
+    -   Create a file in the .dev directory named `docker-compose.override.yml`
+    -   Add the following content into the file to force the container to use the `linux/amd64` platform:
 
-    ```yaml
-    services:
-        your-service:
-            image: your-image
-            platform: linux/amd64
-            # ...other config...
-    ```
+        ```yaml
+        services:
+            devcontainer:
+                platform: linux/amd64
+        ```
 
 ### b) Basic Configuration
 
