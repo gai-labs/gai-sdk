@@ -36,4 +36,5 @@ build
 **/*.jwk
 
 **/tmp
+.devcontainer/docker-compose.override.yml
 
