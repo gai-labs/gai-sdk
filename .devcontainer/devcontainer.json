@@ -25,10 +25,7 @@
         }
     },
     "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2.12.0": {
-            "version": "latest",
-            "moby": true
-        }
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1.9.1": {}
     },
     "remoteUser": "vscode",
     "onCreateCommand": "/bin/bash .devcontainer/onCreateCommand.sh",

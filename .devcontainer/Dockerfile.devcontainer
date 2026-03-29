@@ -10,6 +10,11 @@ RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/
 
 ARG USERNAME=vscode
 
+# Fix stale Yarn apt source from base image and install missing dependencies
+RUN rm -f /etc/apt/sources.list.d/yarn.list \
+    && apt-get update && apt-get install -y zstd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Allow non-root user to run docker commands
 
 RUN groupadd -f docker && usermod -aG docker ${USERNAME}
