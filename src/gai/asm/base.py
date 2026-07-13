@@ -1,3 +1,20 @@
+import inspect
+
+async def call_handler(handler, state):
+    """
+    Invoke a state handler (an action or a predicate) that may be either sync or async.
+
+    Note that `callable()` is also True for a coroutine function, so the call has to be
+    made first and the result awaited only if it turns out to be awaitable.
+    """
+    if not callable(handler):
+        raise ValueError(f"State handler is not callable: {handler}")
+
+    result = handler(state)
+    if inspect.isawaitable(result):
+        result = await result
+    return result
+
 class StateBase:
 
     def __init__(self, machine):

@@ -11,6 +11,8 @@ result was silently dropped: the FINAL output came back empty and
 PureActionState.run_async() now writes to `self.machine.state_bag["action_result"]`.
 """
 
+import inspect
+
 import pytest
 
 from gai.asm import AgenticStateMachine
@@ -98,3 +100,29 @@ async def test_action_result_defaults_to_none_without_action():
     await run_to_final(fsm)
 
     assert fsm.state_bag["action_result"] is None
+
+
+@pytest.mark.asyncio
+async def test_sync_action_is_supported():
+    """A plain `def` action must work, not just `async def` (see call_handler)."""
+
+    def test_action(state):
+        return "sync_result"
+
+    fsm = await run_to_final(build_fsm(test_action))
+
+    assert fsm.state_bag["action_result"] == "sync_result"
+
+
+@pytest.mark.asyncio
+async def test_async_action_is_awaited_not_left_as_a_coroutine():
+    """An `async def` action's coroutine must be awaited, not stored raw."""
+
+    async def test_action(state):
+        return "async_result"
+
+    fsm = await run_to_final(build_fsm(test_action))
+
+    result = fsm.state_bag["action_result"]
+    assert not inspect.isawaitable(result), f"coroutine was never awaited: {result!r}"
+    assert result == "async_result"

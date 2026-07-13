@@ -1,4 +1,4 @@
-from ..base import StateBase
+from ..base import StateBase, call_handler
 from gai.lib.logging import getLogger
 logger = getLogger(__name__)
 
@@ -34,7 +34,7 @@ class PureActionState(StateBase):
         self.machine.state_bag["action_result"]=None
 
         if hasattr(self,"action") and self.action:
-            self.machine.state_bag["action_result"] = await self.action(self)
+            self.machine.state_bag["action_result"] = await call_handler(self.action, self)
             
         
         

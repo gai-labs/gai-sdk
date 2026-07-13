@@ -1,8 +1,7 @@
-import asyncio
 from gai.lib.logging import getLogger
 logger = getLogger(__name__)
 
-from ..base import StateBase
+from ..base import StateBase, call_handler
 
 """
 PredicateState
@@ -23,13 +22,6 @@ class PurePredicateState(StateBase):
     }    
     """    
 
-    def __init__(self,machine):
-        super().__init__(machine)
-        
-        # Define output data
-        self.predicate_result=None
-        
-        
     ## STATE-LEVEL CONDITIONS ###
     @classmethod
     def condition_true(cls,state_model):
@@ -48,15 +40,8 @@ class PurePredicateState(StateBase):
         return condition
 
     async def run_async(self):
-        
+
         if not self.predicate:
             raise ValueError("Predicate function not defined.")
-        
-        if callable(self.predicate):
-            result = self.predicate(self)
-        elif asyncio.iscoroutinefunction(self.predicate):
-            result = await self.predicate(self)
-        else:
-            raise ValueError("Predicate function not callable.")
 
-        self.machine.state_bag["predicate_result"]=result
+        self.machine.state_bag["predicate_result"] = await call_handler(self.predicate, self)
