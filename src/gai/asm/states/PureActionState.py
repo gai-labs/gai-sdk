@@ -27,16 +27,14 @@ class PureActionState(StateBase):
     }    
     """    
 
-    def __init__(self,machine):
-        super().__init__(machine)
-        
-        # Define output data
-        self.action_result=None
-
     async def run_async(self):
-        
+
+        # Define output data. Only the state bag is carried into the state output,
+        # state attributes are discarded when the state is done.
+        self.machine.state_bag["action_result"]=None
+
         if hasattr(self,"action") and self.action:
-            self.action_result = await self.action(self)
+            self.machine.state_bag["action_result"] = await self.action(self)
             
         
         
